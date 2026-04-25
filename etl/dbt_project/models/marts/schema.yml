@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: stg_harga_pangan
+    description: "Staging: data harga pangan yang sudah dibersihkan dan dinormalisasi"
+    columns:
+      - name: tanggal
+        tests: [not_null]
+      - name: comcat_id
+        tests: [not_null]
+      - name: harga
+        description: "Harga dalam Rupiah, NULL jika tidak tersedia atau tidak valid"
+
+  - name: mart_modelling_harga_pangan
+    description: "Dataset untuk training model ML forecasting harga pangan"
+    columns:
+      - name: tanggal
+        tests: [not_null]
+      - name: comcat_id
+        tests: [not_null]
+      - name: harga_aktual
+        tests: [not_null]
+
+  - name: mart_dashboard_harga_pangan
+    description: "Data harga pangan siap dashboard: per kota, per hari"
+    columns:
+      - name: tanggal
+        tests: [not_null]
+      - name: comcat_id
+        tests: [not_null]
+
+  - name: mart_dashboard_ringkasan_nasional
+    description: "Ringkasan harga harian level nasional untuk KPI cards dan grafik trend"
+    columns:
+      - name: tanggal
+        tests: [not_null]
+      - name: comcat_id
+        tests: [not_null]

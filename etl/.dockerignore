@@ -1,0 +1,15 @@
+.env
+*.duckdb
+data/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
+logs/
+.git/
+dbt_project/target/
+dbt_project/dbt_packages/
