@@ -1,0 +1,28 @@
+name: 'pihps_pipeline'
+version: '1.0.0'
+config-version: 2
+
+profile: 'pihps_pipeline'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  pihps_pipeline:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      modelling:
+        +materialized: table
+        +schema: marts
+      dashboard:
+        +materialized: table
+        +schema: marts
