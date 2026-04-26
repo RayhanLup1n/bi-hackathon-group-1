@@ -1,0 +1,3 @@
+# placeholder — ml/models/ berisi file .pkl hasil training
+# File .pkl tidak di-commit ke git (lihat .gitignore)
+# Jalankan ml/src/train.py untuk generate model files

@@ -1,0 +1,29 @@
+# ── ML Core ──────────────────────────────────────────────────────────────────
+lightgbm>=4.3.0
+scikit-learn>=1.4.0
+numpy>=1.26.0
+pandas>=2.2.0
+pyarrow>=16.0.0
+
+# ── Database ──────────────────────────────────────────────────────────────────
+duckdb>=1.1.0
+
+# ── Change Point Detection ────────────────────────────────────────────────────
+ruptures>=1.1.9          # offline batch change point detection
+
+# ── LLM Reasoning Agent ───────────────────────────────────────────────────────
+openai>=1.30.0           # OpenAI function calling (ReAct agent)
+
+# ── API Server ────────────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.7.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+loguru>=0.7.0
+python-dotenv>=1.0.0
+
+# ── Dev / Notebook ────────────────────────────────────────────────────────────
+ipykernel>=6.29.0        # Jupyter notebook support
+matplotlib>=3.8.0        # visualization untuk EDA
+seaborn>=0.13.0
