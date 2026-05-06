@@ -4,196 +4,355 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-RCA RadarPangan is a **rule-based Root Cause Analysis engine** for diagnosing food commodity price anomalies in Indonesia. It's a FastAPI backend with a single-page dashboard frontend. The engine detects price anomalies and traces root causes through a sequential decision tree, producing actionable policy recommendations in Indonesian.
+**R.A.D.A.R Pangan** (Real-time Anti-inflation Detection, Analysis & Response) is a platform for monitoring, predicting, and responding to food price inflation in Indonesia. It integrates real PIHPS price data, holiday calendars, and ML predictions to detect anomalies, compare prices against HET (Harga Eceran Tertinggi), and recommend policy interventions — all in Bahasa Indonesia.
+
+**Tim**: Simatana (Hackathon PIDI — Digitalisasi Ketahanan Pangan)
+**Stage**: MVP / Proof of Concept — target demo mid-May 2026
+**Branch kerja**: `feat/workflow-integration` (JANGAN langsung push ke `main`)
+
+## Architecture
+
+### High-Level System
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   DATA SOURCES                       │
+│  BI PIHPS (harga)  │  Hari Besar  │  (future: cuaca)│
+└────────┬───────────┴──────┬───────┴─────────────────┘
+         │                  │
+         ▼                  ▼
+┌─────────────────────────────────────────────────────┐
+│          ETL Pipeline (Airflow + dbt)                │
+│          Runs in Docker (local)                      │
+│          Target: Supabase PostgreSQL                 │
+└────────────────────┬────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────┐
+│         Supabase PostgreSQL (Cloud)                  │
+│         Shared by all team members                   │
+│                                                      │
+│  ETL schemas:          │  App schemas:                │
+│  • raw.*               │  • app.users                 │
+│  • staging.*           │  • app.het_reference         │
+│  • marts.*             │  • app.ml_predictions        │
+│                        │  • app.komoditas_config      │
+└──────────┬─────────────┴─────────┬──────────────────┘
+           │                       │
+     ┌─────┴──────┐          ┌─────┴──────┐
+     │  FastAPI   │          │ ML Model   │
+     │  Backend   │          │ (teammate) │
+     └─────┬──────┘          └────────────┘
+           │
+     ┌─────┴──────┐
+     │  Frontend  │
+     │  HTML +    │
+     │  Alpine.js │
+     └────────────┘
+```
+
+### Database: Supabase PostgreSQL
+
+**Connection**: Credentials di `.envs/.env` (JANGAN commit password ke git)
+
+```
+PostgreSQL (Supabase Cloud)
+│
+├── raw.                              ← ETL raw extracts
+│   ├── harga_pangan                  (harga harian dari BI PIHPS, ~346K+ rows)
+│   ├── dim_provinsi                  (master provinsi)
+│   ├── dim_kota                      (master kota)
+│   ├── hari_besar                    (hari libur nasional + cuti bersama)
+│   └── pipeline_log                  (audit trail ETL runs)
+│
+├── staging.                          ← dbt cleaned views
+│   ├── stg_harga_pangan             (deduplicated, validated, enriched)
+│   └── stg_hari_besar               (categorized holidays)
+│
+├── marts.                            ← dbt aggregated tables
+│   ├── mart_modelling_harga_pangan  (ML features: lag, rolling, z-score)
+│   ├── mart_dashboard_harga_pangan  (daily monitoring: delta, status, alert)
+│   └── mart_dashboard_ringkasan     (national-level aggregations)
+│
+└── app.                              ← Application-managed tables
+    ├── users                         (auth: id, username, password_hash, role, created_at)
+    ├── het_reference                 (HET per komoditas per wilayah — dummy awal)
+    ├── ml_predictions                (ML model output — managed by ML teammate)
+    └── komoditas_config              (mapping komoditas aktif di MVP)
+```
+
+### ETL Pipeline
+
+**Stack**: Airflow + dbt + Python extractors (in Docker)
+**Target**: Supabase PostgreSQL (migrated from DuckDB)
+
+| DAG | Fungsi | Schedule |
+|-----|--------|----------|
+| `dag_data_ready_modelling` | Historical PIHPS data → ML features | Manual trigger |
+| `dag_data_ready_dashboard` | Daily PIHPS update → dashboard tables | Daily 07:00 WIB |
+
+**Data sources**:
+- **BI PIHPS**: Harga harian 21 komoditas, 10 kota, 2 provinsi (Jawa Barat, DKI Jakarta). Via HTTP API with XSRF token.
+- **Hari Besar**: `python-holidays` package (offline, reliable) + `apiliburnasional.vercel.app` (backup)
+- **Cuaca (future)**: Open-Meteo Historical API (gratis, data Indonesia dari 1940), bukan BMKG (BMKG hanya forecast 3 hari, tidak ada historis)
+
+### Backend: FastAPI
+
+**Engine Logic** (2 modules):
+1. **HET Monitor** — bandingkan harga aktual vs HET reference → status AMAN / WASPADA / KRITIS / MELAMPAUI
+2. **RCA Engine** — rule-based root cause analysis (adapted from v0.2.0):
+   - Check 1: Hari Raya demand window (H-14 s/d H+3)
+   - Check 2: Disparitas harga antarwilayah (dari data real PIHPS)
+   - Check 3: Tren kenaikan serempak kota (dari mart_dashboard)
+   - Check 4: ML risk signal (dari app.ml_predictions)
+
+**Auth**: JWT HS256 (8 jam expire), bcrypt password hashing, RBAC (admin/analyst/viewer)
+
+### Frontend
+
+HTML + Alpine.js/HTMX (upgrade dari vanilla JS). No build step.
+Glassmorphism light-themed design system.
+
+Pages:
+- `/login` — Login page
+- `/` — Dashboard (monitoring harga + RCA + HET status)
+- `/admin` — User management (admin only)
+
+### ML Integration Contract
+
+ML teammate meng-INSERT predictions ke tabel `app.ml_predictions`:
+
+```sql
+CREATE TABLE app.ml_predictions (
+    id SERIAL PRIMARY KEY,
+    komoditas_id VARCHAR NOT NULL,          -- e.g. 'cabai_merah'
+    kota_id INTEGER NOT NULL,
+    prediction_date DATE NOT NULL,          -- kapan prediksi dibuat
+    target_date DATE NOT NULL,              -- tanggal yang diprediksi
+    predicted_price DOUBLE PRECISION,       -- P50 median
+    confidence_lower DOUBLE PRECISION,      -- P10 atau P5
+    confidence_upper DOUBLE PRECISION,      -- P90 atau P95
+    model_version VARCHAR,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+FastAPI tinggal SELECT dari tabel ini untuk ditampilkan di dashboard.
+
+## MVP Scope
+
+### Komoditas Fokus (2-3)
+1. **Cabai Merah** — paling volatile, sering melampaui HET
+2. **Bawang Merah** — kedua paling volatile
+3. **Beras** — staple, paling politis
+
+*(Pilih berdasarkan kelengkapan data di pipeline)*
+
+### In Scope (MVP)
+- Real PIHPS price data dari pipeline ETL
+- HET monitoring (dummy HET data dulu jika belum dapat data real)
+- RCA engine adapted untuk data real
+- ML predictions display (jika teammate sudah ready)
+- Hari besar calendar (dynamic via python-holidays)
+- User auth + RBAC
+- Dashboard monitoring interaktif
+
+### Out of Scope (MVP)
+- BMKG weather data integration (tidak ada API historis yang reliable)
+- Real-time stock data (Koperasi Desa Merah Putih)
+- React PWA rebuild (tetap HTML + Alpine.js)
+- Multi-province coverage (fokus Jawa Barat + DKI Jakarta)
+- Notification system (Telegram/WA/email)
+- Docker deployment untuk production
 
 ## Commands
 
 ```bash
-# Install dependencies
+# === App ===
 pip install -r requirements.txt
-
-# Run development server
 uvicorn main:app --reload
 
-# Run all tests
+# === Tests ===
 pytest tests/ -v
-
-# Run a single test
 pytest tests/test_rca_engine.py::test_demand_spike_hari_raya -v
+
+# === ETL (Docker) ===
+cd etl
+docker-compose up -d                    # Start Airflow + services
+docker-compose exec airflow-webserver airflow dags trigger dag_data_ready_modelling
+docker-compose down                      # Stop
+
+# === dbt ===
+cd etl/dbt_project
+dbt run --profiles-dir .
+dbt test --profiles-dir .
 ```
 
 Access points:
-- Login: `http://localhost:8000/login`
-- Dashboard: `http://localhost:8000`
-- Admin panel: `http://localhost:8000/admin`
-- DB Debug: `http://localhost:8000/static/debug.html`
+- App Login: `http://localhost:8000/login`
+- App Dashboard: `http://localhost:8000`
+- App Admin: `http://localhost:8000/admin`
 - Swagger API docs: `http://localhost:8000/docs`
+- Airflow UI: `http://localhost:8080` (when Docker is running)
 
-## Architecture
+## Git Workflow
 
-### Entry Point (`main.py`)
+- **Branch utama kerja**: `feat/workflow-integration`
+- **JANGAN** push langsung ke `main` — selalu via PR
+- **Commit format**: conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`)
+- **JANGAN** commit secrets (password, API keys) — gunakan `.env` files yang ada di `.gitignore`
 
-FastAPI app v0.2.0. `lifespan` handler menginisialisasi tiga SQLite DB saat startup (idempoten):
-- `init_db()` → `data/bmkg_weather.db`
-- `init_db_stok()` → `data/stok.db`
-- `init_db_auth()` → `data/auth.db`
-
-Empat router di-mount: `router` (komoditas + RCA), `bmkg_router`, `stok_router`, `auth_router`. Frontend di-serve via `StaticFiles` di `/static`. Route eksplisit: `/` → `index.html`, `/login` → `login.html`, `/admin` → `admin.html`.
-
-### Decision Tree Engine (`src/engine/rca_engine.py`)
-
-`run_rca(data, today)` menjalankan 4 check secara sequential dan **return early pada trigger pertama**:
-
-1. `_check_hari_raya()` → `DEMAND` — cek window H-14 s/d H+3 dari kalender di `config/settings.py`
-2. `_check_cuaca()` → `SUPPLY` — cek `data.cuaca.ekstrem` (boolean dari BMKG DB)
-3. `_check_persebaran_kota()` → `SUPPLY` — cek apakah ≥60% kota naik serempak
-4. `_check_stok()` → `DISTRIBUSI` (stok Normal) atau `UNKNOWN` (stok Menipis/Kritis)
-
-`DIAGNOSIS_TEMPLATES` di file yang sama menyimpan `title`, `description`, dan `action` per diagnosis type — semua teks hardcoded di sini. `_build_result()` merakit `RCAResult` dari template + checks + delta harga.
-
-`RCAResult` selalu berisi tepat 4 `CheckResult` dengan status `"triggered" | "clear" | "skip"`.
-
-### Auth Layer (`src/data/auth_db.py` + `src/api/auth_routes.py`)
-
-SQLite di `data/auth.db`, tabel `users` (id, username, password_hash, role, created_at).
-
-- **Password hashing**: `bcrypt` langsung (bukan passlib — tidak kompatibel dengan bcrypt ≥ 4.0)
-- **JWT**: HS256 via `python-jose`, expire 8 jam. Secret di `_SECRET` — **ganti via env var di production**
-- **Role**: `admin` (full access + user management), `analyst` (dashboard), `viewer` (read-only)
-- **Default seed**: `admin/admin123` dan `analyst/analyst123` di-insert saat `init_db_auth()` pertama kali
-- **Auth guard**: client-side — setiap halaman HTML cek token via `GET /api/auth/me`, redirect ke `/login` jika 401
-- **Endpoint**: `POST /api/auth/login` (form), `GET /me`, `GET/POST/PATCH/DELETE /users` (admin only)
-
-### Data Layer
-
-#### Komoditas (`src/data/commodity_data.py`)
-`DUMMY_COMMODITIES` — 4 komoditas: `cabai`, `bawang`, `beras`, `ayam`. Harga, delta, ML prediction, dan kota spread masih dummy.
-
-`get_commodity_data(key, tanggal)` menggabungkan dummy price+kota dengan:
-- Cuaca dari `bmkg_db.get_cuaca_komoditas()`
-- Stok dari `stok_db.get_stok_komoditas()` → diolah `_derive_stok()` jadi `StokInfo`
-
-#### BMKG Simulation DB (`src/data/bmkg_db.py`)
-SQLite di `data/bmkg_weather.db`, 4 tabel: `wilayah`, `cuaca_harian`, `peringatan_cuaca`, `komoditas_wilayah`.
-
-- **20 wilayah**: 12 produksi (3 per komoditas) + 8 kota konsumsi
-- **Cuaca harian**: H-45 s/d H+7, deterministik via hash(wilayah+tanggal), 4 kelas iklim
-- **10 peringatan ekstrem** terseed: Waspada/Siaga/Awas
-- `get_cuaca_komoditas()`: prioritaskan peringatan aktif (Awas > Siaga > Waspada), fallback ke cuaca harian wilayah prioritas 1
-
-#### Stok Simulation DB (`src/data/stok_db.py`)
-SQLite di `data/stok.db`, tabel `stok_harian` (komoditas × kota × tanggal).
-
-- Baseline stok per kota di `STOK_BASELINE`, variasi ±20% deterministik per hari
-- H-45 s/d H+7 dari hari ini
-- Threshold: `STOK_MENIPIS_THRESHOLD=0.60`, `STOK_KRITIS_THRESHOLD=0.35`
-- Re-seed: hapus `data/stok.db` lalu restart server
-
-### API Endpoints
-
-Semua endpoint komoditas/BMKG/stok support `?sim_date=YYYY-MM-DD`.
-
-**Auth** (prefix `/api/auth`):
-- `POST /login` — login via form (username + password), kembalikan JWT + user info
-- `GET /me` — data user aktif (Bearer token)
-- `GET /users` — daftar semua users (admin only)
-- `POST /users` — tambah user (admin only)
-- `PATCH /users/{id}` — edit password/role (admin only)
-- `DELETE /users/{id}` — hapus user (admin only)
-
-**Komoditas** (prefix `/api`):
-- `GET /commodities` — daftar key komoditas
-- `GET /commodity/{key}` — data lengkap (harga, cuaca, kota, stok)
-- `GET /rca/{key}` — jalankan RCA satu komoditas
-- `GET /rca` — jalankan RCA semua komoditas sekaligus
-
-**Stok** (prefix `/api/stok`):
-- `GET /` — stok semua komoditas di semua kota
-- `GET /{key}` — stok per kota untuk satu komoditas
-
-**BMKG** (prefix `/api/bmkg`):
-- `GET /wilayah` — list semua wilayah + metadata
-- `GET /cuaca/{kode_wilayah}` — cuaca harian suatu wilayah (default 14 hari)
-- `GET /peringatan` — peringatan aktif hari ini
-- `GET /peringatan/history` — riwayat N hari terakhir (default 30)
-- `GET /cuaca-all` — cuaca semua wilayah N hari (untuk debug)
-- `GET /komoditas/{key}/wilayah-produksi` — daftar wilayah produksi per komoditas
-- `GET /komoditas/{key}/cuaca` — tren cuaca 7 hari daerah produksi
-
-### Data Flow
+## Environment & Secrets
 
 ```
-GET /api/rca/{key}?sim_date=YYYY-MM-DD
-  → commodity_data.py: get_commodity_data(key, tanggal)
-      → bmkg_db.py: get_cuaca_komoditas(key, tanggal)     # peringatan → cuaca harian
-      → stok_db.py: get_stok_komoditas(key, tanggal)      # stok per kota → StokInfo
-  → rca_engine.py: run_rca(data, today)                   # sequential decision tree
-  → routes.py: return RCAResult                           # JSON response
+.envs/.env              ← Supabase PostgreSQL credentials (JANGAN commit password!)
+etl/.env                ← ETL-specific config (PIHPS API, delays, etc.)
 ```
 
-### Models (`src/models/schemas.py`)
-
-- `CommodityData` — input engine: harga, cuaca, kota_list, stok, threshold_kota (default 0.6)
-- `CuacaInfo` — `ekstrem: bool`, `desc`, `daerah`, `detail`
-- `StokInfo` — `status` (Normal/Menipis/Kritis), `kelas` (ok/warn/danger), `pct`
-- `KotaInfo` — `nama`, `naik: bool`
-- `RCAResult` — output: diagnosis, title, description, action, checks, price_delta_pct, is_anomaly
-- `DiagnosisType` — enum: `DEMAND | SUPPLY | DISTRIBUSI | UNKNOWN`
-- `CheckResult` — `step`, `nama`, `status` (triggered/clear/skip), `detail`
-- `BmkgWilayah`, `BmkgCuacaHarian`, `BmkgPeringatan`, `BmkgPeringatanAktif` — BMKG response models
-
-### Frontend
-
-Tiga halaman HTML, no build step. Glassmorphism light-themed, shared CSS design system (CSS variables sama di semua file).
-
-**`frontend/login.html`** — Login page. Cek token existing via `/api/auth/me` saat load; redirect ke `/` jika sudah login. Submit form ke `POST /api/auth/login` (form-encoded), simpan JWT + user info ke `localStorage`.
-
-**`frontend/admin.html`** — User management. Guard: cek token + role admin via `/api/auth/me`; redirect ke `/` jika bukan admin. Tabel users dengan modal tambah/edit/hapus.
-
-**`frontend/index.html`** — Dashboard RCA. Guard: redirect ke `/login` jika token tidak ada atau `/api/auth/me` kembalikan 401. `fetchJSON()` otomatis kirim `Authorization: Bearer`. Header menampilkan nama+role user, tombol 👥 Users (admin saja), tombol Keluar.
-
-- **Panel kiri**: commodity selector, chips wilayah produksi (dari `/api/bmkg/komoditas/{key}/wilayah-produksi`), harga + delta% + ML pred, signal grid (tanggal, cuaca, kota naik, stok), simulasi date picker
-- **Panel kanan**: anomaly banner, 4-step animated RCA checklist, result card (title + description + action)
-- Simulation date picker mengontrol tanggal di semua fetch — ganti tanggal → re-fetch otomatis, kalau result sudah tampil → re-run RCA juga otomatis
-- `runRCA()` animasi step-by-step: tiap check diaktifkan (600ms) lalu di-resolve, progress bar mengisi, result card muncul setelah selesai
-
-`frontend/debug.html` — inspector DB: cuaca, peringatan, stok.
-
-### Config (`config/settings.py`)
-
-- `HARI_RAYA_WINDOW_DAYS = 14`, `HARI_RAYA_POST_WINDOW_DAYS = 3`
-- `KOTA_SPREAD_THRESHOLD = 0.60`
-- `STOK_MENIPIS_THRESHOLD = 0.60`, `STOK_KRITIS_THRESHOLD = 0.35`
-- `HARI_RAYA_CALENDAR` — daftar tanggal hari raya (perlu diupdate tiap tahun)
-- Placeholder URL: `BMKG_API_URL`, `BADAN_PANGAN_API_URL`, `PIHPS_API_URL`
-
-### Tests (`tests/test_rca_engine.py`)
-
-12 test cases. Semua test via `make_commodity()` factory helper. Tanggal referensi:
-- `DATE_NORMAL = date(2025, 9, 15)` — tidak masuk window hari raya manapun
-- `DATE_IDUL_ADHA = date(2025, 5, 28)` — masuk window Idul Adha 2025
-
-Coverage: semua 4 diagnosis path, threshold boundary (tepat 60% dan di bawah), delta % calculation, anomaly flag, struktur output (selalu 4 checks).
-
-### Data Flow (dengan Auth)
-
+Format `.env` harus menggunakan `=` (bukan `:`):
 ```
-Browser → GET /login → serve login.html
-Browser → POST /api/auth/login (form) → JWT token
-Browser → GET / (Authorization: Bearer <token>)
-         → index.html fetch /api/auth/me → valid → load dashboard
-         → 401 → redirect /login
+SUPABASE_HOST=db.xxx.supabase.co
+SUPABASE_PORT=5432
+SUPABASE_DB=postgres
+SUPABASE_USER=postgres
+SUPABASE_PASSWORD=<password>
 ```
 
-## Key Extension Points
+## Do's and Don'ts
 
-- **Tambah rule baru**: buat `_check_*()` di `rca_engine.py`, sisipkan di `run_rca()`, tambah `DiagnosisType` + template ke `DIAGNOSIS_TEMPLATES`
-- **Ubah threshold**: edit `config/settings.py`
-- **Tambah komoditas**: tambah entry di `DUMMY_COMMODITIES` (`commodity_data.py`) + `STOK_BASELINE` (`stok_db.py`) + `KOMODITAS_WILAYAH_MAP` (`bmkg_db.py`)
-- **Tambah wilayah produksi**: tambah entry di `WILAYAH_DATA` dan `KOMODITAS_WILAYAH_MAP` di `bmkg_db.py`, hapus `data/bmkg_weather.db`, restart
-- **Tambah role baru**: tambah nilai di validasi `auth_routes.py` dan beri badge color di `admin.html`
-- **JWT via env var (production)**: ganti `_SECRET` di `auth_routes.py` dengan `os.environ["JWT_SECRET"]`
-- **Tambah user field**: tambah kolom di tabel `users` (`auth_db.py`), update schema Pydantic, update form di `admin.html`
-- **Connect real price/kota/stok**: ganti dummy di `commodity_data.py` dan `stok_db.py` dengan API PIHPS/Badan Pangan/Bulog
-- **Connect real weather**: ganti implementasi `get_cuaca_komoditas()` di `bmkg_db.py` dengan real BMKG API (URL placeholder di `settings.py`)
-- **Rekomendasi per komoditas**: extend `DIAGNOSIS_TEMPLATES` jadi nested per komoditas, atau tambah field `action` di `DUMMY_COMMODITIES`
+### DO ✅
+- **DO** selalu kerja di branch `feat/workflow-integration`, bukan `main`
+- **DO** gunakan `.env` untuk credentials — JANGAN hardcode
+- **DO** tulis test sebelum implementasi (TDD approach)
+- **DO** auto-commit saat fitur/fix berhasil (checkpoint)
+- **DO** gunakan conventional commits format
+- **DO** simpan data yang sudah normalized ke PostgreSQL (jangan raw dump)
+- **DO** gunakan dbt untuk transformasi data — jangan transform di Python jika bisa di SQL
+- **DO** handle error gracefully di ETL (retry, logging, fallback)
+- **DO** gunakan parameterized queries / ORM — jangan string concatenation untuk SQL
+- **DO** cek apakah data sudah ada sebelum INSERT (idempotent/upsert)
+- **DO** tambahkan type hints di Python
+- **DO** tulis inline comments untuk logic yang tidak obvious
+
+### DON'T ❌
+- **DON'T** commit password/secrets ke git
+- **DON'T** push langsung ke `main`
+- **DON'T** pakai SQLite untuk data baru — semua pakai Supabase PostgreSQL
+- **DON'T** buat dummy data baru jika data real sudah tersedia di pipeline
+- **DON'T** hardcode tanggal hari raya — gunakan `python-holidays` package
+- **DON'T** pakai BMKG API untuk data historis (tidak tersedia) — pakai Open-Meteo jika butuh cuaca historis
+- **DON'T** redesign frontend ke React — MVP tetap HTML + Alpine.js
+- **DON'T** ubah schema `marts.*` tanpa koordinasi dengan ML teammate
+- **DON'T** tambahkan AI attribution (Co-Authored-By, Generated by) di commit message
+- **DON'T** over-engineer — fokus ke fungsionalitas MVP yang bisa di-demo
+
+## Sprint Checkpoints — Minggu Ini (May 6-12)
+
+### Checkpoint 1: Database Foundation ⬜
+- [ ] Fix `.env` format (`:` → `=`) + buat `.env.example`
+- [ ] Setup schemas di Supabase: `raw`, `staging`, `marts`, `app`
+- [ ] Buat tabel `app.users` + seed default users
+- [ ] Buat tabel `app.het_reference` (dummy HET data)
+- [ ] Buat tabel `app.ml_predictions` (empty, schema ready)
+- [ ] Buat tabel `app.komoditas_config`
+
+### Checkpoint 2: ETL Migration ⬜
+- [ ] Buat `etl/loaders/postgres_loader.py` (replace DuckDB loader)
+- [ ] Update `etl/dbt_project/profiles.yml` → PostgreSQL adapter
+- [ ] Install `dbt-postgres` (replace `dbt-duckdb`)
+- [ ] Migrate dbt SQL models: DuckDB syntax → PostgreSQL syntax
+- [ ] Update Airflow DAGs to use PostgreSQL loader
+- [ ] Update `etl/docker-compose.yml` (remove DuckDB volume, add PG env)
+
+### Checkpoint 3: Data Loading ⬜
+- [ ] Run PIHPS ETL → data landing di Supabase PostgreSQL
+- [ ] Load hari besar data via `python-holidays` → `raw.hari_besar`
+- [ ] Run dbt staging + marts → verify data quality
+- [ ] Verify ML teammate bisa akses marts tables
+
+### Checkpoint 4: App Integration ⬜
+- [ ] Rewrite `src/data/` layer — baca dari Supabase PostgreSQL
+- [ ] Update `main.py` — init PostgreSQL connection (bukan SQLite)
+- [ ] Update API endpoints — serve real data
+- [ ] Verify auth flow working dengan PostgreSQL
+- [ ] Test API endpoints end-to-end
+
+### Future Checkpoints (Week 2+)
+- [ ] HET monitoring engine
+- [ ] RCA engine adaptation untuk data real
+- [ ] ML predictions integration
+- [ ] Frontend upgrade (Alpine.js)
+- [ ] End-to-end demo flow
+- [ ] Demo preparation & polish
+
+## Team Responsibilities
+
+| Person | Role | Focus |
+|--------|------|-------|
+| Rayhan | Cloud & Backend Engineer | Data pipeline, database architecture, API, deployment |
+| Teammate (ML) | AI/ML Lead | Model training, validation, predictions output |
+| Teammate (Product) | Product & Domain Lead | Problem statement, requirements, policy context |
+| Teammate (Data) | Data & Quant Analyst | Data analysis, metrics validation, model evaluation |
+
+## Key Data Sources
+
+| Source | URL | Data | Status |
+|--------|-----|------|--------|
+| BI PIHPS | `bi.go.id/hargapangan` | Harga 21 komoditas, 10 kota | ✅ ETL working |
+| Hari Besar | `python-holidays` package | Libur nasional + cuti bersama | ✅ Ready to use |
+| HET Bapanas | `bapanas.go.id` | Harga Eceran Tertinggi | 🔍 Research / dummy |
+| Open-Meteo | `open-meteo.com` | Historical weather data | 📋 Future (P2) |
+| BMKG | `data.bmkg.go.id` | Forecast cuaca 3 hari | ❌ Skip (no historical) |
+
+## File Structure
+
+```
+bi-hackathon-group-1/
+├── .envs/
+│   ├── .env                    ← Supabase credentials (gitignored)
+│   └── .env.example            ← Template tanpa secrets
+├── config/
+│   └── settings.py             ← App thresholds & config
+├── etl/
+│   ├── config/
+│   ├── dags/                   ← Airflow DAGs
+│   ├── dbt_project/            ← dbt models & config
+│   ├── extractors/             ← Data extractors (PIHPS, etc.)
+│   ├── loaders/                ← Database loaders (postgres)
+│   ├── scripts/                ← Seed scripts (hari besar, users)
+│   ├── docker-compose.yml
+│   └── requirements.txt
+├── frontend/
+│   ├── index.html              ← Main dashboard
+│   ├── login.html              ← Login page
+│   ├── admin.html              ← User management
+│   └── debug.html              ← DB inspector
+├── src/
+│   ├── api/
+│   │   ├── routes.py           ← Commodity + RCA endpoints
+│   │   └── auth_routes.py      ← Auth endpoints
+│   ├── data/                   ← Data access layer (PostgreSQL)
+│   ├── engine/
+│   │   └── rca_engine.py       ← RCA decision tree
+│   └── models/
+│       └── schemas.py          ← Pydantic models
+├── tests/
+│   └── test_rca_engine.py      ← Engine unit tests
+├── main.py                     ← FastAPI entry point
+├── requirements.txt            ← App dependencies
+├── CLAUDE.md                   ← This file
+└── README.md
+```
+
+## Existing Code Reference (v0.2.0)
+
+Code berikut sudah ada tapi perlu di-adapt untuk arsitektur baru:
+
+- **RCA Engine** (`src/engine/rca_engine.py`): 4-step sequential check, return early on trigger. Sudah tested (12 tests pass). Perlu adapt input dari PostgreSQL.
+- **Schemas** (`src/models/schemas.py`): Pydantic models untuk CommodityData, RCAResult, etc. Perlu extend untuk HET monitoring.
+- **API Routes** (`src/api/routes.py`): Endpoint definitions sudah ada. Perlu rewire data source.
+- **Auth** (`src/api/auth_routes.py`): JWT + RBAC logic sudah ada. Perlu migrate dari SQLite ke PostgreSQL.
+- **Frontend**: UI sudah functional. Perlu upgrade ke Alpine.js dan connect ke API baru.
+- **Tests**: 12 test cases untuk RCA engine. Perlu tambah test untuk HET monitor dan data layer.
+
+**⚠️ Data layer files (`src/data/*.py`) belum ada** — ini yang harus dibuat dari scratch untuk PostgreSQL.

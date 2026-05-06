@@ -12,7 +12,7 @@ Flow:
   init_schema
     → extract_master_data (provinsi, kota)
     → extract_harga_historis
-    → load_to_duckdb_raw
+    → load_to_postgres_raw
     → dbt_run_staging
     → dbt_run_mart_modelling
     → dbt_test
@@ -48,19 +48,19 @@ TARGET_PROVINCE_IDS = [12, 13]
 # ── Task functions ────────────────────────────────────────────────────────────
 
 def task_init_schema(**ctx):
-    """Inisialisasi schema DuckDB jika belum ada."""
-    from loaders.duckdb_loader import DuckDBLoader
-    with DuckDBLoader() as loader:
+    """Inisialisasi schema PostgreSQL (Supabase) jika belum ada."""
+    from loaders.postgres_loader import PostgresLoader
+    with PostgresLoader() as loader:
         loader.init_schema()
-    print("Schema DuckDB siap.")
+    print("Schema PostgreSQL siap.")
 
 
 def task_extract_master_data(**ctx):
     """Tarik data master: provinsi dan kota (Jawa Barat + DKI Jakarta)."""
     from extractors.pihps_extractor import PihpsExtractor
-    from loaders.duckdb_loader import DuckDBLoader
+    from loaders.postgres_loader import PostgresLoader
 
-    with PihpsExtractor() as extractor, DuckDBLoader() as loader:
+    with PihpsExtractor() as extractor, PostgresLoader() as loader:
         df_provinsi = extractor.get_master_provinsi()
 
         if not df_provinsi.empty:
@@ -74,7 +74,7 @@ def task_extract_master_data(**ctx):
             if not df_kota.empty:
                 # Tambah provinsi_id ke data kota
                 df_kota["provinsi_id"] = prov_id
-                # Rename kolom sesuai schema DuckDB
+                # Rename kolom sesuai schema PostgreSQL
                 df_kota = df_kota.rename(columns={"id": "kota_id", "name": "kota_nama"})
                 loader.upsert_kota(df_kota)
                 total_kota += len(df_kota)
@@ -89,11 +89,11 @@ def task_extract_harga_historis(**ctx):
     Support incremental: lanjut dari tanggal terakhir yang sudah diextract.
     """
     from extractors.pihps_extractor import PihpsExtractor
-    from loaders.duckdb_loader import DuckDBLoader
+    from loaders.postgres_loader import PostgresLoader
 
     run_id = ctx["run_id"]
 
-    with DuckDBLoader() as loader:
+    with PostgresLoader() as loader:
         # Cek checkpoint: apakah ada data sebelumnya?
         last_date = loader.get_last_extracted_date(PIPELINE_NAME)
         tanggal_mulai = (
@@ -120,7 +120,7 @@ def task_extract_harga_historis(**ctx):
     # Extract per-wilayah
     records_inserted = 0
     try:
-        with PihpsExtractor() as extractor, DuckDBLoader() as loader:
+        with PihpsExtractor() as extractor, PostgresLoader() as loader:
             df = extractor.extract_harga_per_wilayah(
                 tanggal_mulai=tanggal_mulai,
                 tanggal_selesai=tanggal_selesai,
@@ -140,7 +140,7 @@ def task_extract_harga_historis(**ctx):
             )
 
     except Exception as exc:
-        from loaders.duckdb_loader import DuckDBLoader as _L
+        from loaders.postgres_loader import PostgresLoader as _L
         with _L() as loader:
             loader.log_run_finish(
                 run_id=run_id,
@@ -218,20 +218,16 @@ def task_dbt_test(**ctx):
 
 def task_log_summary(**ctx):
     """Log ringkasan hasil pipeline."""
-    from loaders.duckdb_loader import DuckDBLoader
+    from loaders.postgres_loader import PostgresLoader
 
-    with DuckDBLoader() as loader:
+    with PostgresLoader() as loader:
         raw_count = loader.table_row_count("raw.harga_pangan")
 
-        # dbt-duckdb bisa pakai schema "staging" atau "main_staging"
-        # tergantung ada/tidaknya macro generate_schema_name
         staging_count = loader.table_row_count_safe(
             "staging.stg_harga_pangan",
-            "main_staging.stg_harga_pangan",
         )
         mart_count = loader.table_row_count_safe(
             "marts.mart_modelling_harga_pangan",
-            "main_marts.mart_modelling_harga_pangan",
         )
 
     records_inserted = ctx["ti"].xcom_pull(

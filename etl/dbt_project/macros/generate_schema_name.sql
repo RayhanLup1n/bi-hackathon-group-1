@@ -1,5 +1,5 @@
 /*
-  Custom schema name macro untuk dbt-duckdb.
+  Custom schema name macro untuk dbt-postgres.
 
   Default dbt behavior: schema = {target_schema}_{custom_schema}
   Contoh: target=main, custom=staging → "main_staging"

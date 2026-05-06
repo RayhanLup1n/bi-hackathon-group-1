@@ -123,7 +123,7 @@ with_calendar AS (
         *,
         -- Apakah hari kerja (1=hari kerja, 0=akhir pekan)
         CASE WHEN hari_dalam_minggu NOT IN (0, 6) THEN 1 ELSE 0 END
-                                                    AS is_weekday,
+                                                    AS is_weekday,  -- PostgreSQL: DOW 0=Sunday, 6=Saturday
 
         -- Bulan Ramadan/Lebaran (harga cenderung naik) — April/Maret/Mei (variasi tiap tahun)
         -- Sebagai proxy sederhana: tandai bulan ke-3, 4, 5 sebagai musim tinggi

@@ -15,3 +15,12 @@ dbt_project/target/
 dbt_project/logs/
 dbt_project/dbt_packages/
 .user.yml
+
+# All Credentials
+.envs/.env
+
+# Ignore Proposal 
+R.A.D.A.R Pangan Final Submission Pemantauan Inflasi.md
+
+# Flowchart pengerjaan
+inflasi-flowchart.html

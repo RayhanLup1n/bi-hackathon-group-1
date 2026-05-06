@@ -14,6 +14,12 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+# Custom schema macro: agar dbt tidak prefix schema name
+# dengan default schema. Contoh: staging.stg_* bukan raw_staging.stg_*
+dispatch:
+  - macro_namespace: dbt
+    search_order: ['pihps_pipeline', 'dbt']
+
 models:
   pihps_pipeline:
     staging:
