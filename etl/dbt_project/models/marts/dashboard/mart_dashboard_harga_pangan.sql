@@ -83,9 +83,9 @@ avg_nasional AS (
         tanggal,
         comcat_id,
         pasar_tipe,
-        ROUND(AVG(harga), 2)                                    AS harga_rata_nasional,
-        ROUND(MIN(harga), 2)                                    AS harga_min_nasional,
-        ROUND(MAX(harga), 2)                                    AS harga_maks_nasional,
+        ROUND(AVG(harga)::NUMERIC, 2)                              AS harga_rata_nasional,
+        ROUND(MIN(harga)::NUMERIC, 2)                              AS harga_min_nasional,
+        ROUND(MAX(harga)::NUMERIC, 2)                              AS harga_maks_nasional,
         COUNT(DISTINCT kota_id)                                 AS jumlah_kota_dilaporkan
     FROM base
     GROUP BY tanggal, comcat_id, pasar_tipe
@@ -101,31 +101,31 @@ combined AS (
         an.jumlah_kota_dilaporkan,
 
         -- Delta & persentase perubahan
-        ROUND(lk.harga_hari_ini - lk.harga_kemarin, 2)
+        ROUND((lk.harga_hari_ini - lk.harga_kemarin)::NUMERIC, 2)
                                                                 AS delta_1d,
-        ROUND(lk.harga_hari_ini - lk.harga_minggu_lalu, 2)
+        ROUND((lk.harga_hari_ini - lk.harga_minggu_lalu)::NUMERIC, 2)
                                                                 AS delta_7d,
-        ROUND(lk.harga_hari_ini - lk.harga_bulan_lalu, 2)
+        ROUND((lk.harga_hari_ini - lk.harga_bulan_lalu)::NUMERIC, 2)
                                                                 AS delta_30d,
 
         CASE
             WHEN lk.harga_kemarin > 0
             THEN ROUND(
-                (lk.harga_hari_ini - lk.harga_kemarin) / lk.harga_kemarin * 100, 2
+                ((lk.harga_hari_ini - lk.harga_kemarin) / lk.harga_kemarin * 100)::NUMERIC, 2
             )
         END                                                     AS pct_change_1d,
 
         CASE
             WHEN lk.harga_minggu_lalu > 0
             THEN ROUND(
-                (lk.harga_hari_ini - lk.harga_minggu_lalu) / lk.harga_minggu_lalu * 100, 2
+                ((lk.harga_hari_ini - lk.harga_minggu_lalu) / lk.harga_minggu_lalu * 100)::NUMERIC, 2
             )
         END                                                     AS pct_change_7d,
 
         -- Rasio harga lokal vs nasional (>1 = lebih mahal dari rata-rata)
         CASE
             WHEN an.harga_rata_nasional > 0
-            THEN ROUND(lk.harga_hari_ini / an.harga_rata_nasional, 4)
+            THEN ROUND((lk.harga_hari_ini / an.harga_rata_nasional)::NUMERIC, 4)
         END                                                     AS rasio_vs_nasional,
 
         -- Status harga dibanding kemarin

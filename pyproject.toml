@@ -41,3 +41,9 @@ select = ["E", "F", "I", "W"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "dbt-core>=1.11.8",
+    "dbt-postgres>=1.10.0",
+]
