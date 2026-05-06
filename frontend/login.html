@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — RCA RadarPangan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f0f4ff;
+      --surface:   #ffffff;
+      --surface2:  #f5f7ff;
+      --border:    #dde3f7;
+      --border2:   #c7d2fe;
+      --accent:    #6366f1;
+      --accent2:   #4f46e5;
+      --danger:    #ef4444;
+      --success:   #10b981;
+      --text:      #1e293b;
+      --text2:     #475569;
+      --muted:     #94a3b8;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', sans-serif;
+      --radius: 14px;
+      --radius-sm: 10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(ellipse at 10% 10%, rgba(99,102,241,0.18) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 15%, rgba(236,72,153,0.12) 0%, transparent 45%),
+        radial-gradient(ellipse at 80% 85%, rgba(6,182,212,0.14) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 90%, rgba(16,185,129,0.12) 0%, transparent 45%),
+        radial-gradient(ellipse at 55% 50%, rgba(245,158,11,0.06) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .login-wrap {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .login-card {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: 20px;
+      padding: 40px 36px;
+      box-shadow: 0 8px 40px rgba(99,102,241,0.12), 0 2px 8px rgba(99,102,241,0.06);
+      animation: slide-up 0.4s ease both;
+    }
+
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-logo {
+      width: 54px;
+      height: 54px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 6px 20px rgba(99,102,241,0.4);
+      margin: 0 auto 18px;
+    }
+
+    .login-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      text-align: center;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 4px;
+    }
+
+    .login-subtitle {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      letter-spacing: 0.5px;
+      margin-bottom: 30px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .form-input-wrap { position: relative; }
+
+    .form-input {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .form-input::placeholder { color: var(--muted); }
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+      background: white;
+    }
+    .form-input.error {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+    }
+    .form-input-pw { padding-right: 46px; }
+
+    .pw-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 17px;
+      color: var(--muted);
+      padding: 4px 6px;
+      transition: color 0.2s;
+      line-height: 1;
+      border-radius: 6px;
+    }
+    .pw-toggle:hover { color: var(--accent); }
+
+    .error-alert {
+      display: none;
+      background: rgba(239,68,68,0.07);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #dc2626;
+      margin-bottom: 16px;
+      align-items: center;
+      gap: 8px;
+    }
+    .error-alert.show { display: flex; animation: slide-up 0.2s ease; }
+
+    .login-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .login-btn:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(99,102,241,0.45);
+    }
+    .login-btn:active:not(:disabled) { transform: translateY(0); }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+    .demo-hint {
+      margin-top: 22px;
+      padding: 13px 16px;
+      background: rgba(99,102,241,0.04);
+      border: 1px dashed rgba(99,102,241,0.3);
+      border-radius: var(--radius-sm);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.9;
+    }
+    .demo-hint strong { color: var(--accent); font-weight: 600; }
+    .demo-hint .role-badge {
+      display: inline-block;
+      background: rgba(99,102,241,0.1);
+      color: var(--accent);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-card">
+
+    <div class="login-logo">📡</div>
+    <div class="login-title">RCA RadarPangan</div>
+    <div class="login-subtitle">root cause analysis engine &nbsp;·&nbsp; v0.2</div>
+
+    <div class="error-alert" id="errorAlert">
+      <span>⚠</span>
+      <span id="errorText">Username atau password salah</span>
+    </div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="on">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input
+          type="text"
+          id="username"
+          class="form-input"
+          placeholder="Masukkan username"
+          autocomplete="username"
+          required
+          autofocus
+        >
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="form-input-wrap">
+          <input
+            type="password"
+            id="password"
+            class="form-input form-input-pw"
+            placeholder="Masukkan password"
+            autocomplete="current-password"
+            required
+          >
+          <button type="button" class="pw-toggle" id="pwToggle" onclick="togglePw()" title="Tampilkan password">👁</button>
+        </div>
+      </div>
+
+      <button type="submit" class="login-btn" id="loginBtn">
+        <span id="loginBtnContent">Masuk →</span>
+      </button>
+    </form>
+
+    <div class="demo-hint">
+      <strong>Akun Demo</strong><br>
+      admin / admin123 <span class="role-badge">admin</span><br>
+      analyst / analyst123 <span class="role-badge">analyst</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Redirect jika sudah login
+  (function checkExisting() {
+    const token = localStorage.getItem('rca_token');
+    if (!token) return;
+    fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => { if (r.ok) window.location.replace('/'); })
+      .catch(() => {});
+  })();
+
+  function togglePw() {
+    const inp = document.getElementById('password');
+    const btn = document.getElementById('pwToggle');
+    const isHidden = inp.type === 'password';
+    inp.type = isHidden ? 'text' : 'password';
+    btn.textContent = isHidden ? '🙈' : '👁';
+    btn.title = isHidden ? 'Sembunyikan password' : 'Tampilkan password';
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const btn      = document.getElementById('loginBtn');
+    const content  = document.getElementById('loginBtnContent');
+    const alert    = document.getElementById('errorAlert');
+    const errText  = document.getElementById('errorText');
+
+    alert.classList.remove('show');
+    document.getElementById('username').classList.remove('error');
+    document.getElementById('password').classList.remove('error');
+    btn.disabled = true;
+    content.innerHTML = '<div class="spinner"></div> Memeriksa...';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Login gagal');
+      }
+
+      localStorage.setItem('rca_token', data.access_token);
+      localStorage.setItem('rca_user', JSON.stringify(data.user));
+      window.location.replace('/');
+    } catch (err) {
+      errText.textContent = err.message;
+      alert.classList.add('show');
+      document.getElementById('username').classList.add('error');
+      document.getElementById('password').classList.add('error');
+      btn.disabled = false;
+      content.innerHTML = 'Masuk →';
+    }
+  }
+
+  // Hapus error state saat user mulai mengetik
+  ['username', 'password'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      document.getElementById('errorAlert').classList.remove('show');
+      document.getElementById(id).classList.remove('error');
+    });
+  });
+</script>
+</body>
+</html>

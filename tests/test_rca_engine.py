@@ -1,0 +1,155 @@
+"""
+Tests untuk RCA Rule Engine.
+Jalankan dengan: pytest tests/
+"""
+import pytest
+from datetime import date
+from src.models.schemas import CommodityData, CuacaInfo, KotaInfo, StokInfo, DiagnosisType
+from src.engine.rca_engine import run_rca
+
+
+def make_commodity(**overrides) -> CommodityData:
+    """Factory helper — buat CommodityData dengan default kosong, override sesuai kebutuhan.
+
+    Untuk kemudahan, menerima kota_naik (int) dan total_kota (int) sebagai
+    shorthand: N kota pertama di-set naik=True, sisanya False.
+    Atau pass kota_list=[KotaInfo(...), ...] secara langsung.
+    """
+    kota_naik = overrides.pop("kota_naik", 1)
+    total_kota = overrides.pop("total_kota", 8)
+    default_kota_list = [
+        KotaInfo(nama=f"Kota{i + 1}", naik=(i < kota_naik))
+        for i in range(total_kota)
+    ]
+
+    defaults = dict(
+        key="test",
+        name="Test Komoditas",
+        price_now=20000,
+        price_prev=18000,
+        price_threshold=10.0,
+        ml_pred=None,
+        hari_raya=None,
+        cuaca=CuacaInfo(ekstrem=False, desc="Cerah", daerah=""),
+        kota_list=default_kota_list,
+        stok=StokInfo(status="Normal", kelas="ok"),
+    )
+    defaults.update(overrides)
+    return CommodityData(**defaults)
+
+
+# Tanggal yang pasti TIDAK masuk window hari raya manapun di kalender
+DATE_NORMAL = date(2025, 9, 15)
+# Tanggal yang masuk window Idul Adha 2025 (2025-06-06, H-14 = 2025-05-23)
+DATE_IDUL_ADHA = date(2025, 5, 28)
+
+
+# ── DEMAND SPIKE ────────────────────────────────────────────────────────────
+
+def test_demand_spike_hari_raya():
+    """Tanggal masuk window Idul Adha → Demand Spike, semua check lain di-skip."""
+    data = make_commodity()
+    result = run_rca(data, today=DATE_IDUL_ADHA)
+
+    assert result.diagnosis == DiagnosisType.DEMAND
+    assert result.checks[0].status == "triggered"
+    assert all(c.status == "skip" for c in result.checks[1:])
+
+
+# ── SUPPLY ──────────────────────────────────────────────────────────────────
+
+def test_supply_cuaca_ekstrem():
+    """Cuaca ekstrem → Gangguan Supply."""
+    data = make_commodity(cuaca=CuacaInfo(ekstrem=True, desc="Banjir", daerah="Jawa Tengah"))
+    result = run_rca(data, today=DATE_NORMAL)
+
+    assert result.diagnosis == DiagnosisType.SUPPLY
+    assert result.checks[0].status == "clear"
+    assert result.checks[1].status == "triggered"
+    assert all(c.status == "skip" for c in result.checks[2:])
+
+
+def test_supply_persebaran_kota():
+    """Kenaikan di 6/8 kota (75%) tanpa cuaca → Supply Nasional."""
+    data = make_commodity(kota_naik=6, total_kota=8)
+    result = run_rca(data, today=DATE_NORMAL)
+
+    assert result.diagnosis == DiagnosisType.SUPPLY
+    assert result.checks[2].status == "triggered"
+
+
+def test_supply_threshold_kota_batas():
+    """Tepat di threshold 60% → trigger."""
+    data = make_commodity(kota_naik=3, total_kota=5, threshold_kota=0.6)
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.diagnosis == DiagnosisType.SUPPLY
+
+
+def test_supply_threshold_kota_bawah():
+    """Di bawah threshold 60% → tidak trigger supply."""
+    data = make_commodity(kota_naik=2, total_kota=8)
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.diagnosis != DiagnosisType.SUPPLY or result.checks[1].status == "triggered"
+
+
+# ── DISTRIBUSI ──────────────────────────────────────────────────────────────
+
+def test_distribusi_lokal():
+    """Tidak ada trigger lain, stok normal → Distribusi Lokal."""
+    data = make_commodity(kota_naik=1, total_kota=8)
+    result = run_rca(data, today=DATE_NORMAL)
+
+    assert result.diagnosis == DiagnosisType.DISTRIBUSI
+    assert all(c.status == "clear" for c in result.checks)
+
+
+# ── UNKNOWN ─────────────────────────────────────────────────────────────────
+
+def test_unknown_stok_menipis():
+    """Tidak ada trigger lain, stok menipis → Unknown."""
+    data = make_commodity(
+        kota_naik=1,
+        total_kota=8,
+        stok=StokInfo(status="Menipis", kelas="warn"),
+    )
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.diagnosis == DiagnosisType.UNKNOWN
+
+
+# ── DELTA & ANOMALY ─────────────────────────────────────────────────────────
+
+def test_delta_pct_calculation():
+    """Cek kalkulasi delta persen harga."""
+    data = make_commodity(price_now=22000, price_prev=20000)
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.price_delta_pct == pytest.approx(10.0)
+
+
+def test_anomaly_flag_above_threshold():
+    data = make_commodity(price_now=22000, price_prev=20000, price_threshold=10.0)
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.is_anomaly is True
+
+
+def test_anomaly_flag_below_threshold():
+    data = make_commodity(price_now=21000, price_prev=20000, price_threshold=10.0)
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.is_anomaly is False
+
+
+# ── OUTPUT STRUCTURE ────────────────────────────────────────────────────────
+
+def test_result_always_has_4_checks():
+    """RCA selalu return tepat 4 check items."""
+    for kota in [0, 1, 4, 8]:
+        data = make_commodity(kota_naik=kota)
+        result = run_rca(data, today=DATE_NORMAL)
+        assert len(result.checks) == 4
+
+
+def test_result_fields_not_empty():
+    data = make_commodity()
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.title
+    assert result.description
+    assert result.action
