@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RCA RadarPangan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f0f4ff;
+      --bg2:       #ffffff;
+      --surface:   #ffffff;
+      --surface2:  #f5f7ff;
+      --border:    #dde3f7;
+      --border2:   #c7d2fe;
+      --accent:    #6366f1;
+      --accent2:   #4f46e5;
+      --warn:      #f59e0b;
+      --danger:    #ef4444;
+      --success:   #10b981;
+      --highlight: #ec4899;
+      --info:      #06b6d4;
+      --text:      #1e293b;
+      --text2:     #475569;
+      --muted:     #94a3b8;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', sans-serif;
+      --radius: 14px;
+      --radius-sm: 10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background gradient mesh ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(ellipse at 10% 10%, rgba(99,102,241,0.18) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 15%, rgba(236,72,153,0.12) 0%, transparent 45%),
+        radial-gradient(ellipse at 80% 85%, rgba(6,182,212,0.14) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 90%, rgba(16,185,129,0.12) 0%, transparent 45%),
+        radial-gradient(ellipse at 55% 50%, rgba(245,158,11,0.06) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      padding: 16px 20px;
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 16px rgba(99,102,241,0.08);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+    }
+    .header-title {
+      font-size: 17px; font-weight: 800; letter-spacing: -0.3px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .status-text { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+    /* ── Main layout ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.95);
+      border-radius: var(--radius);
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(99,102,241,0.07), 0 1px 4px rgba(99,102,241,0.05);
+    }
+    .card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #6366f1, #ec4899, #06b6d4);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .card + .card { margin-top: 12px; }
+    .card-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px;
+      font-weight: 600;
+    }
+    .card-label::before {
+      content: '';
+      display: inline-block;
+      width: 3px; height: 10px;
+      background: linear-gradient(180deg, #6366f1, #ec4899);
+      border-radius: 2px;
+    }
+
+    /* ── Commodity selector ── */
+    .commodity-select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .commodity-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+
+    /* ── Price display ── */
+    .price-block { margin-top: 4px; }
+    .price-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+    .price-now {
+      font-family: var(--mono);
+      font-size: 30px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .price-delta {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+    .delta-up { background: rgba(239,68,68,0.12); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+    .delta-down { background: rgba(110,231,183,0.1); color: var(--success); border: 1px solid rgba(110,231,183,0.2); }
+    .price-pred {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .price-pred span { color: var(--warn); font-weight: 600; }
+
+    /* ── Signal grid ── */
+    .signal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .signal-item {
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .signal-item.warn-item {
+      border-color: rgba(245,158,11,0.45);
+      background: rgba(245,158,11,0.05);
+      box-shadow: 0 2px 8px rgba(245,158,11,0.1);
+    }
+    .signal-key { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.5px; }
+    .signal-val { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text); }
+    .signal-val.warn { color: var(--warn); }
+    .signal-val.ok { color: var(--success); }
+    .signal-val.danger { color: var(--danger); }
+
+    /* ── Anomaly banner ── */
+    .anomaly-banner {
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      border: 1.5px solid;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      transition: all 0.4s ease;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .anomaly-banner.normal {
+      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.06));
+      border-color: rgba(16,185,129,0.3);
+      box-shadow: 0 4px 20px rgba(16,185,129,0.1);
+    }
+    .anomaly-banner.anomali {
+      background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(245,158,11,0.06));
+      border-color: rgba(239,68,68,0.3);
+      box-shadow: 0 4px 20px rgba(239,68,68,0.12);
+    }
+    .anomaly-banner.blank {
+      background: rgba(255,255,255,0.75);
+      border-color: var(--border);
+      box-shadow: 0 2px 12px rgba(99,102,241,0.06);
+    }
+    .anomaly-left { display: flex; align-items: center; gap: 10px; }
+    .anomaly-icon { font-size: 20px; line-height: 1; }
+    .anomaly-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .anomaly-status { font-size: 15px; font-weight: 700; margin-top: 1px; }
+    .anomaly-status.normal-text { color: var(--success); }
+    .anomaly-status.danger-text { color: var(--danger); }
+    .anomaly-right { text-align: right; }
+    .anomaly-delta { font-family: var(--mono); font-size: 18px; font-weight: 600; }
+    .anomaly-threshold { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    /* ── RCA Steps ── */
+    .rca-panel {
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255,255,255,0.95);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(99,102,241,0.07);
+    }
+    .rca-header {
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, rgba(99,102,241,0.04), rgba(236,72,153,0.03));
+    }
+    .rca-header-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+    }
+    .rca-header-badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--accent2);
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.2);
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+
+    .check-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      background: var(--surface2);
+      transition: all 0.35s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .check-item::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      border-radius: 2px 0 0 2px;
+      background: transparent;
+      transition: background 0.35s;
+    }
+    .check-item.active::before { background: linear-gradient(180deg, #6366f1, #ec4899); }
+    .check-item.triggered::before { background: linear-gradient(180deg, #f59e0b, #ef4444); }
+    .check-item.clear::before { background: linear-gradient(180deg, #10b981, #06b6d4); }
+
+    .check-item.active {
+      border-color: rgba(99,102,241,0.3);
+      background: rgba(99,102,241,0.04);
+      box-shadow: 0 2px 12px rgba(99,102,241,0.1);
+    }
+    .check-item.triggered {
+      border-color: rgba(245,158,11,0.35);
+      background: rgba(245,158,11,0.05);
+      box-shadow: 0 2px 12px rgba(245,158,11,0.1);
+    }
+    .check-item.clear {
+      border-color: rgba(16,185,129,0.2);
+      background: rgba(16,185,129,0.03);
+      opacity: 0.7;
+    }
+    .check-item.skip { opacity: 0.35; }
+
+    .check-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      flex-shrink: 0;
+      transition: all 0.35s;
+    }
+    .check-item.active .check-num {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(99,102,241,0.1);
+      box-shadow: 0 0 12px rgba(99,102,241,0.3);
+      animation: spin-check 1.5s linear infinite;
+    }
+    .check-item.triggered .check-num {
+      border-color: var(--warn);
+      color: var(--warn);
+      background: rgba(245,158,11,0.12);
+      animation: none;
+    }
+    .check-item.clear .check-num {
+      border-color: var(--success);
+      color: var(--success);
+      background: rgba(16,185,129,0.1);
+      animation: none;
+    }
+
+    .check-content { flex: 1; min-width: 0; }
+    .check-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .check-item.clear .check-name { color: var(--text2); }
+    .check-item.skip .check-name { color: var(--muted); }
+    .check-detail {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text2);
+      line-height: 1.6;
+      white-space: pre-line;
+    }
+    .check-detail .val { color: var(--warn); font-weight: 600; }
+
+    .check-badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      flex-shrink: 0;
+      align-self: flex-start;
+      font-weight: 600;
+    }
+    .badge-checking { background: rgba(99,102,241,0.12); color: var(--accent); border: 1px solid rgba(99,102,241,0.2); }
+    .badge-triggered { background: rgba(245,158,11,0.15); color: #d97706; border: 1px solid rgba(245,158,11,0.25); }
+    .badge-clear { background: rgba(16,185,129,0.12); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+    .badge-skip { background: rgba(148,163,184,0.15); color: var(--muted); border: 1px solid rgba(148,163,184,0.2); }
+
+    /* ── Result card ── */
+    .result-card {
+      border-radius: var(--radius);
+      padding: 22px;
+      border: 1.5px solid;
+      margin-top: 12px;
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .result-card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      opacity: 0.12;
+    }
+    .result-card::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: -40px;
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      opacity: 0.07;
+    }
+    .result-demand { background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.05)); border-color: rgba(16,185,129,0.3); box-shadow: 0 6px 30px rgba(16,185,129,0.12); }
+    .result-demand::before { background: #10b981; }
+    .result-demand::after { background: #06b6d4; }
+    .result-supply { background: linear-gradient(135deg, rgba(245,158,11,0.09), rgba(239,68,68,0.05)); border-color: rgba(245,158,11,0.35); box-shadow: 0 6px 30px rgba(245,158,11,0.12); }
+    .result-supply::before { background: #f59e0b; }
+    .result-supply::after { background: #ef4444; }
+    .result-distribusi { background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.05)); border-color: rgba(99,102,241,0.3); box-shadow: 0 6px 30px rgba(99,102,241,0.12); }
+    .result-distribusi::before { background: #6366f1; }
+    .result-distribusi::after { background: #ec4899; }
+    .result-unknown { background: linear-gradient(135deg, rgba(148,163,184,0.08), rgba(100,116,139,0.05)); border-color: rgba(148,163,184,0.3); }
+
+    .result-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .result-meta { flex: 1; }
+    .result-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+    .result-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; }
+    .result-demand .result-title { color: #059669; }
+    .result-supply .result-title { color: #d97706; }
+    .result-distribusi .result-title { color: #4f46e5; }
+    .result-unknown .result-title { color: var(--muted); }
+    .result-type-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 20px;
+      flex-shrink: 0;
+      border: 1.5px solid;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .result-demand .result-type-badge { background: rgba(16,185,129,0.12); color: #059669; border-color: rgba(16,185,129,0.3); }
+    .result-supply .result-type-badge { background: rgba(245,158,11,0.12); color: #d97706; border-color: rgba(245,158,11,0.3); }
+    .result-distribusi .result-type-badge { background: rgba(99,102,241,0.12); color: #4f46e5; border-color: rgba(99,102,241,0.3); }
+    .result-unknown .result-type-badge { background: rgba(148,163,184,0.12); color: var(--muted); border-color: rgba(148,163,184,0.3); }
+
+    .result-desc { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 14px; }
+
+    .action-box {
+      background: rgba(255,255,255,0.6);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+    }
+    .action-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+      font-weight: 600;
+    }
+    .action-label::before {
+      content: '';
+      display: inline-block;
+      width: 3px; height: 10px;
+      background: linear-gradient(180deg, #6366f1, #ec4899);
+      border-radius: 2px;
+    }
+    .action-text { font-size: 13px; color: var(--text); line-height: 1.7; }
+
+    /* ── Sim date ── */
+    .sim-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .sim-date-input {
+      flex: 1;
+      min-width: 140px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .sim-date-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .sim-date-input.active { border-color: var(--warn); color: #d97706; background: rgba(245,158,11,0.05); }
+    .sim-reset {
+      background: none;
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .sim-reset:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,0.05); }
+    .sim-label { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 100%; margin-top: 4px; }
+    .sim-label.warn { color: #d97706; }
+
+    /* ── Run button ── */
+    .run-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      color: #ffffff;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .run-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .run-btn:hover:not(:disabled) {
+      opacity: 0.92;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(99,102,241,0.45);
+    }
+    .run-btn:active:not(:disabled) { transform: translateY(0); }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .footer a { color: var(--accent); text-decoration: none; transition: opacity 0.2s; }
+    .footer a:hover { opacity: 0.75; }
+    .footer-sep { margin: 0 10px; color: var(--border2); }
+
+    /* ── Progress bar (during RCA run) ── */
+    .progress-bar {
+      height: 3px;
+      background: var(--border);
+      margin: 0 0 0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #ec4899, #06b6d4);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* ── Price display tweaks ── */
+    .price-now { color: var(--accent2); }
+    .delta-up { background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.2); }
+    .delta-down { background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.2); }
+    .price-pred { color: var(--text2); }
+    .price-pred span { color: var(--accent); font-weight: 700; }
+
+    /* ── Animations ── */
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--success); }
+      50% { opacity: 0.6; box-shadow: 0 0 4px var(--success); }
+    }
+    @keyframes spin-check {
+      0% { box-shadow: 0 0 10px rgba(99,102,241,0.2); }
+      50% { box-shadow: 0 0 18px rgba(99,102,241,0.5); }
+      100% { box-shadow: 0 0 10px rgba(99,102,241,0.2); }
+    }
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: slide-up 0.4s ease both; }
+
+    /* ── Daerah produksi chips ── */
+    .wilayah-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .wilayah-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .wilayah-chips {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .wilayah-chip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 9px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .wilayah-chip:hover {
+      border-color: var(--border2);
+      box-shadow: 0 1px 6px rgba(99,102,241,0.08);
+    }
+    .wilayah-chip-num {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(99,102,241,0.1);
+      border-radius: 4px;
+      padding: 1px 5px;
+      flex-shrink: 0;
+    }
+    .wilayah-chip-nama {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+    .wilayah-chip-prov {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* ── Loading skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.8) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">📡</div>
+      <div>
+        <div class="header-title">RCA RadarPangan</div>
+        <div class="header-sub">root cause analysis engine &nbsp;·&nbsp; v0.1</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span id="userBadge" style="
+        font-family:var(--mono); font-size:11px; color:var(--text2);
+        padding:6px 12px; background:var(--surface2);
+        border:1px solid var(--border); border-radius:var(--radius-sm);
+      ">—</span>
+      <a id="adminLink" href="/admin" style="display:none;
+        font-family:var(--mono); font-size:11px; font-weight:600;
+        color:var(--accent); text-decoration:none;
+        border:1.5px solid var(--border2); border-radius:var(--radius-sm);
+        padding:6px 12px; background:rgba(99,102,241,0.06);
+        transition:background 0.2s;
+      " onmouseover="this.style.background='rgba(99,102,241,0.13)'"
+         onmouseout="this.style.background='rgba(99,102,241,0.06)'">👥 Users</a>
+      <a href="/static/debug.html" style="
+        font-family:var(--mono); font-size:11px; font-weight:600;
+        color:var(--accent); text-decoration:none;
+        border:1.5px solid var(--border2); border-radius:var(--radius-sm);
+        padding:6px 12px; background:rgba(99,102,241,0.06);
+        transition:background 0.2s, border-color 0.2s;
+      " onmouseover="this.style.background='rgba(99,102,241,0.13)'"
+         onmouseout="this.style.background='rgba(99,102,241,0.06)'">DB Debug</a>
+      <button onclick="logout()" style="
+        font-family:var(--mono); font-size:11px; font-weight:600;
+        color:#dc2626; cursor:pointer;
+        border:1.5px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm);
+        padding:6px 12px; background:rgba(239,68,68,0.05);
+        transition:background 0.2s;
+      " onmouseover="this.style.background='rgba(239,68,68,0.12)'"
+         onmouseout="this.style.background='rgba(239,68,68,0.05)'">Keluar</button>
+      <div class="status-dot"></div>
+      <span class="status-text">API online</span>
+    </div>
+  </header>
+
+  <!-- ── Main grid ── -->
+  <div class="main-grid">
+
+    <!-- ── Left panel: controls ── -->
+    <div class="left-panel">
+
+      <!-- Commodity + Price -->
+      <div class="card">
+        <div class="card-label">Komoditas</div>
+        <select class="commodity-select" id="commodity" onchange="updateCommodity()">
+          <option value="">— Memuat komoditas... —</option>
+        </select>
+
+        <!-- Daerah produksi -->
+        <div class="wilayah-section">
+          <div class="wilayah-label">📍 Daerah Produksi (BMKG)</div>
+          <div class="wilayah-chips" id="wilayahChips">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Memuat...</div>
+          </div>
+        </div>
+
+        <div class="price-block" style="margin-top:16px">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Harga Sekarang</div>
+          <div class="price-row">
+            <span class="price-now" id="priceNow">—</span>
+            <span class="price-delta" id="priceDelta" style="display:none"></span>
+          </div>
+          <div class="price-pred">Prediksi ML: <span id="mlPred">—</span></div>
+        </div>
+      </div>
+
+      <!-- Signal inputs -->
+      <div class="card">
+        <div class="card-label">Sinyal Input</div>
+        <div class="signal-grid">
+          <div class="signal-item" id="si-tanggal">
+            <div class="signal-key">Tgl. Analisis</div>
+            <div class="signal-val" id="dTanggal">—</div>
+          </div>
+          <div class="signal-item" id="si-cuaca">
+            <div class="signal-key">Cuaca BMKG</div>
+            <div class="signal-val" id="dCuaca">—</div>
+          </div>
+          <div class="signal-item" id="si-kota">
+            <div class="signal-key">Kota Naik</div>
+            <div class="signal-val" id="dKota">—</div>
+          </div>
+          <div class="signal-item" id="si-stok">
+            <div class="signal-key">Stok Pedagang</div>
+            <div class="signal-val" id="dStok">—</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px" id="dStokPct"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulation date -->
+      <div class="card">
+        <div class="card-label">Simulasi Tanggal</div>
+        <div class="sim-row">
+          <input type="date" class="sim-date-input" id="simDate" oninput="onSimDateChange()">
+          <button class="sim-reset" onclick="resetSimDate()">↺ Hari ini</button>
+        </div>
+        <div class="sim-label" id="simLabel">— menggunakan tanggal hari ini</div>
+      </div>
+
+      <!-- Run button -->
+      <button class="run-btn" id="runBtn" onclick="runRCA()" disabled>
+        <span id="runBtnIcon">▶</span>
+        <span id="runBtnText">Jalankan RCA</span>
+      </button>
+
+    </div>
+
+    <!-- ── Right panel: RCA ── -->
+    <div class="right-panel">
+
+      <!-- Anomaly banner -->
+      <div class="anomaly-banner blank" id="anomalyBanner">
+        <div class="anomaly-left">
+          <div class="anomaly-icon" id="anomalyIcon">🔍</div>
+          <div>
+            <div class="anomaly-label">Status Anomali Harga</div>
+            <div class="anomaly-status" id="anomalyStatus" style="color:var(--muted)">Pilih komoditas</div>
+          </div>
+        </div>
+        <div class="anomaly-right">
+          <div class="anomaly-delta" id="anomalyDelta" style="color:var(--muted)">—</div>
+          <div class="anomaly-threshold" id="anomalyThreshold">threshold: —</div>
+        </div>
+      </div>
+
+      <!-- RCA checklist -->
+      <div class="rca-panel">
+        <div class="rca-header">
+          <span class="rca-header-title">RCA Checklist — urutan pemeriksaan</span>
+          <span class="rca-header-badge" id="rcaBadge">belum dijalankan</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="check-list" id="checkList">
+
+          <div class="check-item" id="c1">
+            <div class="check-num" id="n1">1</div>
+            <div class="check-content">
+              <div class="check-name">Cek Kalender Hari Raya</div>
+              <div class="check-detail" id="d1">Menunggu analisis...</div>
+            </div>
+            <div class="check-badge badge-skip" id="b1">TUNGGU</div>
+          </div>
+
+          <div class="check-item skip" id="c2">
+            <div class="check-num" id="n2">2</div>
+            <div class="check-content">
+              <div class="check-name">Cek Cuaca Ekstrem (BMKG)</div>
+              <div class="check-detail" id="d2">Menunggu hasil cek sebelumnya...</div>
+            </div>
+            <div class="check-badge badge-skip" id="b2">SKIP</div>
+          </div>
+
+          <div class="check-item skip" id="c3">
+            <div class="check-num" id="n3">3</div>
+            <div class="check-content">
+              <div class="check-name">Cek Persebaran Kenaikan Antar Kota</div>
+              <div class="check-detail" id="d3">Menunggu hasil cek sebelumnya...</div>
+            </div>
+            <div class="check-badge badge-skip" id="b3">SKIP</div>
+          </div>
+
+          <div class="check-item skip" id="c4">
+            <div class="check-num" id="n4">4</div>
+            <div class="check-content">
+              <div class="check-name">Cek Stok Pedagang (Badan Pangan)</div>
+              <div class="check-detail" id="d4">Menunggu hasil cek sebelumnya...</div>
+            </div>
+            <div class="check-badge badge-skip" id="b4">SKIP</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Result box -->
+      <div id="resultBox" style="display:none"></div>
+
+    </div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <a href="/docs" target="_blank">/docs</a>
+    <span class="footer-sep">|</span>
+    <a href="/redoc" target="_blank">/redoc</a>
+    <span class="footer-sep">|</span>
+    <span>RCA RadarPangan &copy; 2025</span>
+  </footer>
+
+</div>
+
+<script>
+const API = "";
+
+let currentData = null;
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+(async function initAuth() {
+  const token = localStorage.getItem('rca_token');
+  if (!token) { window.location.replace('/login'); return; }
+  try {
+    const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) throw new Error();
+    const me = await r.json();
+    const badge = document.getElementById('userBadge');
+    badge.innerHTML = `<strong style="color:var(--accent)">${me.username}</strong> · ${me.role}`;
+    if (me.role === 'admin') {
+      document.getElementById('adminLink').style.display = '';
+    }
+  } catch {
+    localStorage.removeItem('rca_token');
+    localStorage.removeItem('rca_user');
+    window.location.replace('/login');
+  }
+})();
+
+function logout() {
+  localStorage.removeItem('rca_token');
+  localStorage.removeItem('rca_user');
+  window.location.replace('/login');
+}
+
+function getSimDate() {
+  return document.getElementById("simDate").value || null;
+}
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function onSimDateChange() {
+  const val = getSimDate();
+  const label = document.getElementById("simLabel");
+  const input = document.getElementById("simDate");
+  if (val) {
+    label.textContent = `⚠ simulasi aktif: ${val}`;
+    label.className = "sim-label warn";
+    input.className = "sim-date-input active";
+  } else {
+    label.textContent = "— menggunakan tanggal hari ini";
+    label.className = "sim-label";
+    input.className = "sim-date-input";
+  }
+  await updateCommodity();
+  if (document.getElementById("resultBox").style.display !== "none") {
+    runRCA();
+  }
+}
+
+function resetSimDate() {
+  document.getElementById("simDate").value = "";
+  onSimDateChange();
+}
+
+function updateTanggalDisplay() {
+  const sim = getSimDate();
+  const el = document.getElementById("dTanggal");
+  if (sim) {
+    el.textContent = sim + " (sim)";
+    el.className = "signal-val warn";
+  } else {
+    el.textContent = todayISO();
+    el.className = "signal-val";
+  }
+}
+
+function commodityUrl(key) {
+  const sim = getSimDate();
+  return `/api/commodity/${key}` + (sim ? `?sim_date=${sim}` : "");
+}
+
+function rcaUrl(key) {
+  const sim = getSimDate();
+  return `/api/rca/${key}` + (sim ? `?sim_date=${sim}` : "");
+}
+
+async function fetchJSON(url) {
+  const token = localStorage.getItem('rca_token');
+  const headers = token ? { Authorization: 'Bearer ' + token } : {};
+  const res = await fetch(API + url, { headers });
+  if (res.status === 401) { logout(); return; }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+function fmt(n) {
+  return "Rp " + n.toLocaleString("id-ID");
+}
+
+async function loadCommodities() {
+  try {
+    const keys = await fetchJSON("/api/commodities");
+    const sel = document.getElementById("commodity");
+    sel.innerHTML = keys.map(k =>
+      `<option value="${k}">${k.charAt(0).toUpperCase() + k.slice(1)}</option>`
+    ).join("");
+    await updateCommodity();
+  } catch (e) {
+    console.error("Gagal load komoditas:", e);
+  }
+}
+
+async function loadWilayahProduksi(key) {
+  const container = document.getElementById("wilayahChips");
+  container.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Memuat...</div>';
+  try {
+    const wilayah = await fetchJSON(`/api/bmkg/komoditas/${key}/wilayah-produksi`);
+    if (!wilayah.length) {
+      container.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">—</div>';
+      return;
+    }
+    container.innerHTML = wilayah.map(w => `
+      <div class="wilayah-chip">
+        <span class="wilayah-chip-num">P${w.prioritas}</span>
+        <span class="wilayah-chip-nama">${w.nama}</span>
+        <span class="wilayah-chip-prov">${w.provinsi}</span>
+      </div>
+    `).join("");
+  } catch (e) {
+    container.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Gagal memuat</div>';
+  }
+}
+
+async function updateCommodity() {
+  const key = document.getElementById("commodity").value;
+  if (!key) return;
+
+  loadWilayahProduksi(key);
+
+  try {
+    currentData = await fetchJSON(commodityUrl(key));
+    const d = currentData;
+
+    // Price
+    document.getElementById("priceNow").textContent = fmt(d.price_now);
+    const deltaPct = ((d.price_now - d.price_prev) / d.price_prev * 100).toFixed(1);
+    const deltaEl = document.getElementById("priceDelta");
+    const isUp = deltaPct >= 0;
+    deltaEl.textContent = (isUp ? "▲ +" : "▼ ") + deltaPct + "%";
+    deltaEl.className = "price-delta " + (isUp ? "delta-up" : "delta-down");
+    deltaEl.style.display = "";
+    document.getElementById("mlPred").textContent = d.ml_pred ? fmt(d.ml_pred) : "—";
+
+    // Signals
+    updateTanggalDisplay();
+
+    const cuacaEl = document.getElementById("dCuaca");
+    cuacaEl.textContent = d.cuaca.desc;
+    cuacaEl.className = "signal-val " + (d.cuaca.ekstrem ? "warn" : "ok");
+    document.getElementById("si-cuaca").className = "signal-item " + (d.cuaca.ekstrem ? "warn-item" : "");
+
+    const kotaNaik = d.kota_list.filter(k => k.naik).length;
+    const totalKota = d.kota_list.length;
+    const kotaRatio = kotaNaik / totalKota;
+    const kotaEl = document.getElementById("dKota");
+    kotaEl.textContent = `${kotaNaik} / ${totalKota} kota`;
+    kotaEl.className = "signal-val " + (kotaRatio >= 0.6 ? "warn" : "");
+    document.getElementById("si-kota").className = "signal-item " + (kotaRatio >= 0.6 ? "warn-item" : "");
+
+    const stokEl = document.getElementById("dStok");
+    stokEl.textContent = d.stok.status;
+    stokEl.className = "signal-val " + d.stok.kelas;
+    document.getElementById("dStokPct").textContent = (d.stok.pct * 100).toFixed(1) + "% kapasitas";
+    document.getElementById("si-stok").className = "signal-item " + (d.stok.kelas !== "ok" ? "warn-item" : "");
+
+    // Anomaly banner
+    const isAnom = parseFloat(deltaPct) >= d.price_threshold;
+    const banner = document.getElementById("anomalyBanner");
+    banner.className = "anomaly-banner " + (isAnom ? "anomali" : "normal");
+    document.getElementById("anomalyIcon").textContent = isAnom ? "⚠️" : "✅";
+    const statusEl = document.getElementById("anomalyStatus");
+    statusEl.textContent = isAnom ? "ANOMALI TERDETEKSI" : "Harga Normal";
+    statusEl.className = "anomaly-status " + (isAnom ? "danger-text" : "normal-text");
+    const deltaColor = isAnom ? "var(--danger)" : "var(--success)";
+    document.getElementById("anomalyDelta").textContent = `+${deltaPct}%`;
+    document.getElementById("anomalyDelta").style.color = deltaColor;
+    document.getElementById("anomalyThreshold").textContent = `threshold: ${d.price_threshold}%`;
+
+    resetChecks();
+    document.getElementById("resultBox").style.display = "none";
+    document.getElementById("runBtn").disabled = false;
+  } catch (e) {
+    console.error("Gagal load data:", e);
+  }
+}
+
+function resetChecks() {
+  document.getElementById("rcaBadge").textContent = "belum dijalankan";
+  document.getElementById("progressFill").style.width = "0%";
+
+  for (let i = 1; i <= 4; i++) {
+    const ci = document.getElementById("c" + i);
+    ci.className = "check-item" + (i > 1 ? " skip" : "");
+    document.getElementById("n" + i).textContent = i;
+    document.getElementById("b" + i).className = "check-badge " + (i === 1 ? "badge-checking" : "badge-skip");
+    document.getElementById("b" + i).textContent = i === 1 ? "MENUNGGU" : "SKIP";
+    document.getElementById("d" + i).textContent = i === 1 ? "Menunggu analisis..." : "Menunggu hasil cek sebelumnya...";
+  }
+}
+
+function setActive(n) {
+  const ci = document.getElementById("c" + n);
+  ci.className = "check-item active";
+  document.getElementById("n" + n).textContent = n;
+  document.getElementById("b" + n).className = "check-badge badge-checking";
+  document.getElementById("b" + n).textContent = "CEK...";
+  document.getElementById("d" + n).textContent = "Sedang memeriksa...";
+}
+
+function setCheck(check) {
+  const ci = document.getElementById("c" + check.step);
+  const badge = document.getElementById("b" + check.step);
+  const num = document.getElementById("n" + check.step);
+
+  if (check.status === "triggered") {
+    ci.className = "check-item triggered";
+    badge.className = "check-badge badge-triggered";
+    badge.textContent = "TRIGGERED";
+    num.textContent = "!";
+  } else if (check.status === "clear") {
+    ci.className = "check-item clear";
+    badge.className = "check-badge badge-clear";
+    badge.textContent = "CLEAR";
+    num.textContent = "✓";
+  } else {
+    ci.className = "check-item skip";
+    badge.className = "check-badge badge-skip";
+    badge.textContent = "SKIP";
+    num.textContent = check.step;
+  }
+  document.getElementById("d" + check.step).textContent = check.detail;
+}
+
+async function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runRCA() {
+  const key = document.getElementById("commodity").value;
+  const btn = document.getElementById("runBtn");
+  const runText = document.getElementById("runBtnText");
+  const runIcon = document.getElementById("runBtnIcon");
+  btn.disabled = true;
+  runText.textContent = "Menganalisis...";
+  runIcon.textContent = "⟳";
+  resetChecks();
+  document.getElementById("resultBox").style.display = "none";
+  document.getElementById("rcaBadge").textContent = "berjalan...";
+
+  try {
+    const result = await fetchJSON(rcaUrl(key));
+
+    const totalSteps = result.checks.length;
+    for (let idx = 0; idx < result.checks.length; idx++) {
+      const check = result.checks[idx];
+      setActive(check.step);
+      document.getElementById("progressFill").style.width = ((idx / totalSteps) * 100) + "%";
+      await delay(600);
+      setCheck(check);
+      await delay(200);
+    }
+
+    document.getElementById("progressFill").style.width = "100%";
+    document.getElementById("rcaBadge").textContent = "selesai";
+
+    await delay(300);
+    showResult(result);
+  } catch (e) {
+    console.error("RCA gagal:", e);
+    document.getElementById("rcaBadge").textContent = "error";
+  } finally {
+    btn.disabled = false;
+    runText.textContent = "Jalankan RCA";
+    runIcon.textContent = "▶";
+  }
+}
+
+function showResult(result) {
+  const clsMap = {
+    demand: "result-demand",
+    supply: "result-supply",
+    distribusi: "result-distribusi",
+    unknown: "result-unknown"
+  };
+  const typeLabel = {
+    demand: "Demand",
+    supply: "Supply",
+    distribusi: "Distribusi",
+    unknown: "Unknown"
+  };
+  const box = document.getElementById("resultBox");
+  box.className = "result-card animate-in " + (clsMap[result.diagnosis] || "result-unknown");
+  box.innerHTML = `
+    <div class="result-top">
+      <div class="result-meta">
+        <div class="result-label">Diagnosis RCA</div>
+        <div class="result-title">${result.title}</div>
+      </div>
+      <div class="result-type-badge">${typeLabel[result.diagnosis] || result.diagnosis}</div>
+    </div>
+    <div class="result-desc">${result.description}</div>
+    <div class="action-box">
+      <div class="action-label">Rekomendasi Aksi</div>
+      <div class="action-text">${result.action}</div>
+    </div>
+  `;
+  box.style.display = "block";
+}
+
+// Init
+loadCommodities();
+</script>
+</body>
+</html>
