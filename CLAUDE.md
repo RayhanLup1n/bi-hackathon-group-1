@@ -221,14 +221,34 @@ uv add --dev <package-name>     # dev-only dependency
 # JANGAN pakai pip install — agar uv.lock tetap sinkron
 ```
 
-### ETL (Docker)
+### Docker
+
+Semua services dikelola dari **satu `docker-compose.yml` di root** (bukan di `etl/`).
 
 ```bash
-cd etl
-docker-compose up -d
-docker-compose exec airflow-webserver airflow dags trigger dag_data_ready_modelling
+# App saja (FastAPI)
+docker-compose up app
+
+# App + ETL (Airflow) — gunakan profile "etl"
+docker-compose --profile etl up
+
+# Build ulang setelah perubahan code
+docker-compose build app
+docker-compose --profile etl build
+
+# Stop
 docker-compose down
 ```
+
+### Run dbt Transformations
+
+```bash
+# Dari root project (bukan dari etl/)
+uv run dbt run --profiles-dir etl/dbt_project --project-dir etl/dbt_project
+uv run dbt test --profiles-dir etl/dbt_project --project-dir etl/dbt_project
+```
+
+Perlu set environment variables Supabase sebelum run dbt (atau pastikan `.envs/.env` ter-load).
 
 Access points:
 - App Login: `http://localhost:8000/login`
@@ -314,7 +334,10 @@ SUPABASE_PASSWORD=<password>
 - [x] Load historical PIHPS data: **347,550 rows** (2020-01-01 s/d 2026-05-05)
 - [x] Load hari besar data: 91 rows (2024-2027)
 - [x] Database size: **93 MB** (dari 500 MB limit Supabase free tier)
-- [ ] Run dbt staging + marts di Supabase (butuh Docker atau dbt lokal)
+- [x] Run dbt staging + marts di Supabase — 11/11 models PASS
+- [x] Staging VIEWs: 5 dims + 1 fact + 1 legacy stg_harga_pangan
+- [x] Marts TABLEs: modelling (347K), dashboard (347K), ringkasan (34K)
+- [x] App TABLE: dashboard_harga_pangan (347K)
 - [ ] Verify ML teammate bisa akses data
 
 ### Checkpoint 4: App Integration ✅ DONE
@@ -369,14 +392,14 @@ bi-hackathon-group-1/
 ├── config/
 │   └── settings.py             ← App thresholds & config
 ├── etl/
-│   ├── config/
+│   ├── .env                    ← ETL-specific config (gitignored)
+│   ├── Dockerfile              ← Airflow + dbt + Playwright image
+│   ├── config/                 ← ETL settings (pydantic-settings)
 │   ├── dags/                   ← Airflow DAGs
-│   ├── dbt_project/            ← dbt models & config
-│   ├── extractors/             ← Data extractors (PIHPS, etc.)
-│   ├── loaders/                ← Database loaders (postgres)
-│   ├── scripts/                ← Seed scripts (hari besar, users)
-│   ├── docker-compose.yml
-│   └── requirements.txt
+│   ├── dbt_project/            ← dbt models, profiles, macros
+│   ├── extractors/             ← Data extractors (PIHPS, Playwright)
+│   ├── loaders/                ← Database loaders (postgres_loader.py)
+│   └── scripts/                ← Seed scripts (hari besar, historical load)
 ├── frontend/
 │   ├── index.html              ← Main dashboard
 │   ├── login.html              ← Login page
@@ -384,20 +407,31 @@ bi-hackathon-group-1/
 │   └── debug.html              ← DB inspector
 ├── src/
 │   ├── api/
-│   │   ├── routes.py           ← Commodity + RCA endpoints
-│   │   └── auth_routes.py      ← Auth endpoints
-│   ├── data/                   ← Data access layer (PostgreSQL)
+│   │   ├── routes.py           ← Commodity + RCA + price endpoints
+│   │   └── auth_routes.py      ← Auth endpoints (JWT + RBAC)
+│   ├── data/
+│   │   ├── database.py         ← Shared PostgreSQL connection pool
+│   │   ├── commodity_data.py   ← Read PIHPS prices from Supabase
+│   │   └── auth_db.py          ← User management (bcrypt + CRUD)
 │   ├── engine/
 │   │   └── rca_engine.py       ← RCA decision tree
 │   └── models/
 │       └── schemas.py          ← Pydantic models
 ├── tests/
 │   └── test_rca_engine.py      ← Engine unit tests
-├── main.py                     ← FastAPI entry point
-├── requirements.txt            ← App dependencies
+├── docs/                       ← Session logs
+├── main.py                     ← FastAPI entry point (v0.3.0)
+├── pyproject.toml              ← Dependencies (app + dev + etl groups)
+├── uv.lock                     ← Locked versions for reproducibility
+├── Dockerfile                  ← FastAPI app container
+├── docker-compose.yml          ← All services (app + ETL via profiles)
+├── .dockerignore
 ├── CLAUDE.md                   ← This file
 └── README.md
 ```
+
+**Note**: `etl/pyproject.toml` dan `etl/docker-compose.yml` sudah dihapus.
+Dependencies dikelola di root `pyproject.toml`, Docker dikelola di root `docker-compose.yml`.
 
 ## Existing Code Reference (v0.2.0)
 

@@ -141,14 +141,19 @@ Session ini fokus pada **alignment arsitektur**, **migrasi ETL dari DuckDB ke Su
 8444003 feat: add historical data loading script with batching
 76f8a63 feat: add 3NF staging dimensions, fact table, and app dashboard table
 99b77e7 refactor: migrate ETL pipeline from DuckDB to Supabase PostgreSQL
+033acf1 feat: connect FastAPI to Supabase PostgreSQL (CP4)
+ff000c3 chore: setup virtual environment with uv
+8ffaa0c feat: add Docker setup and fix 404 placeholder routes
+ea434de fix: frontend commodity selector and API compatibility
+015eaaf fix: improve date picker compatibility across browsers
+4f8eb5d fix: handle NaN prices and favicon 404
+c3b9d18 fix: PostgreSQL ROUND() cast and trailing comma in dbt models
 ```
 
 ---
 
-## Next Steps (CP4+)
+## Next Steps (CP5+)
 
-1. **CP4: App Integration** — Rewrite FastAPI data layer untuk baca dari Supabase PostgreSQL
-2. **CP5: HET Monitor + RCA** — Build HET monitoring engine + adapt RCA untuk data real
-3. **CP6: Frontend + Demo** — Upgrade ke Alpine.js, connect API baru, demo prep
-4. **dbt run** — Jalankan staging views + marts + app dashboard di Supabase (butuh Docker atau dbt lokal)
-5. **Koordinasi tim** — Share schema `app.ml_predictions` ke ML teammate untuk output predictions
+1. **CP5: HET Monitor + RCA** — Build HET monitoring engine + adapt RCA untuk data real
+2. **CP6: Frontend + Demo** — Upgrade ke Alpine.js, connect API baru, demo prep
+3. **Koordinasi tim** — Share Supabase credentials + schema ke ML teammate
