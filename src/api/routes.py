@@ -34,9 +34,18 @@ bmkg_router = APIRouter(prefix="/api/bmkg", tags=["BMKG"])
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/commodities", summary="Daftar komoditas yang tersedia")
-def list_commodities() -> list[dict]:
-    """Return list of commodities with their keys and names."""
+def list_commodities() -> list[str]:
+    """Return list of commodity keys (string) for backward compatibility with frontend."""
     # Ensure map is loaded
+    if not KOMODITAS_MAP:
+        from src.data.commodity_data import init_commodity_data
+        init_commodity_data()
+    return list(KOMODITAS_MAP.keys())
+
+
+@router.get("/commodities/detail", summary="Daftar komoditas dengan detail")
+def list_commodities_detail() -> list[dict]:
+    """Return list of commodities with key, name, and comcat_id."""
     if not KOMODITAS_MAP:
         from src.data.commodity_data import init_commodity_data
         init_commodity_data()

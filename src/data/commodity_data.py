@@ -20,7 +20,6 @@ KOMODITAS_MAP: dict[str, str] = {}  # populated at startup from DB
 
 def _load_komoditas_map() -> None:
     """Load komoditas mapping from database (called once at startup)."""
-    global KOMODITAS_MAP
     with db_cursor() as cur:
         cur.execute("""
             SELECT DISTINCT comcat_id, komoditas_nama
@@ -29,7 +28,9 @@ def _load_komoditas_map() -> None:
         """)
         rows = cur.fetchall()
 
-    KOMODITAS_MAP = {}
+    # Use clear + update to mutate the existing dict object in-place
+    # so all modules that imported KOMODITAS_MAP see the updated data
+    KOMODITAS_MAP.clear()
     for row in rows:
         # Create URL-friendly key: "Beras Kualitas Bawah I" -> "beras_kualitas_bawah_i"
         key = row["komoditas_nama"].lower().replace(" ", "_").replace("-", "_")

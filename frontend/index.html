@@ -988,10 +988,10 @@ function fmt(n) {
 
 async function loadCommodities() {
   try {
-    const keys = await fetchJSON("/api/commodities");
+    const items = await fetchJSON("/api/commodities/detail");
     const sel = document.getElementById("commodity");
-    sel.innerHTML = keys.map(k =>
-      `<option value="${k}">${k.charAt(0).toUpperCase() + k.slice(1)}</option>`
+    sel.innerHTML = items.map(c =>
+      `<option value="${c.key}">${c.name}</option>`
     ).join("");
     await updateCommodity();
   } catch (e) {
