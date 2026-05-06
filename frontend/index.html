@@ -792,7 +792,10 @@
       <div class="card">
         <div class="card-label">Simulasi Tanggal</div>
         <div class="sim-row">
-          <input type="date" class="sim-date-input" id="simDate" oninput="onSimDateChange()">
+          <input type="date" class="sim-date-input" id="simDate"
+                 min="2020-01-01" max="2026-12-31"
+                 oninput="onSimDateChange()" onchange="onSimDateChange()"
+                 onclick="this.showPicker && this.showPicker()">
           <button class="sim-reset" onclick="resetSimDate()">↺ Hari ini</button>
         </div>
         <div class="sim-label" id="simLabel">— menggunakan tanggal hari ini</div>
