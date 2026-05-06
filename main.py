@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from src.api.routes import router, bmkg_router, stok_router
 from src.api.auth_routes import auth_router
@@ -62,6 +62,12 @@ app.include_router(router)
 app.include_router(bmkg_router)
 app.include_router(stok_router)
 app.include_router(auth_router)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """Return empty favicon to suppress 404 errors."""
+    return Response(content=b"", media_type="image/x-icon")
 
 # Serve frontend static files
 frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")

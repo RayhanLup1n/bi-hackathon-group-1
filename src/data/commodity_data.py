@@ -6,6 +6,7 @@ the same interface that routes.py expects.
 """
 from __future__ import annotations
 
+import math
 from datetime import date, timedelta
 from typing import Optional
 
@@ -107,19 +108,22 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     if not rows_today:
         return None
 
-    # Calculate average prices
-    prices_today = [r["harga"] for r in rows_today if r["harga"]]
-    prices_prev = [r["harga"] for r in rows_prev if r["harga"]]
+    # Filter out NaN/None values from prices
+    def _valid_price(val) -> bool:
+        return val is not None and not math.isnan(val) and val > 0
+
+    prices_today = [r["harga"] for r in rows_today if _valid_price(r["harga"])]
+    prices_prev = [r["harga"] for r in rows_prev if _valid_price(r["harga"])]
 
     price_now = int(sum(prices_today) / len(prices_today)) if prices_today else 0
     price_prev = int(sum(prices_prev) / len(prices_prev)) if prices_prev else price_now
 
     # Build kota list with naik/turun flag
-    prev_map = {r["kota_nama"]: r["harga"] for r in rows_prev}
+    prev_map = {r["kota_nama"]: r["harga"] for r in rows_prev if _valid_price(r["harga"])}
     kota_list = []
     for row in rows_today:
         kota_nama = row["kota_nama"]
-        harga_now = row["harga"] or 0
+        harga_now = row["harga"] if _valid_price(row["harga"]) else 0
         harga_prev = prev_map.get(kota_nama, harga_now)
         kota_list.append(KotaInfo(
             nama=kota_nama,
