@@ -165,27 +165,69 @@ FastAPI tinggal SELECT dari tabel ini untuk ditampilkan di dashboard.
 - Notification system (Telegram/WA/email)
 - Docker deployment untuk production
 
-## Commands
+## Setup & Commands
+
+### First Time Setup (WAJIB)
+
+Project ini menggunakan **virtual environment via `uv`**. JANGAN install ke global Python.
 
 ```bash
-# === App ===
-pip install -r requirements.txt
+# 1. Install uv (jika belum)
+# Windows:
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+# macOS/Linux:
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 2. Clone & masuk ke project
+git clone <repo-url>
+cd bi-hackathon-group-1
+git checkout feat/workflow-integration
+
+# 3. Setup virtual environment + install dependencies (satu perintah)
+uv sync
+
+# 4. Copy dan isi credentials
+cp .envs/.env.example .envs/.env
+# Edit .envs/.env → isi SUPABASE_PASSWORD (minta ke Rayhan)
+```
+
+### Run App
+
+```bash
+# Jalankan FastAPI server (otomatis pakai venv)
+uv run uvicorn main:app --reload
+
+# Atau aktifkan venv dulu, baru jalankan manual
+# Windows:
+.venv\Scripts\activate
 uvicorn main:app --reload
+# macOS/Linux:
+source .venv/bin/activate
+uvicorn main:app --reload
+```
 
-# === Tests ===
-pytest tests/ -v
-pytest tests/test_rca_engine.py::test_demand_spike_hari_raya -v
+### Run Tests
 
-# === ETL (Docker) ===
+```bash
+uv run pytest tests/ -v
+uv run pytest tests/test_rca_engine.py::test_demand_spike_hari_raya -v
+```
+
+### Tambah Dependency Baru
+
+```bash
+uv add <package-name>           # production dependency
+uv add --dev <package-name>     # dev-only dependency
+# JANGAN pakai pip install — agar uv.lock tetap sinkron
+```
+
+### ETL (Docker)
+
+```bash
 cd etl
-docker-compose up -d                    # Start Airflow + services
+docker-compose up -d
 docker-compose exec airflow-webserver airflow dags trigger dag_data_ready_modelling
-docker-compose down                      # Stop
-
-# === dbt ===
-cd etl/dbt_project
-dbt run --profiles-dir .
-dbt test --profiles-dir .
+docker-compose down
 ```
 
 Access points:

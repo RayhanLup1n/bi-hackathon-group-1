@@ -9,6 +9,9 @@ dist/
 .venv/
 venv/
 
+# uv lock file (tracked, tapi ignore jika perlu)
+# uv.lock di-track agar semua orang pakai versi dependency yang sama
+
 # ================================
 # Environment & Credentials
 # ================================
