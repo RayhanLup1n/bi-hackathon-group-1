@@ -275,16 +275,17 @@ SUPABASE_PASSWORD=<password>
 - [ ] Run dbt staging + marts di Supabase (butuh Docker atau dbt lokal)
 - [ ] Verify ML teammate bisa akses data
 
-### Checkpoint 4: App Integration ⬜ NEXT
-- [ ] Rewrite `src/data/` layer — baca dari Supabase PostgreSQL (bukan SQLite dummy)
-- [ ] Update `main.py` — init PostgreSQL connection pool
-- [ ] Update `src/api/routes.py` — serve real commodity data dari marts/app tables
-- [ ] Migrate auth dari SQLite ke PostgreSQL `app.users`
-- [ ] Update `src/api/auth_routes.py` — baca/tulis ke PostgreSQL
-- [ ] Update `requirements.txt` app (tambah psycopg2-binary atau asyncpg)
-- [ ] Test API endpoints end-to-end
+### Checkpoint 4: App Integration ✅ DONE
+- [x] Buat `src/data/database.py` — shared connection pool ke Supabase
+- [x] Buat `src/data/commodity_data.py` — baca harga real dari raw.harga_pangan
+- [x] Buat `src/data/auth_db.py` — user management via app.users (bcrypt + CRUD)
+- [x] Update `main.py` — v0.3.0, PostgreSQL pool init, load .envs/.env
+- [x] Update `src/api/routes.py` — commodity + RCA + price endpoints (data real)
+- [x] Update `requirements.txt` — tambah psycopg2-binary
+- [x] Test: semua endpoint 200 OK (commodities, commodity, RCA, auth login)
+- [x] Default users seeded: admin/admin123, analyst/analyst123
 
-### Checkpoint 5: HET Monitor + RCA Adaptation ⬜
+### Checkpoint 5: HET Monitor + RCA Adaptation ⬜ NEXT
 - [ ] Build HET monitoring engine — compare harga aktual vs HET reference
 - [ ] Status logic: AMAN / WASPADA (>80% HET) / KRITIS (>=HET) / MELAMPAUI
 - [ ] Adapt RCA engine checks untuk data real (hari besar dari DB, disparitas dari marts)
