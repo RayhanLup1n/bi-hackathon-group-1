@@ -1,0 +1,33 @@
+# ============================================================
+# Docker Compose — R.A.D.A.R Pangan
+# Services: App (FastAPI)
+# DB: Supabase PostgreSQL (cloud, external — not in compose)
+# ============================================================
+
+services:
+  # ─────────────────────────────────────────
+  # FastAPI App
+  # ─────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: radar-pangan-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .envs/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount env file (credentials)
+      - ./.envs:/app/.envs:ro
+      # Mount frontend for live reload during development
+      - ./frontend:/app/frontend:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

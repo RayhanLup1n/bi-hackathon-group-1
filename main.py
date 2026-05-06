@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from src.api.routes import router
+from src.api.routes import router, bmkg_router, stok_router
 from src.api.auth_routes import auth_router
 
 import os
@@ -59,6 +59,8 @@ app = FastAPI(
 )
 
 app.include_router(router)
+app.include_router(bmkg_router)
+app.include_router(stok_router)
 app.include_router(auth_router)
 
 # Serve frontend static files

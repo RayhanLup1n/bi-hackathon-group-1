@@ -25,6 +25,8 @@ from src.engine.rca_engine import run_rca
 from src.models.schemas import RCAResult, CommodityData
 
 router = APIRouter(prefix="/api", tags=["RCA & Harga"])
+stok_router = APIRouter(prefix="/api/stok", tags=["Stok"])
+bmkg_router = APIRouter(prefix="/api/bmkg", tags=["BMKG"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -120,3 +122,63 @@ def price_history(
     sim_date: Optional[date] = Query(None),
 ) -> list[dict]:
     return get_price_history(comcat_id, n_days, sim_date)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STOK — Placeholder (belum ada data real stok)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@stok_router.get("", summary="Stok semua komoditas (placeholder)")
+def get_semua_stok(sim_date: Optional[date] = Query(None)) -> list[dict]:
+    return []
+
+
+@stok_router.get("/{key}", summary="Stok per komoditas (placeholder)")
+def get_stok_by_key(key: str, sim_date: Optional[date] = Query(None)) -> list[dict]:
+    return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BMKG — Placeholder (belum ada data real cuaca)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@bmkg_router.get("/wilayah", summary="Daftar wilayah (placeholder)")
+def get_wilayah() -> list[dict]:
+    return []
+
+
+@bmkg_router.get("/cuaca/{kode_wilayah}", summary="Cuaca wilayah (placeholder)")
+def get_cuaca_wilayah(kode_wilayah: str, n_hari: int = Query(default=14)) -> list[dict]:
+    return []
+
+
+@bmkg_router.get("/peringatan", summary="Peringatan aktif (placeholder)")
+def get_peringatan_aktif(sim_date: Optional[date] = Query(None)) -> list[dict]:
+    return []
+
+
+@bmkg_router.get("/peringatan/history", summary="Riwayat peringatan (placeholder)")
+def get_peringatan_history(n_hari: int = Query(default=30)) -> list[dict]:
+    return []
+
+
+@bmkg_router.get("/cuaca-all", summary="Cuaca semua wilayah (placeholder)")
+def get_cuaca_all(
+    sim_date: Optional[date] = Query(None),
+    n_hari: int = Query(default=7),
+) -> list[dict]:
+    return []
+
+
+@bmkg_router.get("/komoditas/{key}/wilayah-produksi", summary="Wilayah produksi (placeholder)")
+def get_wilayah_produksi_endpoint(key: str) -> list[dict]:
+    return []
+
+
+@bmkg_router.get("/komoditas/{key}/cuaca", summary="Cuaca komoditas (placeholder)")
+def get_cuaca_komoditas_trend(
+    key: str,
+    sim_date: Optional[date] = Query(None),
+    n_hari: int = Query(default=7),
+) -> list[dict]:
+    return []
