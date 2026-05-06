@@ -32,3 +32,6 @@ models:
       dashboard:
         +materialized: table
         +schema: marts
+    app:
+      +materialized: table
+      +schema: app

@@ -43,17 +43,18 @@ DDL_SCHEMAS = [
 
 DDL_RAW_HARGA_PANGAN = """
 CREATE TABLE IF NOT EXISTS raw.harga_pangan (
+    id               BIGSERIAL PRIMARY KEY,
     tanggal          DATE         NOT NULL,
-    comcat_id        VARCHAR,
-    komoditas_nama   VARCHAR,
-    pasar_tipe       INTEGER,
-    provinsi_id      INTEGER,
-    provinsi_nama    VARCHAR,
-    kota_id          INTEGER,
-    kota_nama        VARCHAR,
+    comcat_id        VARCHAR      NOT NULL,
+    komoditas_nama   VARCHAR      NOT NULL,
+    pasar_tipe       INTEGER      NOT NULL,
+    provinsi_id      INTEGER      NOT NULL,
+    provinsi_nama    VARCHAR      NOT NULL,
+    kota_id          INTEGER      NOT NULL,
+    kota_nama        VARCHAR      NOT NULL,
     pasar_nama       VARCHAR,
-    harga            DOUBLE PRECISION,
-    satuan           VARCHAR,
+    harga            DOUBLE PRECISION NOT NULL,
+    satuan           VARCHAR      NOT NULL DEFAULT 'kg',
     _extracted_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     _source          VARCHAR      DEFAULT 'bi_pihps'
 );
@@ -62,7 +63,7 @@ CREATE TABLE IF NOT EXISTS raw.harga_pangan (
 DDL_RAW_PROVINSI = """
 CREATE TABLE IF NOT EXISTS raw.dim_provinsi (
     provinsi_id      INTEGER PRIMARY KEY,
-    provinsi_nama    VARCHAR,
+    provinsi_nama    VARCHAR      NOT NULL,
     _extracted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 """
@@ -70,20 +71,21 @@ CREATE TABLE IF NOT EXISTS raw.dim_provinsi (
 DDL_RAW_KOTA = """
 CREATE TABLE IF NOT EXISTS raw.dim_kota (
     kota_id          INTEGER PRIMARY KEY,
-    kota_nama        VARCHAR,
-    provinsi_id      INTEGER,
+    kota_nama        VARCHAR      NOT NULL,
+    provinsi_id      INTEGER      NOT NULL,
     _extracted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 """
 
 DDL_RAW_PIPELINE_LOG = """
 CREATE TABLE IF NOT EXISTS raw.pipeline_log (
+    id               SERIAL PRIMARY KEY,
     run_id           VARCHAR      NOT NULL,
     pipeline_name    VARCHAR      NOT NULL,
     tanggal_mulai    DATE,
     tanggal_selesai  DATE,
     records_inserted INTEGER      DEFAULT 0,
-    status           VARCHAR      DEFAULT 'running',
+    status           VARCHAR      NOT NULL DEFAULT 'running',
     error_message    TEXT,
     started_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     finished_at      TIMESTAMP
@@ -92,10 +94,11 @@ CREATE TABLE IF NOT EXISTS raw.pipeline_log (
 
 DDL_RAW_HARI_BESAR = """
 CREATE TABLE IF NOT EXISTS raw.hari_besar (
+    id               SERIAL PRIMARY KEY,
     tanggal          DATE         NOT NULL,
     nama             VARCHAR      NOT NULL,
-    kategori         VARCHAR,
-    tahun            INTEGER,
+    kategori         VARCHAR      NOT NULL DEFAULT 'lainnya',
+    tahun            INTEGER      NOT NULL,
     UNIQUE (tanggal, nama)
 );
 """
@@ -116,12 +119,12 @@ DDL_APP_HET_REFERENCE = """
 CREATE TABLE IF NOT EXISTS app.het_reference (
     id               SERIAL PRIMARY KEY,
     komoditas_nama   VARCHAR      NOT NULL,
-    provinsi_nama    VARCHAR,
+    provinsi_nama    VARCHAR      NOT NULL,
     het_harga        DOUBLE PRECISION NOT NULL,
-    satuan           VARCHAR      DEFAULT 'kg',
-    berlaku_mulai    DATE,
+    satuan           VARCHAR      NOT NULL DEFAULT 'kg',
+    berlaku_mulai    DATE         NOT NULL,
     berlaku_sampai   DATE,
-    sumber           VARCHAR      DEFAULT 'dummy',
+    sumber           VARCHAR      NOT NULL DEFAULT 'dummy',
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 """
@@ -133,21 +136,22 @@ CREATE TABLE IF NOT EXISTS app.ml_predictions (
     kota_id          INTEGER      NOT NULL,
     prediction_date  DATE         NOT NULL,
     target_date      DATE         NOT NULL,
-    predicted_price  DOUBLE PRECISION,
+    predicted_price  DOUBLE PRECISION NOT NULL,
     confidence_lower DOUBLE PRECISION,
     confidence_upper DOUBLE PRECISION,
-    model_version    VARCHAR,
+    model_version    VARCHAR      NOT NULL,
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 """
 
 DDL_APP_KOMODITAS_CONFIG = """
 CREATE TABLE IF NOT EXISTS app.komoditas_config (
-    comcat_id        VARCHAR      PRIMARY KEY,
+    id               SERIAL PRIMARY KEY,
+    comcat_id        VARCHAR      NOT NULL UNIQUE,
     komoditas_nama   VARCHAR      NOT NULL,
-    is_active        BOOLEAN      DEFAULT TRUE,
-    display_order    INTEGER      DEFAULT 0,
-    satuan           VARCHAR      DEFAULT 'kg',
+    is_active        BOOLEAN      NOT NULL DEFAULT TRUE,
+    display_order    INTEGER      NOT NULL DEFAULT 0,
+    satuan           VARCHAR      NOT NULL DEFAULT 'kg',
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 """

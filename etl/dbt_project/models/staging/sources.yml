@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: raw
-    description: "Data mentah hasil extraction dari BI PIHPS"
+    description: "Data mentah hasil extraction dari BI PIHPS dan sumber lainnya"
     schema: raw
     tables:
       - name: harga_pangan
@@ -52,3 +52,17 @@ sources:
             tests: [not_null, unique]
           - name: kota_nama
             tests: [not_null]
+
+      - name: hari_besar
+        description: "Hari libur nasional, cuti bersama, dan hari raya (dari python-holidays)"
+        columns:
+          - name: tanggal
+            description: "Tanggal hari besar"
+            tests: [not_null]
+          - name: nama
+            description: "Nama hari besar"
+            tests: [not_null]
+          - name: kategori
+            description: "Kategori: islam, kristen, hindu, buddha, tionghoa, nasional, cuti_bersama, umum"
+          - name: tahun
+            description: "Tahun"
