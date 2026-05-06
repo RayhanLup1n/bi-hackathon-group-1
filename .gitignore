@@ -1,26 +1,69 @@
-.env
-data/
-*.duckdb
+# ================================
+# Python
+# ================================
 __pycache__/
 *.pyc
 *.pyo
-.venv/
 *.egg-info/
 dist/
-.ruff_cache/
-.pytest_cache/
-logs/
-.DS_Store
-dbt_project/target/
-dbt_project/logs/
-dbt_project/dbt_packages/
+.venv/
+venv/
+
+# ================================
+# Environment & Credentials
+# ================================
+.env
+.envs/.env
+etl/.env
+
+# ================================
+# Data files (generated at runtime)
+# ================================
+/data/
+*.duckdb
+*.sqlite
+*.db
+
+# ================================
+# dbt
+# ================================
+**/dbt_project/target/
+**/dbt_project/logs/
+**/dbt_project/dbt_packages/
 .user.yml
 
-# All Credentials
-.envs/.env
+# ================================
+# IDE & OS
+# ================================
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Ignore Proposal 
+# ================================
+# Testing & Linting
+# ================================
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ================================
+# Logs
+# ================================
+logs/
+*.log
+
+# ================================
+# Project-specific ignores
+# ================================
+
+# Proposal document (large file with embedded images)
 R.A.D.A.R Pangan Final Submission Pemantauan Inflasi.md
 
-# Flowchart pengerjaan
+# Workshop draft material (personal)
+Draft Materi.md
+
+# Flowchart
 inflasi-flowchart.html
