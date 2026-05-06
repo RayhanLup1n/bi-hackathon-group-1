@@ -248,42 +248,54 @@ SUPABASE_PASSWORD=<password>
 
 ## Sprint Checkpoints — Minggu Ini (May 6-12)
 
-### Checkpoint 1: Database Foundation ⬜
-- [ ] Fix `.env` format (`:` → `=`) + buat `.env.example`
-- [ ] Setup schemas di Supabase: `raw`, `staging`, `marts`, `app`
-- [ ] Buat tabel `app.users` + seed default users
-- [ ] Buat tabel `app.het_reference` (dummy HET data)
-- [ ] Buat tabel `app.ml_predictions` (empty, schema ready)
-- [ ] Buat tabel `app.komoditas_config`
+### Checkpoint 1: Database Foundation ✅ DONE
+- [x] Fix `.env` format (`:` → `=`) + buat `.env.example`
+- [x] Setup schemas di Supabase: `raw`, `staging`, `marts`, `app`
+- [x] Buat tabel `app.users` (SERIAL PK, NOT NULL constraints)
+- [x] Buat tabel `app.het_reference` (SERIAL PK)
+- [x] Buat tabel `app.ml_predictions` (SERIAL PK, schema ready untuk ML teammate)
+- [x] Buat tabel `app.komoditas_config` (SERIAL PK, UNIQUE comcat_id)
+- [x] Seed 91 records hari besar (2024-2027) via `python-holidays`
 
-### Checkpoint 2: ETL Migration ⬜
-- [ ] Buat `etl/loaders/postgres_loader.py` (replace DuckDB loader)
-- [ ] Update `etl/dbt_project/profiles.yml` → PostgreSQL adapter
-- [ ] Install `dbt-postgres` (replace `dbt-duckdb`)
-- [ ] Migrate dbt SQL models: DuckDB syntax → PostgreSQL syntax
-- [ ] Update Airflow DAGs to use PostgreSQL loader
-- [ ] Update `etl/docker-compose.yml` (remove DuckDB volume, add PG env)
+### Checkpoint 2: ETL Migration ✅ DONE
+- [x] Buat `etl/loaders/postgres_loader.py` (replace DuckDB loader)
+- [x] Update `etl/dbt_project/profiles.yml` → PostgreSQL adapter (Supabase)
+- [x] Update Dockerfile: `dbt-duckdb` → `dbt-postgres`, `psycopg2-binary`, `holidays`
+- [x] Migrate dbt SQL models: DuckDB syntax → PostgreSQL syntax
+- [x] Update Airflow DAGs to use PostgresLoader
+- [x] Update `etl/docker-compose.yml` (remove DuckDB volume, add Supabase env)
 
-### Checkpoint 3: Data Loading ⬜
-- [ ] Run PIHPS ETL → data landing di Supabase PostgreSQL
-- [ ] Load hari besar data via `python-holidays` → `raw.hari_besar`
-- [ ] Run dbt staging + marts → verify data quality
-- [ ] Verify ML teammate bisa akses marts tables
+### Checkpoint 3: Data Loading ✅ DONE
+- [x] Buat staging 3NF dimensions: `stg_dim_komoditas`, `stg_dim_pasar_tipe`, `stg_dim_tanggal`, `stg_dim_provinsi`, `stg_dim_kota`
+- [x] Buat staging fact: `stg_fact_harga_pangan` (normalized, FK + harga only)
+- [x] Buat app dashboard table: `app.dashboard_harga_pangan` (dbt TABLE, denormalized untuk frontend)
+- [x] Load historical PIHPS data: **347,550 rows** (2020-01-01 s/d 2026-05-05)
+- [x] Load hari besar data: 91 rows (2024-2027)
+- [x] Database size: **93 MB** (dari 500 MB limit Supabase free tier)
+- [ ] Run dbt staging + marts di Supabase (butuh Docker atau dbt lokal)
+- [ ] Verify ML teammate bisa akses data
 
-### Checkpoint 4: App Integration ⬜
-- [ ] Rewrite `src/data/` layer — baca dari Supabase PostgreSQL
-- [ ] Update `main.py` — init PostgreSQL connection (bukan SQLite)
-- [ ] Update API endpoints — serve real data
-- [ ] Verify auth flow working dengan PostgreSQL
+### Checkpoint 4: App Integration ⬜ NEXT
+- [ ] Rewrite `src/data/` layer — baca dari Supabase PostgreSQL (bukan SQLite dummy)
+- [ ] Update `main.py` — init PostgreSQL connection pool
+- [ ] Update `src/api/routes.py` — serve real commodity data dari marts/app tables
+- [ ] Migrate auth dari SQLite ke PostgreSQL `app.users`
+- [ ] Update `src/api/auth_routes.py` — baca/tulis ke PostgreSQL
+- [ ] Update `requirements.txt` app (tambah psycopg2-binary atau asyncpg)
 - [ ] Test API endpoints end-to-end
 
-### Future Checkpoints (Week 2+)
-- [ ] HET monitoring engine
-- [ ] RCA engine adaptation untuk data real
-- [ ] ML predictions integration
-- [ ] Frontend upgrade (Alpine.js)
-- [ ] End-to-end demo flow
-- [ ] Demo preparation & polish
+### Checkpoint 5: HET Monitor + RCA Adaptation ⬜
+- [ ] Build HET monitoring engine — compare harga aktual vs HET reference
+- [ ] Status logic: AMAN / WASPADA (>80% HET) / KRITIS (>=HET) / MELAMPAUI
+- [ ] Adapt RCA engine checks untuk data real (hari besar dari DB, disparitas dari marts)
+- [ ] Add new API endpoints untuk HET monitoring
+- [ ] Write tests for HET monitor + adapted RCA
+
+### Checkpoint 6: Frontend + Demo Prep ⬜
+- [ ] Upgrade frontend ke Alpine.js/HTMX untuk interaktivitas
+- [ ] Connect dashboard ke API baru (real data)
+- [ ] Tambah HET monitoring view di dashboard
+- [ ] End-to-end testing + demo scenario preparation
 
 ## Team Responsibilities
 
@@ -298,8 +310,8 @@ SUPABASE_PASSWORD=<password>
 
 | Source | URL | Data | Status |
 |--------|-----|------|--------|
-| BI PIHPS | `bi.go.id/hargapangan` | Harga 21 komoditas, 10 kota | ✅ ETL working |
-| Hari Besar | `python-holidays` package | Libur nasional + cuti bersama | ✅ Ready to use |
+| BI PIHPS | `bi.go.id/hargapangan` | Harga 21 komoditas, 10 kota | ✅ **347,550 rows loaded** (2020-2026) |
+| Hari Besar | `python-holidays` package | Libur nasional + cuti bersama | ✅ **91 rows loaded** (2024-2027) |
 | HET Bapanas | `bapanas.go.id` | Harga Eceran Tertinggi | 🔍 Research / dummy |
 | Open-Meteo | `open-meteo.com` | Historical weather data | 📋 Future (P2) |
 | BMKG | `data.bmkg.go.id` | Forecast cuaca 3 hari | ❌ Skip (no historical) |
