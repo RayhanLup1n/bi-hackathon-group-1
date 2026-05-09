@@ -695,7 +695,7 @@
       <div class="logo-icon">📡</div>
       <div>
         <div class="header-title">RCA RadarPangan</div>
-        <div class="header-sub">root cause analysis engine &nbsp;·&nbsp; v0.1</div>
+        <div class="header-sub">root cause analysis engine &nbsp;·&nbsp; v0.4</div>
       </div>
     </div>
     <div class="header-right">
@@ -746,12 +746,23 @@
           <option value="">— Memuat komoditas... —</option>
         </select>
 
-        <!-- Daerah produksi -->
+        <!-- HET Status + Cuaca -->
         <div class="wilayah-section">
-          <div class="wilayah-label">📍 Daerah Produksi (BMKG)</div>
-          <div class="wilayah-chips" id="wilayahChips">
-            <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Memuat...</div>
-          </div>
+          <div class="wilayah-label">📊 Status HET</div>
+          <div id="hetStatus" style="
+            padding:8px 12px; border-radius:var(--radius-sm);
+            border:1.5px solid var(--border); background:var(--surface2);
+            font-family:var(--mono); font-size:12px; color:var(--muted);
+          ">Memuat...</div>
+        </div>
+
+        <div class="wilayah-section" style="margin-top:8px; border-top:none;">
+          <div class="wilayah-label">🌤 Cuaca (Open-Meteo)</div>
+          <div id="weatherInfo" style="
+            padding:8px 12px; border-radius:var(--radius-sm);
+            border:1.5px solid var(--border); background:var(--surface2);
+            font-family:var(--mono); font-size:12px; color:var(--muted);
+          ">Memuat...</div>
         </div>
 
         <div class="price-block" style="margin-top:16px">
@@ -773,7 +784,7 @@
             <div class="signal-val" id="dTanggal">—</div>
           </div>
           <div class="signal-item" id="si-cuaca">
-            <div class="signal-key">Cuaca BMKG</div>
+            <div class="signal-key">Cuaca</div>
             <div class="signal-val" id="dCuaca">—</div>
           </div>
           <div class="signal-item" id="si-kota">
@@ -848,7 +859,7 @@
           <div class="check-item skip" id="c2">
             <div class="check-num" id="n2">2</div>
             <div class="check-content">
-              <div class="check-name">Cek Cuaca Ekstrem (BMKG)</div>
+              <div class="check-name">Cek Cuaca Ekstrem (Open-Meteo)</div>
               <div class="check-detail" id="d2">Menunggu hasil cek sebelumnya...</div>
             </div>
             <div class="check-badge badge-skip" id="b2">SKIP</div>
@@ -887,7 +898,7 @@
     <span class="footer-sep">|</span>
     <a href="/redoc" target="_blank">/redoc</a>
     <span class="footer-sep">|</span>
-    <span>RCA RadarPangan &copy; 2025</span>
+    <span>R.A.D.A.R Pangan &copy; 2026</span>
   </footer>
 
 </div>
@@ -1002,24 +1013,68 @@ async function loadCommodities() {
   }
 }
 
-async function loadWilayahProduksi(key) {
-  const container = document.getElementById("wilayahChips");
-  container.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Memuat...</div>';
+async function loadHetStatus(key) {
+  const container = document.getElementById("hetStatus");
+  container.innerHTML = '<span style="color:var(--muted)">Memuat...</span>';
   try {
-    const wilayah = await fetchJSON(`/api/bmkg/komoditas/${key}/wilayah-produksi`);
-    if (!wilayah.length) {
-      container.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">—</div>';
-      return;
-    }
-    container.innerHTML = wilayah.map(w => `
-      <div class="wilayah-chip">
-        <span class="wilayah-chip-num">P${w.prioritas}</span>
-        <span class="wilayah-chip-nama">${w.nama}</span>
-        <span class="wilayah-chip-prov">${w.provinsi}</span>
+    const sim = getSimDate();
+    const url = `/api/het/${key}` + (sim ? `?sim_date=${sim}` : "");
+    const het = await fetchJSON(url);
+
+    // Color + label mapping
+    const statusColors = {
+      aman: { bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.3)", color: "#059669", icon: "✅" },
+      waspada: { bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.3)", color: "#d97706", icon: "⚠️" },
+      kritis: { bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.3)", color: "#dc2626", icon: "🔴" },
+      melampaui: { bg: "rgba(239,68,68,0.15)", border: "rgba(239,68,68,0.4)", color: "#dc2626", icon: "🚨" },
+      tidak_tersedia: { bg: "var(--surface2)", border: "var(--border)", color: "var(--muted)", icon: "—" },
+    };
+    const s = statusColors[het.status] || statusColors.tidak_tersedia;
+    const statusLabel = het.status.toUpperCase();
+    const hetInfo = het.het_harga ? `HET: Rp ${het.het_harga.toLocaleString("id-ID")}/kg` : "";
+    const pctInfo = het.pct_of_het ? ` (${het.pct_of_het}%)` : "";
+
+    container.style.background = s.bg;
+    container.style.borderColor = s.border;
+    container.style.color = s.color;
+    container.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;margin-bottom:3px">
+        ${s.icon} ${statusLabel}${pctInfo}
       </div>
-    `).join("");
+      <div style="font-size:11px;opacity:0.8">${hetInfo}</div>
+      <div style="font-size:10px;margin-top:2px;opacity:0.7">${het.keterangan || ""}</div>
+    `;
   } catch (e) {
-    container.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Gagal memuat</div>';
+    container.innerHTML = '<span style="color:var(--muted)">—</span>';
+  }
+}
+
+async function loadWeatherInfo(key) {
+  const container = document.getElementById("weatherInfo");
+  container.innerHTML = '<span style="color:var(--muted)">Memuat...</span>';
+  try {
+    // Get commodity data to know the provinsi
+    if (!currentData) return;
+    const cuaca = currentData.cuaca;
+
+    const isExtreme = cuaca.ekstrem;
+    const bg = isExtreme ? "rgba(245,158,11,0.08)" : "rgba(16,185,129,0.05)";
+    const border = isExtreme ? "rgba(245,158,11,0.3)" : "rgba(16,185,129,0.2)";
+    const color = isExtreme ? "#d97706" : "#059669";
+    const icon = isExtreme ? "⛈" : "☀";
+
+    container.style.background = bg;
+    container.style.borderColor = border;
+    container.style.color = color;
+    container.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12px;margin-bottom:2px">
+        ${icon} ${cuaca.desc}
+      </div>
+      <div style="font-size:10px;opacity:0.8">${cuaca.daerah ? "Lokasi: " + cuaca.daerah : ""}</div>
+      <div style="font-size:10px;margin-top:2px;opacity:0.7">${cuaca.detail || ""}</div>
+    `;
+  } catch (e) {
+    container.innerHTML = '<span style="color:var(--muted)">—</span>';
   }
 }
 
@@ -1027,11 +1082,13 @@ async function updateCommodity() {
   const key = document.getElementById("commodity").value;
   if (!key) return;
 
-  loadWilayahProduksi(key);
-
   try {
     currentData = await fetchJSON(commodityUrl(key));
     const d = currentData;
+
+    // Load HET status and weather info (after commodity data is available)
+    loadHetStatus(key);
+    loadWeatherInfo(key);
 
     // Price
     document.getElementById("priceNow").textContent = fmt(d.price_now);
