@@ -21,6 +21,11 @@ from datetime import date, timedelta
 # Ensure project root is in path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Load Supabase credentials from .envs/.env
+from dotenv import load_dotenv
+_project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv(os.path.join(_project_root, ".envs", ".env"))
+
 import psycopg2
 import psycopg2.extras
 from loguru import logger
@@ -45,15 +50,21 @@ INSERT_SQL = """
 """
 
 
-def _load_master_data(extractor: PihpsExtractor, loader: PostgresLoader) -> dict:
+def _load_master_data(
+    extractor: PihpsExtractor,
+    loader: PostgresLoader,
+    province_ids: list[int] | None = None,
+) -> dict:
     """Load master data provinsi + kota, return mapping {prov_id: [kota_ids]}."""
+    target_ids = province_ids or TARGET_PROVINCE_IDS
+
     df_prov = extractor.get_master_provinsi()
     if not df_prov.empty:
         loader.upsert_provinsi(df_prov)
         logger.info(f"Provinsi loaded: {len(df_prov)}")
 
     prov_kota_map = {}
-    for prov_id in TARGET_PROVINCE_IDS:
+    for prov_id in target_ids:
         df_kota = extractor.get_master_kota(province_id=str(prov_id))
         if not df_kota.empty:
             df_kota["provinsi_id"] = prov_id
@@ -156,7 +167,14 @@ def main():
     parser.add_argument("--start-year", type=int, default=DEFAULT_START_YEAR)
     parser.add_argument("--end-year", type=int, default=DEFAULT_END_YEAR)
     parser.add_argument("--resume", action="store_true", help="Resume from last checkpoint")
+    parser.add_argument(
+        "--provinces", type=int, nargs="+", default=None,
+        help="Province IDs to load (default: all TARGET_PROVINCE_IDS)",
+    )
     args = parser.parse_args()
+
+    # Determine which provinces to load
+    province_ids = args.provinces or TARGET_PROVINCE_IDS
 
     # Init
     conn = psycopg2.connect(_get_dsn())
@@ -175,12 +193,12 @@ def main():
     # Load master data
     with PihpsExtractor() as extractor:
         with PostgresLoader() as loader:
-            prov_kota_map = _load_master_data(extractor, loader)
+            prov_kota_map = _load_master_data(extractor, loader, province_ids)
 
     # Build batch list: (year, prov_id)
     batches = []
     for year in range(start_year, args.end_year + 1):
-        for prov_id in TARGET_PROVINCE_IDS:
+        for prov_id in province_ids:
             batches.append((year, prov_id))
 
     total_batches = len(batches)
@@ -189,7 +207,7 @@ def main():
 
     logger.info(f"Total batches: {total_batches} (year x province)")
     logger.info(f"Years: {start_year}-{args.end_year}")
-    logger.info(f"Provinces: {TARGET_PROVINCE_IDS}")
+    logger.info(f"Provinces: {province_ids}")
     print()
 
     # Process per-province per-year
