@@ -110,7 +110,9 @@ CREATE TABLE IF NOT EXISTS app.users (
     id               SERIAL PRIMARY KEY,
     username         VARCHAR      NOT NULL UNIQUE,
     password_hash    VARCHAR      NOT NULL,
-    role             VARCHAR      NOT NULL DEFAULT 'viewer',
+    is_admin         BOOLEAN      NOT NULL DEFAULT FALSE,
+    is_analyst       BOOLEAN      NOT NULL DEFAULT FALSE,
+    is_active        BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 """

@@ -3,30 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manajemen Pengguna — RCA RadarPangan</title>
+  <title>Manajemen Pengguna — R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #f0f4ff;
-      --surface:   #ffffff;
-      --surface2:  #f5f7ff;
-      --border:    #dde3f7;
-      --border2:   #c7d2fe;
-      --accent:    #6366f1;
-      --accent2:   #4f46e5;
-      --warn:      #f59e0b;
-      --danger:    #ef4444;
-      --success:   #10b981;
-      --text:      #1e293b;
-      --text2:     #475569;
-      --muted:     #94a3b8;
-      --mono: 'JetBrains Mono', monospace;
-      --sans: 'Inter', sans-serif;
-      --radius: 14px;
-      --radius-sm: 10px;
+      --bg:        #F3EEFF;
+      --surface:   #FFFFFF;
+      --surface2:  #FFFBEB;
+      --border:    #1a1a1a;
+      --accent:    #818CF8;
+      --accent2:   #6366f1;
+      --warn:      #FBBF24;
+      --danger:    #F87171;
+      --success:   #34D399;
+      --text:      #1a1a1a;
+      --text2:     #3f3f46;
+      --muted:     #71717a;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Inter', system-ui, sans-serif;
+      --radius:    16px;
+      --radius-sm: 12px;
+      --bw:        2.5px;
+      --shadow:    4px 4px 0px #1a1a1a;
     }
 
     html { scroll-behavior: smooth; }
@@ -43,10 +44,9 @@
       position: fixed;
       inset: 0;
       background-image:
-        radial-gradient(ellipse at 10% 10%, rgba(99,102,241,0.18) 0%, transparent 50%),
-        radial-gradient(ellipse at 90% 15%, rgba(236,72,153,0.12) 0%, transparent 45%),
-        radial-gradient(ellipse at 80% 85%, rgba(6,182,212,0.14) 0%, transparent 50%),
-        radial-gradient(ellipse at 20% 90%, rgba(16,185,129,0.12) 0%, transparent 45%);
+        radial-gradient(circle at 20% 50%, rgba(129,140,248,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(249,168,212,0.10) 0%, transparent 50%),
+        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
       pointer-events: none;
       z-index: 0;
     }
@@ -54,7 +54,7 @@
     .app {
       position: relative;
       z-index: 1;
-      max-width: 900px;
+      max-width: 940px;
       margin: 0 auto;
       padding: 24px 20px 48px;
     }
@@ -64,80 +64,82 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
       padding: 14px 20px;
-      background: rgba(255,255,255,0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.9);
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius);
-      box-shadow: 0 2px 16px rgba(99,102,241,0.08);
+      box-shadow: var(--shadow);
     }
     .header-left { display: flex; align-items: center; gap: 14px; }
     .logo-icon {
-      width: 42px; height: 42px;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
+      width: 46px; height: 46px;
+      background: var(--accent);
+      border: var(--bw) solid var(--border);
       border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
-      box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+      font-size: 22px; flex-shrink: 0;
+      box-shadow: 3px 3px 0 var(--border);
     }
     .header-title {
-      font-size: 17px; font-weight: 800; letter-spacing: -0.3px;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-size: 18px; font-weight: 900; letter-spacing: -0.5px;
+      color: var(--text);
     }
-    .header-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
-    .header-right { display: flex; align-items: center; gap: 10px; }
+    .header-sub {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 2px; letter-spacing: 0.5px; font-weight: 600;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
     .btn-sm {
       font-family: var(--mono);
       font-size: 11px;
-      font-weight: 600;
-      padding: 7px 13px;
+      font-weight: 700;
+      padding: 8px 14px;
       border-radius: var(--radius-sm);
       cursor: pointer;
-      border: 1.5px solid;
-      transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.15s;
+      border: var(--bw) solid var(--border);
+      box-shadow: 3px 3px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
       display: inline-flex;
       align-items: center;
       gap: 5px;
       text-decoration: none;
     }
+    .btn-sm:active {
+      transform: translate(3px, 3px);
+      box-shadow: 0 0 0 var(--border);
+    }
     .btn-ghost {
-      background: rgba(99,102,241,0.06);
-      border-color: var(--border2);
-      color: var(--accent);
+      background: var(--surface);
+      color: var(--accent2);
     }
-    .btn-ghost:hover { background: rgba(99,102,241,0.13); }
+    .btn-ghost:hover { background: #EDE9FE; }
     .btn-danger-outline {
-      background: rgba(239,68,68,0.05);
-      border-color: rgba(239,68,68,0.3);
-      color: #dc2626;
+      background: #FEE2E2;
+      color: #DC2626;
     }
-    .btn-danger-outline:hover { background: rgba(239,68,68,0.12); }
+    .btn-danger-outline:hover { background: #FECACA; }
 
     .user-badge {
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--text2);
-      padding: 6px 12px;
+      font-weight: 700;
+      color: var(--text);
+      padding: 7px 13px;
       background: var(--surface2);
-      border: 1px solid var(--border);
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
     }
-    .user-badge strong { color: var(--accent); }
+    .user-badge strong { color: var(--accent2); }
 
     /* ── Card ── */
     .card {
-      background: rgba(255,255,255,0.8);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.95);
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius);
-      box-shadow: 0 4px 24px rgba(99,102,241,0.07), 0 1px 4px rgba(99,102,241,0.05);
+      box-shadow: var(--shadow);
       overflow: hidden;
     }
 
@@ -146,38 +148,43 @@
       align-items: center;
       justify-content: space-between;
       padding: 18px 20px 16px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: var(--bw) solid var(--border);
+      background: var(--surface2);
     }
     .card-title-wrap { display: flex; align-items: center; gap: 10px; }
-    .card-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .card-title { font-size: 16px; font-weight: 800; color: var(--text); }
     .card-count {
       font-family: var(--mono);
       font-size: 10px;
-      font-weight: 600;
-      color: var(--accent);
-      background: rgba(99,102,241,0.1);
-      padding: 2px 8px;
-      border-radius: 20px;
+      font-weight: 700;
+      color: var(--accent2);
+      background: #EDE9FE;
+      border: 1.5px solid var(--border);
+      padding: 2px 9px;
+      border-radius: 6px;
     }
 
     .btn-primary {
-      padding: 9px 18px;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      color: white;
-      border: none;
+      padding: 10px 18px;
+      background: var(--accent);
+      color: #ffffff;
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
       font-family: var(--sans);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 3px 14px rgba(99,102,241,0.35);
-      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: var(--shadow);
+      transition: transform 0.1s, box-shadow 0.1s;
       display: inline-flex;
       align-items: center;
       gap: 6px;
     }
-    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
-    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-primary:active {
+      transform: translate(4px, 4px);
+      box-shadow: 0 0 0 var(--border);
+    }
 
     /* ── Table ── */
     .table-wrap { overflow-x: auto; }
@@ -188,66 +195,86 @@
     }
     thead tr {
       background: var(--surface2);
-      border-bottom: 1px solid var(--border);
+      border-bottom: var(--bw) solid var(--border);
     }
     th {
       font-family: var(--mono);
       font-size: 10px;
-      font-weight: 600;
-      color: var(--muted);
+      font-weight: 800;
+      color: var(--text);
       text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 11px 16px;
+      letter-spacing: 1.2px;
+      padding: 12px 16px;
       text-align: left;
       white-space: nowrap;
     }
     td {
       padding: 13px 16px;
-      border-bottom: 1px solid rgba(221,227,247,0.6);
+      border-bottom: 1.5px solid #e5e5e5;
       vertical-align: middle;
     }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover { background: rgba(99,102,241,0.03); }
+    tbody tr:hover { background: #F5F3FF; }
 
     .id-cell {
       font-family: var(--mono);
       font-size: 12px;
       color: var(--muted);
-      font-weight: 600;
+      font-weight: 700;
     }
-    .username-cell { font-weight: 600; color: var(--text); }
-    .date-cell { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+    .username-cell { font-weight: 700; color: var(--text); }
+    .date-cell { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 500; }
 
     .role-badge {
       display: inline-flex;
       align-items: center;
       gap: 4px;
       padding: 3px 10px;
-      border-radius: 20px;
+      border-radius: 6px;
       font-family: var(--mono);
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
+      border: 1.5px solid var(--border);
     }
-    .role-admin    { background: rgba(99,102,241,0.12); color: #4f46e5; }
-    .role-analyst  { background: rgba(6,182,212,0.12);  color: #0891b2; }
-    .role-viewer   { background: rgba(148,163,184,0.15); color: #64748b; }
+    .role-admin    { background: #EDE9FE; color: #4f46e5; }
+    .role-analyst  { background: #CFFAFE; color: #0891b2; }
+    .role-viewer   { background: #F1F5F9; color: #64748b; }
+
+    /* Status badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      border: 1.5px solid var(--border);
+    }
+    .status-active   { background: #D1FAE5; color: #065f46; }
+    .status-inactive { background: #FEE2E2; color: #991b1b; }
 
     .action-cell { display: flex; gap: 6px; }
     .icon-btn {
-      width: 30px; height: 30px;
+      width: 32px; height: 32px;
       display: flex; align-items: center; justify-content: center;
       border-radius: 8px;
-      border: 1.5px solid;
+      border: var(--bw) solid var(--border);
       cursor: pointer;
       font-size: 14px;
-      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
     }
-    .icon-btn:active { transform: scale(0.93); }
-    .edit-btn   { border-color: var(--border2); background: rgba(99,102,241,0.06); color: var(--accent); }
-    .edit-btn:hover   { background: rgba(99,102,241,0.15); border-color: var(--accent); }
-    .delete-btn { border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.05); color: #ef4444; }
-    .delete-btn:hover { background: rgba(239,68,68,0.15); border-color: #ef4444; }
-    .icon-btn.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+    .icon-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0 0 0 var(--border);
+    }
+    .edit-btn   { background: #EDE9FE; color: var(--accent2); }
+    .edit-btn:hover   { background: #DDD6FE; }
+    .delete-btn { background: #FEE2E2; color: #DC2626; }
+    .delete-btn:hover { background: #FECACA; }
+    .icon-btn.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; box-shadow: none; }
 
     .empty-state {
       padding: 40px 20px;
@@ -255,55 +282,55 @@
       font-family: var(--mono);
       font-size: 12px;
       color: var(--muted);
+      font-weight: 600;
     }
 
     /* ── Alert ── */
     .page-alert {
       display: none;
-      padding: 11px 16px;
+      padding: 12px 16px;
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
       font-family: var(--mono);
       font-size: 12px;
+      font-weight: 700;
       margin-bottom: 16px;
       align-items: center;
       gap: 8px;
+      box-shadow: 3px 3px 0 var(--border);
       animation: slide-up 0.2s ease;
     }
     .page-alert.show { display: flex; }
-    .alert-success { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); color: #059669; }
-    .alert-error   { background: rgba(239,68,68,0.07);  border: 1px solid rgba(239,68,68,0.25);  color: #dc2626; }
+    .alert-success { background: #D1FAE5; color: #065f46; }
+    .alert-error   { background: #FEE2E2; color: #DC2626; }
 
     /* ── Modal ── */
     .modal-backdrop {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(15,23,42,0.35);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      background: rgba(0,0,0,0.4);
       z-index: 100;
       align-items: center;
       justify-content: center;
       padding: 20px;
     }
-    .modal-backdrop.open { display: flex; animation: fade-in 0.2s ease; }
+    .modal-backdrop.open { display: flex; animation: fade-in 0.15s ease; }
     @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
     .modal {
-      background: rgba(255,255,255,0.96);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.98);
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
       border-radius: 18px;
       padding: 28px 28px 24px;
       width: 100%;
-      max-width: 420px;
-      box-shadow: 0 20px 60px rgba(15,23,42,0.2);
-      animation: modal-in 0.25s cubic-bezier(0.34,1.56,0.64,1) both;
+      max-width: 440px;
+      box-shadow: 8px 8px 0 var(--border);
+      animation: modal-in 0.2s ease both;
     }
     @keyframes modal-in {
-      from { opacity: 0; transform: scale(0.92) translateY(8px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); }
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     .modal-header {
@@ -312,70 +339,118 @@
       justify-content: space-between;
       margin-bottom: 22px;
     }
-    .modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .modal-title { font-size: 17px; font-weight: 800; color: var(--text); }
     .modal-close {
-      width: 32px; height: 32px;
+      width: 34px; height: 34px;
       display: flex; align-items: center; justify-content: center;
       background: var(--surface2);
-      border: 1px solid var(--border);
+      border: var(--bw) solid var(--border);
       border-radius: 8px;
       cursor: pointer;
       font-size: 16px;
       color: var(--muted);
-      transition: background 0.15s, color 0.15s;
+      box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
     }
-    .modal-close:hover { background: var(--border); color: var(--text); }
+    .modal-close:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0 0 0 var(--border);
+    }
+    .modal-close:hover { color: var(--text); }
 
     .form-group { margin-bottom: 16px; }
     .form-label {
       display: block;
       font-family: var(--mono);
       font-size: 10px;
-      font-weight: 600;
-      color: var(--text2);
+      font-weight: 800;
+      color: var(--text);
       text-transform: uppercase;
       letter-spacing: 1.2px;
       margin-bottom: 6px;
     }
     .form-input {
       width: 100%;
-      padding: 10px 13px;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
+      padding: 11px 14px;
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
       font-family: var(--mono);
       font-size: 13px;
+      font-weight: 600;
       color: var(--text);
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      box-shadow: 3px 3px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
     }
-    .form-input::placeholder { color: var(--muted); }
+    .form-input::placeholder { color: var(--muted); font-weight: 400; }
     .form-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
-      background: white;
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
     }
-    .form-hint { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 5px; }
-    .form-select {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 32px;
+    .form-hint {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 5px; font-weight: 500;
+    }
+
+    /* ── Checkbox group (neobrutalism) ── */
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+      user-select: none;
+    }
+    .checkbox-item:hover { background: #F5F3FF; }
+    .checkbox-item:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0 0 0 var(--border);
+    }
+    .checkbox-item.checked { background: #EDE9FE; }
+    .checkbox-item input[type="checkbox"] {
+      width: 18px; height: 18px;
+      accent-color: var(--accent2);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .checkbox-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .checkbox-desc {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 500;
     }
 
     .modal-error {
       display: none;
-      background: rgba(239,68,68,0.07);
-      border: 1px solid rgba(239,68,68,0.25);
+      background: #FEE2E2;
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
-      padding: 9px 13px;
+      padding: 10px 14px;
       font-family: var(--mono);
       font-size: 11px;
-      color: #dc2626;
+      font-weight: 700;
+      color: #DC2626;
       margin-bottom: 16px;
+      box-shadow: 2px 2px 0 var(--border);
     }
-    .modal-error.show { display: block; }
+    .modal-error.show { display: block; animation: slide-up 0.15s ease; }
 
     .modal-footer {
       display: flex;
@@ -383,48 +458,57 @@
       gap: 10px;
       margin-top: 22px;
       padding-top: 18px;
-      border-top: 1px solid var(--border);
+      border-top: var(--bw) solid var(--border);
     }
     .btn-cancel {
-      padding: 9px 18px;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-sm);
-      font-family: var(--sans);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text2);
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    .btn-cancel:hover { background: var(--border); border-color: var(--border2); }
-
-    .btn-submit {
-      padding: 9px 20px;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      color: white;
-      border: none;
+      padding: 10px 18px;
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
       font-family: var(--sans);
       font-size: 13px;
       font-weight: 700;
+      color: var(--text);
       cursor: pointer;
-      box-shadow: 0 3px 12px rgba(99,102,241,0.3);
-      transition: opacity 0.2s, transform 0.15s;
+      box-shadow: 3px 3px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .btn-cancel:active {
+      transform: translate(3px, 3px);
+      box-shadow: 0 0 0 var(--border);
+    }
+    .btn-cancel:hover { background: #f5f5f5; }
+
+    .btn-submit {
+      padding: 10px 20px;
+      background: var(--accent);
+      color: #ffffff;
+      border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.1s, box-shadow 0.1s;
       display: inline-flex;
       align-items: center;
       gap: 6px;
     }
-    .btn-submit:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
-    .btn-submit-danger {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      box-shadow: 0 3px 12px rgba(239,68,68,0.3);
+    .btn-submit:hover:not(:disabled) { background: var(--accent2); }
+    .btn-submit:active:not(:disabled) {
+      transform: translate(4px, 4px);
+      box-shadow: 0 0 0 var(--border);
     }
+    .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; transform: translate(2px, 2px); }
+    .btn-submit-danger {
+      background: var(--danger);
+    }
+    .btn-submit-danger:hover:not(:disabled) { background: #EF4444; }
 
     .spinner-sm {
       width: 13px; height: 13px;
-      border: 2px solid rgba(255,255,255,0.35);
+      border: 2.5px solid rgba(255,255,255,0.35);
       border-top-color: white;
       border-radius: 50%;
       animation: spin 0.6s linear infinite;
@@ -432,7 +516,7 @@
     @keyframes spin    { to { transform: rotate(360deg); } }
     @keyframes slide-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Delete confirm special styling */
+    /* Delete confirm */
     .delete-confirm-text {
       font-size: 14px;
       color: var(--text2);
@@ -443,15 +527,16 @@
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      background: rgba(239,68,68,0.07);
-      border: 1px solid rgba(239,68,68,0.2);
-      border-radius: 6px;
-      padding: 3px 10px;
+      background: #FEE2E2;
+      border: var(--bw) solid var(--border);
+      border-radius: 8px;
+      padding: 4px 12px;
       font-family: var(--mono);
       font-size: 13px;
-      font-weight: 700;
-      color: #dc2626;
+      font-weight: 800;
+      color: #DC2626;
       margin: 6px 0;
+      box-shadow: 2px 2px 0 var(--border);
     }
   </style>
 </head>
@@ -463,7 +548,7 @@
     <div class="header-left">
       <div class="logo-icon">📡</div>
       <div>
-        <div class="header-title">RCA RadarPangan</div>
+        <div class="header-title">R.A.D.A.R Pangan</div>
         <div class="header-sub">manajemen pengguna &nbsp;·&nbsp; admin panel</div>
       </div>
     </div>
@@ -489,7 +574,7 @@
         <div class="card-title">Daftar Pengguna</div>
         <div class="card-count" id="userCount">0 users</div>
       </div>
-      <button class="btn-primary" onclick="openAddModal()">＋ Tambah User</button>
+      <button class="btn-primary" onclick="openAddModal()">+ Tambah User</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -498,12 +583,13 @@
             <th>ID</th>
             <th>Username</th>
             <th>Role</th>
+            <th>Status</th>
             <th>Dibuat</th>
             <th>Aksi</th>
           </tr>
         </thead>
         <tbody id="userTableBody">
-          <tr><td colspan="5" class="empty-state">Memuat data...</td></tr>
+          <tr><td colspan="6" class="empty-state">Memuat data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -528,12 +614,24 @@
       <input type="password" id="addPassword" class="form-input" placeholder="Masukkan password">
     </div>
     <div class="form-group">
-      <label class="form-label" for="addRole">Role</label>
-      <select id="addRole" class="form-input form-select">
-        <option value="viewer">viewer — akses read-only</option>
-        <option value="analyst">analyst — akses penuh RCA</option>
-        <option value="admin">admin — akses penuh + manajemen user</option>
-      </select>
+      <label class="form-label">Hak Akses</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item" id="addAdminItem">
+          <input type="checkbox" id="addIsAdmin" onchange="toggleCheckStyle('addAdminItem', this)">
+          <div>
+            <div class="checkbox-label">Admin</div>
+            <div class="checkbox-desc">Kelola pengguna + akses penuh</div>
+          </div>
+        </label>
+        <label class="checkbox-item" id="addAnalystItem">
+          <input type="checkbox" id="addIsAnalyst" onchange="toggleCheckStyle('addAnalystItem', this)">
+          <div>
+            <div class="checkbox-label">Analyst</div>
+            <div class="checkbox-desc">Akses RCA + analisis detail</div>
+          </div>
+        </label>
+      </div>
+      <div class="form-hint">Tanpa centang = Viewer (read-only)</div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('addModal')">Batal</button>
@@ -548,7 +646,7 @@
 <div class="modal-backdrop" id="editModal" onclick="closeIfBackdrop(event, 'editModal')">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">Edit User: <span id="editUsername" style="color:var(--accent)"></span></div>
+      <div class="modal-title">Edit User: <span id="editUsername" style="color:var(--accent2)"></span></div>
       <button class="modal-close" onclick="closeModal('editModal')">✕</button>
     </div>
     <div class="modal-error" id="editError"></div>
@@ -559,12 +657,35 @@
       <div class="form-hint">Biarkan kosong jika tidak ingin mengubah password</div>
     </div>
     <div class="form-group">
-      <label class="form-label" for="editRole">Role</label>
-      <select id="editRole" class="form-input form-select">
-        <option value="viewer">viewer — akses read-only</option>
-        <option value="analyst">analyst — akses penuh RCA</option>
-        <option value="admin">admin — akses penuh + manajemen user</option>
-      </select>
+      <label class="form-label">Hak Akses</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item" id="editAdminItem">
+          <input type="checkbox" id="editIsAdmin" onchange="toggleCheckStyle('editAdminItem', this)">
+          <div>
+            <div class="checkbox-label">Admin</div>
+            <div class="checkbox-desc">Kelola pengguna + akses penuh</div>
+          </div>
+        </label>
+        <label class="checkbox-item" id="editAnalystItem">
+          <input type="checkbox" id="editIsAnalyst" onchange="toggleCheckStyle('editAnalystItem', this)">
+          <div>
+            <div class="checkbox-label">Analyst</div>
+            <div class="checkbox-desc">Akses RCA + analisis detail</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status Akun</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item" id="editActiveItem">
+          <input type="checkbox" id="editIsActive" onchange="toggleCheckStyle('editActiveItem', this)">
+          <div>
+            <div class="checkbox-label">Aktif</div>
+            <div class="checkbox-desc">Nonaktifkan untuk blokir login</div>
+          </div>
+        </label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('editModal')">Batal</button>
@@ -601,14 +722,15 @@
   const token = localStorage.getItem('rca_token');
   const userInfo = JSON.parse(localStorage.getItem('rca_user') || 'null');
 
-  // Auth guard — redirect jika bukan admin
+  // Auth guard — redirect if not admin
   (async function guard() {
     if (!token) { window.location.replace('/login'); return; }
     try {
       const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
       if (!r.ok) throw new Error();
       const me = await r.json();
-      if (me.role !== 'admin') { window.location.replace('/'); return; }
+      // Check admin via boolean flag (with fallback to computed role)
+      if (!me.is_admin && me.role !== 'admin') { window.location.replace('/'); return; }
       document.getElementById('userBadge').innerHTML = `<strong>${me.username}</strong> · ${me.role}`;
     } catch {
       window.location.replace('/login');
@@ -617,6 +739,17 @@
 
   function authHeader() {
     return { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+  }
+
+  // ── Checkbox style toggle ───────────────────────────────────────────────────
+
+  function toggleCheckStyle(itemId, checkbox) {
+    const el = document.getElementById(itemId);
+    if (checkbox.checked) {
+      el.classList.add('checked');
+    } else {
+      el.classList.remove('checked');
+    }
   }
 
   // ── Load users ─────────────────────────────────────────────────────────────
@@ -629,7 +762,7 @@
       renderTable(users);
     } catch {
       document.getElementById('userTableBody').innerHTML =
-        '<tr><td colspan="5" class="empty-state">Gagal memuat data</td></tr>';
+        '<tr><td colspan="6" class="empty-state">Gagal memuat data</td></tr>';
     }
   }
 
@@ -640,10 +773,12 @@
     document.getElementById('userCount').textContent = `${users.length} user${users.length !== 1 ? 's' : ''}`;
     if (!users.length) {
       document.getElementById('userTableBody').innerHTML =
-        '<tr><td colspan="5" class="empty-state">Belum ada pengguna</td></tr>';
+        '<tr><td colspan="6" class="empty-state">Belum ada pengguna</td></tr>';
       return;
     }
-    document.getElementById('userTableBody').innerHTML = users.map(u => `
+    document.getElementById('userTableBody').innerHTML = users.map(u => {
+      const isActive = u.is_active !== false; // default true
+      return `
       <tr>
         <td class="id-cell">#${u.id}</td>
         <td class="username-cell">${escHtml(u.username)}</td>
@@ -652,15 +787,22 @@
             ${ROLE_ICON[u.role] || '·'} ${u.role}
           </span>
         </td>
+        <td>
+          <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
+            ${isActive ? '● Aktif' : '○ Nonaktif'}
+          </span>
+        </td>
         <td class="date-cell">${u.created_at ? u.created_at.slice(0, 10) : '—'}</td>
         <td class="action-cell">
-          <button class="icon-btn edit-btn" onclick="openEditModal(${u.id}, '${escHtml(u.username)}', '${u.role}')" title="Edit">✎</button>
+          <button class="icon-btn edit-btn"
+            onclick="openEditModal(${u.id}, '${escHtml(u.username)}', ${!!u.is_admin}, ${!!u.is_analyst}, ${isActive})"
+            title="Edit">✎</button>
           <button class="icon-btn delete-btn ${u.id === myId ? 'disabled' : ''}"
             onclick="openDeleteModal(${u.id}, '${escHtml(u.username)}')"
             title="${u.id === myId ? 'Tidak bisa hapus akun sendiri' : 'Hapus'}">✕</button>
         </td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('');
   }
 
   function escHtml(s) {
@@ -700,7 +842,10 @@
   function openAddModal() {
     document.getElementById('addUsername').value = '';
     document.getElementById('addPassword').value = '';
-    document.getElementById('addRole').value = 'viewer';
+    document.getElementById('addIsAdmin').checked = false;
+    document.getElementById('addIsAnalyst').checked = false;
+    document.getElementById('addAdminItem').classList.remove('checked');
+    document.getElementById('addAnalystItem').classList.remove('checked');
     document.getElementById('addError').classList.remove('show');
     document.getElementById('addError').textContent = '';
     openModal('addModal');
@@ -708,12 +853,13 @@
   }
 
   async function submitAdd() {
-    const username = document.getElementById('addUsername').value.trim();
-    const password = document.getElementById('addPassword').value;
-    const role     = document.getElementById('addRole').value;
-    const errEl    = document.getElementById('addError');
-    const btn      = document.getElementById('addSubmitBtn');
-    const content  = document.getElementById('addSubmitContent');
+    const username   = document.getElementById('addUsername').value.trim();
+    const password   = document.getElementById('addPassword').value;
+    const is_admin   = document.getElementById('addIsAdmin').checked;
+    const is_analyst = document.getElementById('addIsAnalyst').checked;
+    const errEl      = document.getElementById('addError');
+    const btn        = document.getElementById('addSubmitBtn');
+    const content    = document.getElementById('addSubmitContent');
 
     if (!username || !password) {
       errEl.textContent = 'Username dan password wajib diisi';
@@ -729,7 +875,7 @@
       const r = await fetch('/api/auth/users', {
         method: 'POST',
         headers: authHeader(),
-        body: JSON.stringify({ username, password, role }),
+        body: JSON.stringify({ username, password, is_admin, is_analyst }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || 'Gagal menambah user');
@@ -747,32 +893,41 @@
 
   // ── Edit modal ──────────────────────────────────────────────────────────────
 
-  function openEditModal(id, username, role) {
-    document.getElementById('editUserId').value  = id;
+  function openEditModal(id, username, isAdmin, isAnalyst, isActive) {
+    document.getElementById('editUserId').value = id;
     document.getElementById('editUsername').textContent = username;
     document.getElementById('editPassword').value = '';
-    document.getElementById('editRole').value     = role;
+    document.getElementById('editIsAdmin').checked = isAdmin;
+    document.getElementById('editIsAnalyst').checked = isAnalyst;
+    document.getElementById('editIsActive').checked = isActive;
+
+    // Sync checkbox visual styles
+    document.getElementById('editAdminItem').classList.toggle('checked', isAdmin);
+    document.getElementById('editAnalystItem').classList.toggle('checked', isAnalyst);
+    document.getElementById('editActiveItem').classList.toggle('checked', isActive);
+
     document.getElementById('editError').classList.remove('show');
     document.getElementById('editError').textContent = '';
     openModal('editModal');
   }
 
   async function submitEdit() {
-    const id       = parseInt(document.getElementById('editUserId').value);
-    const password = document.getElementById('editPassword').value || null;
-    const role     = document.getElementById('editRole').value;
-    const errEl    = document.getElementById('editError');
-    const btn      = document.getElementById('editSubmitBtn');
-    const content  = document.getElementById('editSubmitContent');
+    const id         = parseInt(document.getElementById('editUserId').value);
+    const password   = document.getElementById('editPassword').value || null;
+    const is_admin   = document.getElementById('editIsAdmin').checked;
+    const is_analyst = document.getElementById('editIsAnalyst').checked;
+    const is_active  = document.getElementById('editIsActive').checked;
+    const errEl      = document.getElementById('editError');
+    const btn        = document.getElementById('editSubmitBtn');
+    const content    = document.getElementById('editSubmitContent');
 
     errEl.classList.remove('show');
     btn.disabled = true;
     content.innerHTML = '<div class="spinner-sm"></div> Menyimpan...';
 
     try {
-      const body = {};
+      const body = { is_admin, is_analyst, is_active };
       if (password) body.password = password;
-      if (role)     body.role     = role;
 
       const r = await fetch(`/api/auth/users/${id}`, {
         method: 'PATCH',

@@ -3,13 +3,16 @@ src/api/auth_routes.py
 ======================
 Endpoint autentikasi dan manajemen pengguna.
 
+Auth menggunakan boolean flags (is_admin, is_analyst, is_active) bukan role string.
+Backward-compat: computed "role" field tetap disertakan di response.
+
 Endpoints
 ---------
 POST /api/auth/login           → login, kembalikan JWT
 GET  /api/auth/me              → data user yang sedang login
 GET  /api/auth/users           → daftar semua users (admin only)
 POST /api/auth/users           → tambah user baru (admin only)
-PATCH /api/auth/users/{id}     → edit password / role (admin only)
+PATCH /api/auth/users/{id}     → edit password / flags (admin only)
 DELETE /api/auth/users/{id}    → hapus user (admin only)
 """
 from datetime import datetime, timedelta
@@ -42,23 +45,45 @@ _oauth2 = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 class UserCreate(BaseModel):
     username: str
     password: str
-    role: str = "viewer"
+    is_admin: bool = False
+    is_analyst: bool = False
 
 
 class UserUpdate(BaseModel):
     password: Optional[str] = None
-    role: Optional[str] = None
+    is_admin: Optional[bool] = None
+    is_analyst: Optional[bool] = None
+    is_active: Optional[bool] = None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _make_token(username: str, role: str) -> str:
+def _make_token(user: dict) -> str:
+    """Create JWT with boolean flags + computed role for backward compat."""
     expire = datetime.utcnow() + timedelta(hours=_TOKEN_HOURS)
     return jwt.encode(
-        {"sub": username, "role": role, "exp": expire},
+        {
+            "sub": user["username"],
+            "role": user["role"],  # computed by auth_db._compute_role
+            "is_admin": user.get("is_admin", False),
+            "is_analyst": user.get("is_analyst", False),
+            "exp": expire,
+        },
         _SECRET,
         algorithm=_ALGO,
     )
+
+
+def _user_response(user: dict) -> dict:
+    """Build consistent user response dict (no password_hash)."""
+    return {
+        "id": user["id"],
+        "username": user["username"],
+        "role": user.get("role", "viewer"),
+        "is_admin": user.get("is_admin", False),
+        "is_analyst": user.get("is_analyst", False),
+        "is_active": user.get("is_active", True),
+    }
 
 
 def _current_user(token: str = Depends(_oauth2)) -> dict:
@@ -77,11 +102,14 @@ def _current_user(token: str = Depends(_oauth2)) -> dict:
     user = get_user_by_username(username)
     if not user:
         raise exc
+    # Check if account is disabled
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Akun dinonaktifkan")
     return user
 
 
 def _require_admin(user: dict = Depends(_current_user)) -> dict:
-    if user["role"] != "admin":
+    if not user.get("is_admin", False):
         raise HTTPException(status_code=403, detail="Akses ditolak: hanya admin")
     return user
 
@@ -93,16 +121,19 @@ def login(form: OAuth2PasswordRequestForm = Depends()):
     user = get_user_by_username(form.username)
     if not user or not verify_password(form.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Username atau password salah")
+    # Block disabled accounts from logging in
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Akun dinonaktifkan")
     return {
-        "access_token": _make_token(user["username"], user["role"]),
+        "access_token": _make_token(user),
         "token_type": "bearer",
-        "user": {"id": user["id"], "username": user["username"], "role": user["role"]},
+        "user": _user_response(user),
     }
 
 
 @auth_router.get("/me", summary="Data user yang sedang login")
 def get_me(user: dict = Depends(_current_user)):
-    return {"id": user["id"], "username": user["username"], "role": user["role"]}
+    return _user_response(user)
 
 
 @auth_router.get("/users", summary="Daftar semua users (admin only)")
@@ -112,19 +143,26 @@ def get_users(_: dict = Depends(_require_admin)):
 
 @auth_router.post("/users", status_code=201, summary="Tambah user baru (admin only)")
 def add_user(data: UserCreate, _: dict = Depends(_require_admin)):
-    if data.role not in ("admin", "analyst", "viewer"):
-        raise HTTPException(status_code=422, detail="Role harus: admin, analyst, atau viewer")
     try:
-        return create_user(data.username, data.password, data.role)
+        return create_user(
+            data.username,
+            data.password,
+            is_admin=data.is_admin,
+            is_analyst=data.is_analyst,
+        )
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
 
-@auth_router.patch("/users/{user_id}", summary="Edit password / role (admin only)")
+@auth_router.patch("/users/{user_id}", summary="Edit password / flags (admin only)")
 def patch_user(user_id: int, data: UserUpdate, _: dict = Depends(_require_admin)):
-    if data.role and data.role not in ("admin", "analyst", "viewer"):
-        raise HTTPException(status_code=422, detail="Role harus: admin, analyst, atau viewer")
-    result = update_user(user_id, data.password or None, data.role or None)
+    result = update_user(
+        user_id,
+        new_password=data.password or None,
+        is_admin=data.is_admin,
+        is_analyst=data.is_analyst,
+        is_active=data.is_active,
+    )
     if not result:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
     return result

@@ -1,7 +1,13 @@
 """
 Auth data layer: user management via Supabase PostgreSQL.
 
-Table: app.users (id SERIAL, username, password_hash, role, created_at)
+Table: app.users (id SERIAL, username, password_hash, is_admin, is_analyst, is_active, created_at)
+
+Boolean flags instead of role VARCHAR:
+  is_admin   = can manage users + full access
+  is_analyst = can run RCA + view detailed analysis
+  is_active  = account enabled (FALSE = soft-deleted/disabled)
+  (none set) = viewer / read-only access
 
 Provides the same interface that auth_routes.py expects:
 - create_user, get_user_by_username, list_users, update_user, delete_user, verify_password
@@ -25,6 +31,28 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 
+def _compute_role(user: dict) -> str:
+    """Derive human-readable role string from boolean flags.
+
+    Used for backward compatibility in API responses and JWT tokens.
+    """
+    if user.get("is_admin"):
+        return "admin"
+    elif user.get("is_analyst"):
+        return "analyst"
+    return "viewer"
+
+
+def _user_to_dict(row: dict) -> dict:
+    """Convert DB row to API-friendly dict with computed 'role' field."""
+    d = dict(row)
+    # Remove password_hash from output if present
+    d.pop("password_hash", None)
+    # Add computed role for backward compat
+    d["role"] = _compute_role(d)
+    return d
+
+
 # ── Seed default users ───────────────────────────────────────────────────────
 
 def init_db_auth() -> None:
@@ -40,19 +68,26 @@ def init_db_auth() -> None:
 def _seed_defaults() -> None:
     """Insert default admin and analyst users."""
     defaults = [
-        ("admin", "admin123", "admin"),
-        ("analyst", "analyst123", "analyst"),
+        # (username, password, is_admin, is_analyst)
+        ("admin",   "admin123",   True,  False),
+        ("analyst", "analyst123", False, True),
     ]
-    for username, password, role in defaults:
+    for username, password, is_admin, is_analyst in defaults:
         try:
-            create_user(username, password, role)
+            create_user(username, password, is_admin=is_admin, is_analyst=is_analyst)
         except ValueError:
             pass  # already exists
 
 
 # ── CRUD operations ──────────────────────────────────────────────────────────
 
-def create_user(username: str, password: str, role: str = "viewer") -> dict:
+def create_user(
+    username: str,
+    password: str,
+    is_admin: bool = False,
+    is_analyst: bool = False,
+    is_active: bool = True,
+) -> dict:
     """Create a new user. Raises ValueError if username exists."""
     password_hash = _hash_password(password)
 
@@ -63,56 +98,68 @@ def create_user(username: str, password: str, role: str = "viewer") -> dict:
             raise ValueError(f"Username '{username}' sudah terdaftar")
 
         cur.execute("""
-            INSERT INTO app.users (username, password_hash, role)
-            VALUES (%s, %s, %s)
-            RETURNING id, username, role, created_at
-        """, [username, password_hash, role])
+            INSERT INTO app.users (username, password_hash, is_admin, is_analyst, is_active)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id, username, is_admin, is_analyst, is_active, created_at
+        """, [username, password_hash, is_admin, is_analyst, is_active])
         row = cur.fetchone()
 
-    return dict(row)
+    return _user_to_dict(row)
 
 
 def get_user_by_username(username: str) -> dict | None:
-    """Get user by username. Returns None if not found."""
+    """Get user by username (includes password_hash for auth)."""
     with db_cursor() as cur:
         cur.execute("""
-            SELECT id, username, password_hash, role, created_at
+            SELECT id, username, password_hash, is_admin, is_analyst, is_active, created_at
             FROM app.users
             WHERE username = %s
         """, [username])
         row = cur.fetchone()
 
-    return dict(row) if row else None
+    if not row:
+        return None
+    d = dict(row)
+    d["role"] = _compute_role(d)  # add computed role but keep password_hash
+    return d
 
 
 def list_users() -> list[dict]:
     """List all users (without password_hash)."""
     with db_cursor() as cur:
         cur.execute("""
-            SELECT id, username, role, created_at
+            SELECT id, username, is_admin, is_analyst, is_active, created_at
             FROM app.users
             ORDER BY id
         """)
         rows = cur.fetchall()
 
-    return [dict(r) for r in rows]
+    return [_user_to_dict(r) for r in rows]
 
 
 def update_user(
     user_id: int,
     new_password: str | None = None,
-    new_role: str | None = None,
+    is_admin: bool | None = None,
+    is_analyst: bool | None = None,
+    is_active: bool | None = None,
 ) -> dict | None:
-    """Update user password and/or role. Returns updated user or None."""
+    """Update user fields. Only non-None values are updated."""
     updates = []
     params = []
 
     if new_password:
         updates.append("password_hash = %s")
         params.append(_hash_password(new_password))
-    if new_role:
-        updates.append("role = %s")
-        params.append(new_role)
+    if is_admin is not None:
+        updates.append("is_admin = %s")
+        params.append(is_admin)
+    if is_analyst is not None:
+        updates.append("is_analyst = %s")
+        params.append(is_analyst)
+    if is_active is not None:
+        updates.append("is_active = %s")
+        params.append(is_active)
 
     if not updates:
         return get_user_by_id(user_id)
@@ -125,11 +172,11 @@ def update_user(
             UPDATE app.users
             SET {set_clause}
             WHERE id = %s
-            RETURNING id, username, role, created_at
+            RETURNING id, username, is_admin, is_analyst, is_active, created_at
         """, params)
         row = cur.fetchone()
 
-    return dict(row) if row else None
+    return _user_to_dict(row) if row else None
 
 
 def delete_user(user_id: int) -> bool:
@@ -140,13 +187,13 @@ def delete_user(user_id: int) -> bool:
 
 
 def get_user_by_id(user_id: int) -> dict | None:
-    """Get user by ID."""
+    """Get user by ID (without password_hash)."""
     with db_cursor() as cur:
         cur.execute("""
-            SELECT id, username, role, created_at
+            SELECT id, username, is_admin, is_analyst, is_active, created_at
             FROM app.users
             WHERE id = %s
         """, [user_id])
         row = cur.fetchone()
 
-    return dict(row) if row else None
+    return _user_to_dict(row) if row else None
