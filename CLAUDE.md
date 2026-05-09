@@ -76,7 +76,7 @@ PostgreSQL (Supabase Cloud)
 │   └── mart_dashboard_ringkasan     (national-level aggregations)
 │
 └── app.                              ← Application-managed tables
-    ├── users                         (auth: id, username, password_hash, role, created_at)
+    ├── users                         (auth: id, username, password_hash, is_admin, is_analyst, is_active, created_at)
     ├── het_reference                 (HET per komoditas per wilayah — dummy awal)
     ├── ml_predictions                (ML model output — managed by ML teammate)
     └── komoditas_config              (mapping komoditas aktif di MVP)
@@ -94,8 +94,7 @@ PostgreSQL (Supabase Cloud)
 
 **Data sources**:
 - **BI PIHPS**: Harga harian 21 komoditas, via HTTP API with XSRF token.
-  - Loaded: Jawa Barat (9 kota) + DKI Jakarta (1 kota) = 347,550 rows
-  - Pending: Banten + Sulawesi Selatan
+  - Loaded: 4 provinsi (Banten, Jabar, DKI, Sulsel) = **619,430 rows**
 - **Hari Besar**: `python-holidays` package (offline, reliable) — 91 rows (2024-2027)
 - **Cuaca**: Open-Meteo Historical API (gratis, data Indonesia dari 1940) — ✅ **11,605 rows loaded** (2020-2026, 5 lokasi)
   - BMKG **TIDAK DIPAKAI** (hanya forecast 3 hari, tidak ada historis)
@@ -111,17 +110,37 @@ PostgreSQL (Supabase Cloud)
    - Check 4: Stok pedagang (placeholder untuk MVP)
 3. **Weather Data Layer** — query `raw.cuaca_harian` untuk RCA cuaca check
 
-**Auth**: JWT HS256 (8 jam expire), bcrypt password hashing, RBAC (admin/analyst/viewer)
+**Auth**: JWT HS256 (8 jam expire), bcrypt password hashing, RBAC via boolean flags (is_admin/is_analyst/is_active)
 
 ### Frontend
 
-HTML + Alpine.js/HTMX (upgrade dari vanilla JS). No build step.
-Glassmorphism light-themed design system.
+HTML + Alpine.js (upgrade dari vanilla JS). No build step.
+Neobrutalism design system (thick black borders, offset shadows, pastel backgrounds).
 
-Pages:
-- `/login` — Login page
-- `/` — Dashboard (monitoring harga + RCA + HET status)
-- `/admin` — User management (admin only)
+Pages (5 total):
+
+| # | Page | URL | Layout | Role Min |
+|---|------|-----|--------|----------|
+| 1 | Login | `/login` | Single form card | Semua |
+| 2 | Dashboard Monitoring | `/` | Single column, summary + HET + RCA widget | Viewer+ |
+| 3 | Analisis RCA | `/rca` | Single column stacked: filter → RCA result → detail → timeline | Analyst+ |
+| 4 | Prediksi ML | `/prediksi` | Filter → summary cards → grafik → tabel prediksi | Analyst+ |
+| 5 | Admin | `/admin` | Table + modal CRUD | Admin only |
+
+### Role Access Matrix (RBAC)
+
+| Page | Viewer | Analyst | Admin |
+|------|--------|---------|-------|
+| Login | ✅ | ✅ | ✅ |
+| Dashboard | ✅ Read-only | ✅ Full | ✅ Full |
+| Analisis RCA | ❌ Redirect | ✅ Full | ✅ Full |
+| Prediksi ML | ❌ Redirect | ✅ Full | ✅ Full |
+| Admin | ❌ Redirect | ❌ Redirect | ✅ Full |
+
+Role ditentukan oleh boolean flags di `app.users`:
+- **Viewer** (`is_admin=false, is_analyst=false`): Dashboard read-only
+- **Analyst** (`is_analyst=true`): Dashboard + RCA + ML Prediksi
+- **Admin** (`is_admin=true`): Semua akses + kelola user
 
 ### ML Integration Contract
 
@@ -157,10 +176,10 @@ FastAPI tinggal SELECT dari tabel ini untuk ditampilkan di dashboard.
 ### Wilayah Fokus (4 provinsi)
 | Provinsi | PIHPS ID | Kota | Status Data |
 |----------|----------|------|-------------|
-| Banten | 11 | Tangerang, dll | ❌ Belum loaded |
+| Banten | 11 | Tangerang, dll | ✅ 104K rows |
 | Jawa Barat | 12 | Bandung, Bogor, Depok, Bekasi, Cirebon, dll | ✅ 312K rows |
 | DKI Jakarta | 13 | Jakarta Pusat | ✅ 34K rows |
-| Sulawesi Selatan | 26 | Makassar, dll | ❌ Belum loaded |
+| Sulawesi Selatan | 26 | Makassar, dll | ✅ 167K rows |
 
 **Coverage**: Jabodetabek (Jakarta + Bogor + Depok + Tangerang + Bekasi) + Jawa Barat + Sulawesi Selatan
 
@@ -270,7 +289,9 @@ Perlu set environment variables Supabase sebelum run dbt (atau pastikan `.envs/.
 Access points:
 - App Login: `http://localhost:8000/login`
 - App Dashboard: `http://localhost:8000`
-- App Admin: `http://localhost:8000/admin`
+- App RCA: `http://localhost:8000/rca` (analyst+ only)
+- App Prediksi: `http://localhost:8000/prediksi` (analyst+ only)
+- App Admin: `http://localhost:8000/admin` (admin only)
 - Swagger API docs: `http://localhost:8000/docs`
 - Airflow UI: `http://localhost:8080` (when Docker is running)
 
@@ -397,10 +418,27 @@ SUPABASE_PASSWORD=<password>
 - [x] Tambah weather info di RCA display (storm icon + detail cuaca)
 - [x] End-to-end testing: 4 demo scenarios verified
 - [x] Demo scenario documentation (docs/demo-scenarios.md)
-- [ ] Tambah weather info di RCA display
-- [ ] End-to-end testing + demo scenario preparation
+- [x] Upgrade frontend dari vanilla JS ke Alpine.js
+- [x] Reskin frontend dari glassmorphism ke neobrutalism
 
-### Checkpoint 8: Architecture Upgrade (Post-hackathon) ⬜ NEXT
+### Checkpoint 8: Auth Migration + Page Planning ✅ DONE (May 9)
+- [x] Migrate users table: role VARCHAR → is_admin/is_analyst/is_active booleans
+- [x] Update auth_routes.py: Pydantic models, JWT payload, admin guard
+- [x] Update auth_db.py: CRUD with boolean flags, _compute_role() backward compat
+- [x] Update admin.html: neobrutalism + boolean checkboxes (replace role dropdown)
+- [x] Run migration script on live Supabase (2 users migrated)
+- [x] Plan 5 pages + role access matrix (Login, Dashboard, RCA, Prediksi ML, Admin)
+- [x] 33 tests pass
+
+### Checkpoint 9: New Pages (RCA + Prediksi ML) ⬜ IN PROGRESS
+- [ ] Build `/rca` page — single column stacked: filter → RCA result → detail → timeline
+- [ ] Build `/prediksi` page — filter → summary cards → grafik → tabel prediksi
+- [ ] Add role guard (analyst+ only) to both pages
+- [ ] Add FastAPI routes to serve new HTML pages
+- [ ] Add navigation links between pages (header nav)
+- [ ] ML predictions API endpoint (read from app.ml_predictions)
+
+### Checkpoint 10: Architecture Upgrade (Post-hackathon) ⬜ FUTURE
 - [ ] Setup BigQuery/GCS untuk data warehouse
 - [ ] Migrasi data historis ke BigQuery
 - [ ] Optimasi Supabase — hanya app data
@@ -444,28 +482,32 @@ bi-hackathon-group-1/
 │   ├── loaders/                ← Database loaders (postgres_loader.py)
 │   └── scripts/                ← Seed scripts (hari besar, historical load, weather load)
 ├── frontend/
-│   ├── index.html              ← Main dashboard
-│   ├── login.html              ← Login page
-│   ├── admin.html              ← User management
+│   ├── index.html              ← Main dashboard (Alpine.js + neobrutalism)
+│   ├── login.html              ← Login page (neobrutalism)
+│   ├── admin.html              ← User management (boolean checkboxes)
+│   ├── rca.html                ← TODO: Analisis RCA (analyst+ only)
+│   ├── prediksi.html           ← TODO: Prediksi ML (analyst+ only)
 │   └── debug.html              ← DB inspector
 ├── src/
 │   ├── api/
-│   │   ├── routes.py           ← Commodity + RCA + price + (TODO: HET + weather) endpoints
-│   │   └── auth_routes.py      ← Auth endpoints (JWT + RBAC)
+│   │   ├── routes.py           ← Commodity + RCA + price + HET + weather endpoints
+│   │   └── auth_routes.py      ← Auth endpoints (JWT + RBAC boolean flags)
 │   ├── data/
 │   │   ├── database.py         ← Shared PostgreSQL connection pool
 │   │   ├── commodity_data.py   ← Read PIHPS prices (filtered to 6 MVP komoditas)
-│   │   ├── auth_db.py          ← User management (bcrypt + CRUD)
-│   │   └── weather_data.py     ← TODO: Weather data layer for RCA engine
+│   │   ├── auth_db.py          ← User management (bcrypt + CRUD + boolean flags)
+│   │   └── weather_data.py     ← Weather data layer for RCA engine
 │   ├── engine/
 │   │   ├── rca_engine.py       ← RCA decision tree (4-step sequential check)
-│   │   └── het_monitor.py      ← TODO: HET comparison engine
+│   │   └── het_monitor.py      ← HET comparison engine
 │   └── models/
 │       └── schemas.py          ← Pydantic models (CommodityData, CuacaInfo, etc.)
 ├── tests/
-│   └── test_rca_engine.py      ← Engine unit tests
+│   ├── test_rca_engine.py      ← RCA engine unit tests (12 tests)
+│   ├── test_het_monitor.py     ← HET monitor unit tests (14 tests)
+│   └── test_weather_data.py    ← Weather data unit tests (7 tests)
 ├── docs/                       ← Session logs
-├── main.py                     ← FastAPI entry point (v0.3.0)
+├── main.py                     ← FastAPI entry point (v0.4.0)
 ├── pyproject.toml              ← Dependencies (app + dev + etl groups)
 ├── uv.lock                     ← Locked versions for reproducibility
 ├── Dockerfile                  ← FastAPI app container
@@ -487,10 +529,13 @@ Code yang sudah ada dan statusnya:
 - **Weather Data** (`src/data/weather_data.py`): ✅ Query `raw.cuaca_harian` → `CuacaInfo` untuk RCA engine.
 - **Schemas** (`src/models/schemas.py`): ✅ Clean — BMKG models dihapus.
 - **API Routes** (`src/api/routes.py`): ✅ Real `/api/het/*` dan `/api/cuaca/*` endpoints. BMKG stubs dihapus.
-- **Auth** (`src/api/auth_routes.py`): ✅ JWT + RBAC. Default users: admin/admin123, analyst/analyst123.
+- **Auth** (`src/api/auth_routes.py`): ✅ JWT + RBAC boolean flags. is_active check. Default users: admin/admin123, analyst/analyst123.
+- **Auth DB** (`src/data/auth_db.py`): ✅ Boolean flags (is_admin/is_analyst/is_active). `_compute_role()` for backward compat.
 - **Commodity Data** (`src/data/commodity_data.py`): ✅ Filtered ke 6 MVP komoditas. Multi-province weather detection.
 - **Weather Extractor** (`etl/extractors/openmeteo_extractor.py`): ✅ Open-Meteo API extractor.
-- **Frontend** (`frontend/index.html`): ✅ HET badge, weather panel, Open-Meteo labels, v0.4.
+- **Frontend Dashboard** (`frontend/index.html`): ✅ Alpine.js + neobrutalism. HET badge, weather panel, RCA widget.
+- **Frontend Login** (`frontend/login.html`): ✅ Neobrutalism style.
+- **Frontend Admin** (`frontend/admin.html`): ✅ Neobrutalism + boolean checkboxes (is_admin/is_analyst/is_active).
 - **Tests**: ✅ 33 tests pass (14 HET + 7 weather + 12 RCA).
 
 ### Database Status
@@ -502,5 +547,10 @@ Code yang sudah ada dan statusnya:
 ### Remaining Work
 1. ~~Re-run dbt~~ ✅ Done (DB optimized 363→242 MB)
 2. ~~Load Banten + Sulsel~~ ✅ Done (271K rows loaded)
-3. Alpine.js/HTMX upgrade (optional — current vanilla JS works)
-4. BigQuery migration (post-hackathon)
+3. ~~Alpine.js upgrade~~ ✅ Done (neobrutalism + Alpine.js)
+4. ~~Users table boolean flags~~ ✅ Done (role VARCHAR → is_admin/is_analyst/is_active)
+5. Build `/rca` page — Analisis RCA (analyst+ only)
+6. Build `/prediksi` page — Prediksi ML (analyst+ only, empty state if no ML data)
+7. Add navigation between pages (header nav links)
+8. ML predictions API endpoint
+9. BigQuery migration (post-hackathon)
