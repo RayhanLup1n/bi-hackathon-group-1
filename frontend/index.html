@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RCA RadarPangan</title>
+  <title>R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <!-- Alpine.js CDN -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -186,7 +188,7 @@
       font-family: var(--mono);
       font-size: 30px;
       font-weight: 600;
-      color: var(--text);
+      color: var(--accent2);
       letter-spacing: -1px;
       line-height: 1;
     }
@@ -197,14 +199,14 @@
       padding: 3px 9px;
       border-radius: 20px;
     }
-    .delta-up { background: rgba(239,68,68,0.12); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
-    .delta-down { background: rgba(110,231,183,0.1); color: var(--success); border: 1px solid rgba(110,231,183,0.2); }
+    .delta-up { background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.2); }
+    .delta-down { background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.2); }
     .price-pred {
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--muted);
+      color: var(--text2);
     }
-    .price-pred span { color: var(--warn); font-weight: 600; }
+    .price-pred span { color: var(--accent); font-weight: 700; }
 
     /* ── Signal grid ── */
     .signal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -390,7 +392,6 @@
       line-height: 1.6;
       white-space: pre-line;
     }
-    .check-detail .val { color: var(--warn); font-weight: 600; }
 
     .check-badge {
       font-family: var(--mono);
@@ -576,11 +577,10 @@
     .footer a:hover { opacity: 0.75; }
     .footer-sep { margin: 0 10px; color: var(--border2); }
 
-    /* ── Progress bar (during RCA run) ── */
+    /* ── Progress bar ── */
     .progress-bar {
       height: 3px;
       background: var(--border);
-      margin: 0 0 0;
       overflow: hidden;
     }
     .progress-fill {
@@ -590,30 +590,7 @@
       transition: width 0.4s ease;
     }
 
-    /* ── Price display tweaks ── */
-    .price-now { color: var(--accent2); }
-    .delta-up { background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.2); }
-    .delta-down { background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.2); }
-    .price-pred { color: var(--text2); }
-    .price-pred span { color: var(--accent); font-weight: 700; }
-
-    /* ── Animations ── */
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--success); }
-      50% { opacity: 0.6; box-shadow: 0 0 4px var(--success); }
-    }
-    @keyframes spin-check {
-      0% { box-shadow: 0 0 10px rgba(99,102,241,0.2); }
-      50% { box-shadow: 0 0 18px rgba(99,102,241,0.5); }
-      100% { box-shadow: 0 0 10px rgba(99,102,241,0.2); }
-    }
-    @keyframes slide-up {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-in { animation: slide-up 0.4s ease both; }
-
-    /* ── Daerah produksi chips ── */
+    /* ── Info panels (HET + weather) ── */
     .wilayah-section {
       margin-top: 12px;
       padding-top: 12px;
@@ -630,104 +607,79 @@
       align-items: center;
       gap: 5px;
     }
-    .wilayah-chips {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    .wilayah-chip {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 5px 9px;
-      background: var(--surface2);
+    .info-panel {
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
       border: 1.5px solid var(--border);
-      border-radius: 8px;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .wilayah-chip:hover {
-      border-color: var(--border2);
-      box-shadow: 0 1px 6px rgba(99,102,241,0.08);
-    }
-    .wilayah-chip-num {
+      background: var(--surface2);
       font-family: var(--mono);
-      font-size: 9px;
-      font-weight: 700;
-      color: var(--accent);
-      background: rgba(99,102,241,0.1);
-      border-radius: 4px;
-      padding: 1px 5px;
-      flex-shrink: 0;
-    }
-    .wilayah-chip-nama {
       font-size: 12px;
-      font-weight: 600;
-      color: var(--text);
-      flex: 1;
-    }
-    .wilayah-chip-prov {
-      font-family: var(--mono);
-      font-size: 10px;
       color: var(--muted);
-      white-space: nowrap;
+      transition: all 0.3s ease;
     }
 
-    /* ── Loading skeleton ── */
-    .skeleton {
-      background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.8) 50%, var(--border) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 4px;
-      display: inline-block;
+    /* ── Animations ── */
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--success); }
+      50% { opacity: 0.6; box-shadow: 0 0 4px var(--success); }
     }
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
+    @keyframes spin-check {
+      0% { box-shadow: 0 0 10px rgba(99,102,241,0.2); }
+      50% { box-shadow: 0 0 18px rgba(99,102,241,0.5); }
+      100% { box-shadow: 0 0 10px rgba(99,102,241,0.2); }
     }
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: slide-up 0.4s ease both; }
   </style>
 </head>
 <body>
-<div class="app">
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     ALPINE.JS APP — Single reactive component
+     ════════════════════════════════════════════════════════════════════════════ -->
+<div class="app" x-data="radar()" x-init="init()">
 
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-left">
       <div class="logo-icon">📡</div>
       <div>
-        <div class="header-title">RCA RadarPangan</div>
+        <div class="header-title">R.A.D.A.R Pangan</div>
         <div class="header-sub">root cause analysis engine &nbsp;·&nbsp; v0.4</div>
       </div>
     </div>
     <div class="header-right">
-      <span id="userBadge" style="
+      <span style="
         font-family:var(--mono); font-size:11px; color:var(--text2);
         padding:6px 12px; background:var(--surface2);
         border:1px solid var(--border); border-radius:var(--radius-sm);
-      ">—</span>
-      <a id="adminLink" href="/admin" style="display:none;
+      ">
+        <template x-if="user">
+          <span><strong x-text="user.username" style="color:var(--accent)"></strong> · <span x-text="user.role"></span></span>
+        </template>
+        <template x-if="!user"><span>—</span></template>
+      </span>
+      <a x-show="user && user.role === 'admin'" href="/admin" style="
         font-family:var(--mono); font-size:11px; font-weight:600;
         color:var(--accent); text-decoration:none;
         border:1.5px solid var(--border2); border-radius:var(--radius-sm);
         padding:6px 12px; background:rgba(99,102,241,0.06);
-        transition:background 0.2s;
-      " onmouseover="this.style.background='rgba(99,102,241,0.13)'"
-         onmouseout="this.style.background='rgba(99,102,241,0.06)'">👥 Users</a>
+      ">👥 Users</a>
       <a href="/static/debug.html" style="
         font-family:var(--mono); font-size:11px; font-weight:600;
         color:var(--accent); text-decoration:none;
         border:1.5px solid var(--border2); border-radius:var(--radius-sm);
         padding:6px 12px; background:rgba(99,102,241,0.06);
-        transition:background 0.2s, border-color 0.2s;
-      " onmouseover="this.style.background='rgba(99,102,241,0.13)'"
-         onmouseout="this.style.background='rgba(99,102,241,0.06)'">DB Debug</a>
-      <button onclick="logout()" style="
+      ">DB Debug</a>
+      <button @click="logout()" style="
         font-family:var(--mono); font-size:11px; font-weight:600;
         color:#dc2626; cursor:pointer;
         border:1.5px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm);
         padding:6px 12px; background:rgba(239,68,68,0.05);
-        transition:background 0.2s;
-      " onmouseover="this.style.background='rgba(239,68,68,0.12)'"
-         onmouseout="this.style.background='rgba(239,68,68,0.05)'">Keluar</button>
+      ">Keluar</button>
       <div class="status-dot"></div>
       <span class="status-text">API online</span>
     </div>
@@ -739,39 +691,66 @@
     <!-- ── Left panel: controls ── -->
     <div class="left-panel">
 
-      <!-- Commodity + Price -->
+      <!-- Commodity + HET + Weather + Price -->
       <div class="card">
         <div class="card-label">Komoditas</div>
-        <select class="commodity-select" id="commodity" onchange="updateCommodity()">
-          <option value="">— Memuat komoditas... —</option>
+        <select class="commodity-select" x-model="selectedKey" @change="selectCommodity()">
+          <template x-for="c in commodities" :key="c.key">
+            <option :value="c.key" x-text="c.name"></option>
+          </template>
         </select>
 
-        <!-- HET Status + Cuaca -->
+        <!-- HET Status -->
         <div class="wilayah-section">
           <div class="wilayah-label">📊 Status HET</div>
-          <div id="hetStatus" style="
-            padding:8px 12px; border-radius:var(--radius-sm);
-            border:1.5px solid var(--border); background:var(--surface2);
-            font-family:var(--mono); font-size:12px; color:var(--muted);
-          ">Memuat...</div>
+          <div class="info-panel"
+               :style="hetData ? `background:${hetStyle.bg};border-color:${hetStyle.border};color:${hetStyle.color}` : ''">
+            <template x-if="hetData">
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;margin-bottom:3px">
+                  <span x-text="hetStyle.icon"></span>
+                  <span x-text="hetData.status.toUpperCase()"></span>
+                  <span x-show="hetData.pct_of_het" x-text="'(' + hetData.pct_of_het + '%)'"></span>
+                </div>
+                <div x-show="hetData.het_harga" style="font-size:11px;opacity:0.8"
+                     x-text="'HET: Rp ' + (hetData.het_harga||0).toLocaleString('id-ID') + '/kg'"></div>
+                <div style="font-size:10px;margin-top:2px;opacity:0.7" x-text="hetData.keterangan || ''"></div>
+              </div>
+            </template>
+            <template x-if="!hetData"><span>Memuat...</span></template>
+          </div>
         </div>
 
+        <!-- Weather -->
         <div class="wilayah-section" style="margin-top:8px; border-top:none;">
           <div class="wilayah-label">🌤 Cuaca (Open-Meteo)</div>
-          <div id="weatherInfo" style="
-            padding:8px 12px; border-radius:var(--radius-sm);
-            border:1.5px solid var(--border); background:var(--surface2);
-            font-family:var(--mono); font-size:12px; color:var(--muted);
-          ">Memuat...</div>
+          <div class="info-panel"
+               :style="currentData ? `background:${weatherStyle.bg};border-color:${weatherStyle.border};color:${weatherStyle.color}` : ''">
+            <template x-if="currentData">
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12px;margin-bottom:2px">
+                  <span x-text="currentData.cuaca.ekstrem ? '⛈' : '☀'"></span>
+                  <span x-text="currentData.cuaca.desc"></span>
+                </div>
+                <div x-show="currentData.cuaca.daerah" style="font-size:10px;opacity:0.8"
+                     x-text="'Lokasi: ' + currentData.cuaca.daerah"></div>
+                <div style="font-size:10px;margin-top:2px;opacity:0.7" x-text="currentData.cuaca.detail || ''"></div>
+              </div>
+            </template>
+            <template x-if="!currentData"><span>Memuat...</span></template>
+          </div>
         </div>
 
+        <!-- Price -->
         <div class="price-block" style="margin-top:16px">
           <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Harga Sekarang</div>
           <div class="price-row">
-            <span class="price-now" id="priceNow">—</span>
-            <span class="price-delta" id="priceDelta" style="display:none"></span>
+            <span class="price-now" x-text="currentData ? fmt(currentData.price_now) : '—'"></span>
+            <span x-show="currentData" class="price-delta"
+                  :class="deltaPct >= 0 ? 'delta-up' : 'delta-down'"
+                  x-text="(deltaPct >= 0 ? '▲ +' : '▼ ') + deltaPct.toFixed(1) + '%'"></span>
           </div>
-          <div class="price-pred">Prediksi ML: <span id="mlPred">—</span></div>
+          <div class="price-pred">Prediksi ML: <span x-text="currentData && currentData.ml_pred ? fmt(currentData.ml_pred) : '—'"></span></div>
         </div>
       </div>
 
@@ -779,22 +758,27 @@
       <div class="card">
         <div class="card-label">Sinyal Input</div>
         <div class="signal-grid">
-          <div class="signal-item" id="si-tanggal">
+          <div class="signal-item">
             <div class="signal-key">Tgl. Analisis</div>
-            <div class="signal-val" id="dTanggal">—</div>
+            <div class="signal-val" :class="simDate ? 'warn' : ''"
+                 x-text="simDate ? simDate + ' (sim)' : todayISO()"></div>
           </div>
-          <div class="signal-item" id="si-cuaca">
+          <div class="signal-item" :class="currentData && currentData.cuaca.ekstrem ? 'warn-item' : ''">
             <div class="signal-key">Cuaca</div>
-            <div class="signal-val" id="dCuaca">—</div>
+            <div class="signal-val" :class="currentData && currentData.cuaca.ekstrem ? 'warn' : 'ok'"
+                 x-text="currentData ? currentData.cuaca.desc : '—'"></div>
           </div>
-          <div class="signal-item" id="si-kota">
+          <div class="signal-item" :class="kotaRatio >= 0.6 ? 'warn-item' : ''">
             <div class="signal-key">Kota Naik</div>
-            <div class="signal-val" id="dKota">—</div>
+            <div class="signal-val" :class="kotaRatio >= 0.6 ? 'warn' : ''"
+                 x-text="currentData ? kotaNaik + ' / ' + totalKota + ' kota' : '—'"></div>
           </div>
-          <div class="signal-item" id="si-stok">
+          <div class="signal-item" :class="currentData && currentData.stok.kelas !== 'ok' ? 'warn-item' : ''">
             <div class="signal-key">Stok Pedagang</div>
-            <div class="signal-val" id="dStok">—</div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px" id="dStokPct"></div>
+            <div class="signal-val" :class="currentData ? currentData.stok.kelas : ''"
+                 x-text="currentData ? currentData.stok.status : '—'"></div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px"
+                 x-text="currentData ? (currentData.stok.pct * 100).toFixed(1) + '% kapasitas' : ''"></div>
           </div>
         </div>
       </div>
@@ -803,19 +787,19 @@
       <div class="card">
         <div class="card-label">Simulasi Tanggal</div>
         <div class="sim-row">
-          <input type="date" class="sim-date-input" id="simDate"
-                 min="2020-01-01" max="2026-12-31"
-                 oninput="onSimDateChange()" onchange="onSimDateChange()"
-                 onclick="this.showPicker && this.showPicker()">
-          <button class="sim-reset" onclick="resetSimDate()">↺ Hari ini</button>
+          <input type="date" class="sim-date-input" :class="simDate ? 'active' : ''"
+                 x-model="simDate" @change="onSimDateChange()"
+                 min="2020-01-01" max="2026-12-31">
+          <button class="sim-reset" @click="simDate = ''; onSimDateChange()">↺ Hari ini</button>
         </div>
-        <div class="sim-label" id="simLabel">— menggunakan tanggal hari ini</div>
+        <div class="sim-label" :class="simDate ? 'warn' : ''"
+             x-text="simDate ? '⚠ simulasi aktif: ' + simDate : '— menggunakan tanggal hari ini'"></div>
       </div>
 
       <!-- Run button -->
-      <button class="run-btn" id="runBtn" onclick="runRCA()" disabled>
-        <span id="runBtnIcon">▶</span>
-        <span id="runBtnText">Jalankan RCA</span>
+      <button class="run-btn" @click="runRCA()" :disabled="!selectedKey || rcaRunning">
+        <span x-text="rcaRunning ? '⟳' : '▶'"></span>
+        <span x-text="rcaRunning ? 'Menganalisis...' : 'Jalankan RCA'"></span>
       </button>
 
     </div>
@@ -824,17 +808,23 @@
     <div class="right-panel">
 
       <!-- Anomaly banner -->
-      <div class="anomaly-banner blank" id="anomalyBanner">
+      <div class="anomaly-banner" :class="!currentData ? 'blank' : (isAnomaly ? 'anomali' : 'normal')">
         <div class="anomaly-left">
-          <div class="anomaly-icon" id="anomalyIcon">🔍</div>
+          <div class="anomaly-icon" x-text="!currentData ? '🔍' : (isAnomaly ? '⚠️' : '✅')"></div>
           <div>
             <div class="anomaly-label">Status Anomali Harga</div>
-            <div class="anomaly-status" id="anomalyStatus" style="color:var(--muted)">Pilih komoditas</div>
+            <div class="anomaly-status"
+                 :class="!currentData ? '' : (isAnomaly ? 'danger-text' : 'normal-text')"
+                 :style="!currentData ? 'color:var(--muted)' : ''"
+                 x-text="!currentData ? 'Pilih komoditas' : (isAnomaly ? 'ANOMALI TERDETEKSI' : 'Harga Normal')"></div>
           </div>
         </div>
         <div class="anomaly-right">
-          <div class="anomaly-delta" id="anomalyDelta" style="color:var(--muted)">—</div>
-          <div class="anomaly-threshold" id="anomalyThreshold">threshold: —</div>
+          <div class="anomaly-delta"
+               :style="!currentData ? 'color:var(--muted)' : (isAnomaly ? 'color:var(--danger)' : 'color:var(--success)')"
+               x-text="currentData ? '+' + deltaPct.toFixed(1) + '%' : '—'"></div>
+          <div class="anomaly-threshold"
+               x-text="currentData ? 'threshold: ' + currentData.price_threshold + '%' : 'threshold: —'"></div>
         </div>
       </div>
 
@@ -842,52 +832,45 @@
       <div class="rca-panel">
         <div class="rca-header">
           <span class="rca-header-title">RCA Checklist — urutan pemeriksaan</span>
-          <span class="rca-header-badge" id="rcaBadge">belum dijalankan</span>
+          <span class="rca-header-badge" x-text="rcaBadge"></span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-        <div class="check-list" id="checkList">
-
-          <div class="check-item" id="c1">
-            <div class="check-num" id="n1">1</div>
-            <div class="check-content">
-              <div class="check-name">Cek Kalender Hari Raya</div>
-              <div class="check-detail" id="d1">Menunggu analisis...</div>
+        <div class="progress-bar"><div class="progress-fill" :style="'width:' + rcaProgress + '%'"></div></div>
+        <div class="check-list">
+          <template x-for="(check, idx) in checks" :key="check.step">
+            <div class="check-item" :class="check.uiState">
+              <div class="check-num" x-text="check.uiState === 'triggered' ? '!' : (check.uiState === 'clear' ? '✓' : check.step)"></div>
+              <div class="check-content">
+                <div class="check-name" x-text="check.nama"></div>
+                <div class="check-detail" x-text="check.detail"></div>
+              </div>
+              <div class="check-badge"
+                   :class="'badge-' + (check.uiState === 'pending' ? 'skip' : (check.uiState === 'active' ? 'checking' : check.uiState))"
+                   x-text="check.badgeLabel"></div>
             </div>
-            <div class="check-badge badge-skip" id="b1">TUNGGU</div>
-          </div>
-
-          <div class="check-item skip" id="c2">
-            <div class="check-num" id="n2">2</div>
-            <div class="check-content">
-              <div class="check-name">Cek Cuaca Ekstrem (Open-Meteo)</div>
-              <div class="check-detail" id="d2">Menunggu hasil cek sebelumnya...</div>
-            </div>
-            <div class="check-badge badge-skip" id="b2">SKIP</div>
-          </div>
-
-          <div class="check-item skip" id="c3">
-            <div class="check-num" id="n3">3</div>
-            <div class="check-content">
-              <div class="check-name">Cek Persebaran Kenaikan Antar Kota</div>
-              <div class="check-detail" id="d3">Menunggu hasil cek sebelumnya...</div>
-            </div>
-            <div class="check-badge badge-skip" id="b3">SKIP</div>
-          </div>
-
-          <div class="check-item skip" id="c4">
-            <div class="check-num" id="n4">4</div>
-            <div class="check-content">
-              <div class="check-name">Cek Stok Pedagang (Badan Pangan)</div>
-              <div class="check-detail" id="d4">Menunggu hasil cek sebelumnya...</div>
-            </div>
-            <div class="check-badge badge-skip" id="b4">SKIP</div>
-          </div>
-
+          </template>
         </div>
       </div>
 
       <!-- Result box -->
-      <div id="resultBox" style="display:none"></div>
+      <div x-show="rcaResult" x-transition class="result-card animate-in"
+           :class="'result-' + (rcaResult ? rcaResult.diagnosis : 'unknown')">
+        <template x-if="rcaResult">
+          <div>
+            <div class="result-top">
+              <div class="result-meta">
+                <div class="result-label">Diagnosis RCA</div>
+                <div class="result-title" x-text="rcaResult.title"></div>
+              </div>
+              <div class="result-type-badge" x-text="typeLabels[rcaResult.diagnosis] || rcaResult.diagnosis"></div>
+            </div>
+            <div class="result-desc" x-text="rcaResult.description"></div>
+            <div class="action-box">
+              <div class="action-label">Rekomendasi Aksi</div>
+              <div class="action-text" x-text="rcaResult.action"></div>
+            </div>
+          </div>
+        </template>
+      </div>
 
     </div>
   </div>
@@ -903,369 +886,253 @@
 
 </div>
 
+<!-- ════════════════════════════════════════════════════════════════════════════
+     ALPINE.JS COMPONENT
+     ════════════════════════════════════════════════════════════════════════════ -->
 <script>
-const API = "";
+function radar() {
+  return {
+    // ── Auth ────────────────────────────────────────────────────────────────
+    user: null,
+    token: null,
 
-let currentData = null;
+    // ── Data state ──────────────────────────────────────────────────────────
+    commodities: [],
+    selectedKey: '',
+    simDate: '',
+    currentData: null,
+    hetData: null,
+    rcaResult: null,
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-(async function initAuth() {
-  const token = localStorage.getItem('rca_token');
-  if (!token) { window.location.replace('/login'); return; }
-  try {
-    const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
-    if (!r.ok) throw new Error();
-    const me = await r.json();
-    const badge = document.getElementById('userBadge');
-    badge.innerHTML = `<strong style="color:var(--accent)">${me.username}</strong> · ${me.role}`;
-    if (me.role === 'admin') {
-      document.getElementById('adminLink').style.display = '';
-    }
-  } catch {
-    localStorage.removeItem('rca_token');
-    localStorage.removeItem('rca_user');
-    window.location.replace('/login');
-  }
-})();
+    // ── UI state ────────────────────────────────────────────────────────────
+    rcaRunning: false,
+    rcaProgress: 0,
+    rcaBadge: 'belum dijalankan',
 
-function logout() {
-  localStorage.removeItem('rca_token');
-  localStorage.removeItem('rca_user');
-  window.location.replace('/login');
-}
+    // Default RCA check items (before any analysis)
+    checks: [
+      { step: 1, nama: 'Cek Kalender Hari Raya', status: 'pending', detail: 'Menunggu analisis...', uiState: '', badgeLabel: 'MENUNGGU' },
+      { step: 2, nama: 'Cek Cuaca Ekstrem (Open-Meteo)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+      { step: 3, nama: 'Cek Persebaran Kenaikan Antar Kota', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+      { step: 4, nama: 'Cek Stok Pedagang (Badan Pangan)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+    ],
 
-function getSimDate() {
-  return document.getElementById("simDate").value || null;
-}
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+    // Type labels for result card
+    typeLabels: { demand: 'Demand', supply: 'Supply', distribusi: 'Distribusi', unknown: 'Unknown' },
 
-async function onSimDateChange() {
-  const val = getSimDate();
-  const label = document.getElementById("simLabel");
-  const input = document.getElementById("simDate");
-  if (val) {
-    label.textContent = `⚠ simulasi aktif: ${val}`;
-    label.className = "sim-label warn";
-    input.className = "sim-date-input active";
-  } else {
-    label.textContent = "— menggunakan tanggal hari ini";
-    label.className = "sim-label";
-    input.className = "sim-date-input";
-  }
-  await updateCommodity();
-  if (document.getElementById("resultBox").style.display !== "none") {
-    runRCA();
-  }
-}
+    // HET status → color mapping
+    hetColorMap: {
+      aman:            { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  color: '#059669', icon: '✅' },
+      waspada:         { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#d97706', icon: '⚠️' },
+      kritis:          { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   color: '#dc2626', icon: '🔴' },
+      melampaui:       { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',   color: '#dc2626', icon: '🚨' },
+      tidak_tersedia:  { bg: 'var(--surface2)',        border: 'var(--border)',          color: 'var(--muted)', icon: '—' },
+    },
 
-function resetSimDate() {
-  document.getElementById("simDate").value = "";
-  onSimDateChange();
-}
+    // ── Computed properties ─────────────────────────────────────────────────
 
-function updateTanggalDisplay() {
-  const sim = getSimDate();
-  const el = document.getElementById("dTanggal");
-  if (sim) {
-    el.textContent = sim + " (sim)";
-    el.className = "signal-val warn";
-  } else {
-    el.textContent = todayISO();
-    el.className = "signal-val";
-  }
-}
+    get deltaPct() {
+      if (!this.currentData || !this.currentData.price_prev) return 0;
+      return ((this.currentData.price_now - this.currentData.price_prev) / this.currentData.price_prev) * 100;
+    },
 
-function commodityUrl(key) {
-  const sim = getSimDate();
-  return `/api/commodity/${key}` + (sim ? `?sim_date=${sim}` : "");
-}
+    get isAnomaly() {
+      if (!this.currentData) return false;
+      return this.deltaPct >= this.currentData.price_threshold;
+    },
 
-function rcaUrl(key) {
-  const sim = getSimDate();
-  return `/api/rca/${key}` + (sim ? `?sim_date=${sim}` : "");
-}
+    get kotaNaik() {
+      if (!this.currentData) return 0;
+      return this.currentData.kota_list.filter(k => k.naik).length;
+    },
 
-async function fetchJSON(url) {
-  const token = localStorage.getItem('rca_token');
-  const headers = token ? { Authorization: 'Bearer ' + token } : {};
-  const res = await fetch(API + url, { headers });
-  if (res.status === 401) { logout(); return; }
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
+    get totalKota() {
+      if (!this.currentData) return 0;
+      return this.currentData.kota_list.length;
+    },
 
-function fmt(n) {
-  return "Rp " + n.toLocaleString("id-ID");
-}
+    get kotaRatio() {
+      return this.totalKota > 0 ? this.kotaNaik / this.totalKota : 0;
+    },
 
-async function loadCommodities() {
-  try {
-    const items = await fetchJSON("/api/commodities/detail");
-    const sel = document.getElementById("commodity");
-    sel.innerHTML = items.map(c =>
-      `<option value="${c.key}">${c.name}</option>`
-    ).join("");
-    await updateCommodity();
-  } catch (e) {
-    console.error("Gagal load komoditas:", e);
-  }
-}
+    get hetStyle() {
+      if (!this.hetData) return this.hetColorMap.tidak_tersedia;
+      return this.hetColorMap[this.hetData.status] || this.hetColorMap.tidak_tersedia;
+    },
 
-async function loadHetStatus(key) {
-  const container = document.getElementById("hetStatus");
-  container.innerHTML = '<span style="color:var(--muted)">Memuat...</span>';
-  try {
-    const sim = getSimDate();
-    const url = `/api/het/${key}` + (sim ? `?sim_date=${sim}` : "");
-    const het = await fetchJSON(url);
+    get weatherStyle() {
+      if (!this.currentData) return { bg: '', border: '', color: '' };
+      const ext = this.currentData.cuaca.ekstrem;
+      return {
+        bg:     ext ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.05)',
+        border: ext ? 'rgba(245,158,11,0.3)'  : 'rgba(16,185,129,0.2)',
+        color:  ext ? '#d97706'                : '#059669',
+      };
+    },
 
-    // Color + label mapping
-    const statusColors = {
-      aman: { bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.3)", color: "#059669", icon: "✅" },
-      waspada: { bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.3)", color: "#d97706", icon: "⚠️" },
-      kritis: { bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.3)", color: "#dc2626", icon: "🔴" },
-      melampaui: { bg: "rgba(239,68,68,0.15)", border: "rgba(239,68,68,0.4)", color: "#dc2626", icon: "🚨" },
-      tidak_tersedia: { bg: "var(--surface2)", border: "var(--border)", color: "var(--muted)", icon: "—" },
-    };
-    const s = statusColors[het.status] || statusColors.tidak_tersedia;
-    const statusLabel = het.status.toUpperCase();
-    const hetInfo = het.het_harga ? `HET: Rp ${het.het_harga.toLocaleString("id-ID")}/kg` : "";
-    const pctInfo = het.pct_of_het ? ` (${het.pct_of_het}%)` : "";
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
-    container.style.background = s.bg;
-    container.style.borderColor = s.border;
-    container.style.color = s.color;
-    container.innerHTML = `
-      <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;margin-bottom:3px">
-        ${s.icon} ${statusLabel}${pctInfo}
-      </div>
-      <div style="font-size:11px;opacity:0.8">${hetInfo}</div>
-      <div style="font-size:10px;margin-top:2px;opacity:0.7">${het.keterangan || ""}</div>
-    `;
-  } catch (e) {
-    container.innerHTML = '<span style="color:var(--muted)">—</span>';
-  }
-}
+    fmt(n) {
+      return 'Rp ' + (n || 0).toLocaleString('id-ID');
+    },
 
-async function loadWeatherInfo(key) {
-  const container = document.getElementById("weatherInfo");
-  container.innerHTML = '<span style="color:var(--muted)">Memuat...</span>';
-  try {
-    // Get commodity data to know the provinsi
-    if (!currentData) return;
-    const cuaca = currentData.cuaca;
+    todayISO() {
+      return new Date().toISOString().slice(0, 10);
+    },
 
-    const isExtreme = cuaca.ekstrem;
-    const bg = isExtreme ? "rgba(245,158,11,0.08)" : "rgba(16,185,129,0.05)";
-    const border = isExtreme ? "rgba(245,158,11,0.3)" : "rgba(16,185,129,0.2)";
-    const color = isExtreme ? "#d97706" : "#059669";
-    const icon = isExtreme ? "⛈" : "☀";
+    async fetchJSON(url) {
+      const headers = this.token ? { Authorization: 'Bearer ' + this.token } : {};
+      const res = await fetch(url, { headers });
+      if (res.status === 401) { this.logout(); return null; }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
 
-    container.style.background = bg;
-    container.style.borderColor = border;
-    container.style.color = color;
-    container.innerHTML = `
-      <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12px;margin-bottom:2px">
-        ${icon} ${cuaca.desc}
-      </div>
-      <div style="font-size:10px;opacity:0.8">${cuaca.daerah ? "Lokasi: " + cuaca.daerah : ""}</div>
-      <div style="font-size:10px;margin-top:2px;opacity:0.7">${cuaca.detail || ""}</div>
-    `;
-  } catch (e) {
-    container.innerHTML = '<span style="color:var(--muted)">—</span>';
-  }
-}
+    // ── Init ────────────────────────────────────────────────────────────────
 
-async function updateCommodity() {
-  const key = document.getElementById("commodity").value;
-  if (!key) return;
+    async init() {
+      // Auth check
+      this.token = localStorage.getItem('rca_token');
+      if (!this.token) { window.location.replace('/login'); return; }
 
-  try {
-    currentData = await fetchJSON(commodityUrl(key));
-    const d = currentData;
+      try {
+        const me = await this.fetchJSON('/api/auth/me');
+        if (!me) return;
+        this.user = me;
+      } catch {
+        this.logout();
+        return;
+      }
 
-    // Load HET status and weather info (after commodity data is available)
-    loadHetStatus(key);
-    loadWeatherInfo(key);
+      // Load commodities
+      try {
+        this.commodities = await this.fetchJSON('/api/commodities/detail') || [];
+        if (this.commodities.length > 0) {
+          this.selectedKey = this.commodities[0].key;
+          await this.selectCommodity();
+        }
+      } catch (e) {
+        console.error('Gagal load komoditas:', e);
+      }
+    },
 
-    // Price
-    document.getElementById("priceNow").textContent = fmt(d.price_now);
-    const deltaPct = ((d.price_now - d.price_prev) / d.price_prev * 100).toFixed(1);
-    const deltaEl = document.getElementById("priceDelta");
-    const isUp = deltaPct >= 0;
-    deltaEl.textContent = (isUp ? "▲ +" : "▼ ") + deltaPct + "%";
-    deltaEl.className = "price-delta " + (isUp ? "delta-up" : "delta-down");
-    deltaEl.style.display = "";
-    document.getElementById("mlPred").textContent = d.ml_pred ? fmt(d.ml_pred) : "—";
+    logout() {
+      localStorage.removeItem('rca_token');
+      localStorage.removeItem('rca_user');
+      window.location.replace('/login');
+    },
 
-    // Signals
-    updateTanggalDisplay();
+    // ── Commodity selection ─────────────────────────────────────────────────
 
-    const cuacaEl = document.getElementById("dCuaca");
-    cuacaEl.textContent = d.cuaca.desc;
-    cuacaEl.className = "signal-val " + (d.cuaca.ekstrem ? "warn" : "ok");
-    document.getElementById("si-cuaca").className = "signal-item " + (d.cuaca.ekstrem ? "warn-item" : "");
+    async selectCommodity() {
+      if (!this.selectedKey) return;
+      const sim = this.simDate ? `?sim_date=${this.simDate}` : '';
 
-    const kotaNaik = d.kota_list.filter(k => k.naik).length;
-    const totalKota = d.kota_list.length;
-    const kotaRatio = kotaNaik / totalKota;
-    const kotaEl = document.getElementById("dKota");
-    kotaEl.textContent = `${kotaNaik} / ${totalKota} kota`;
-    kotaEl.className = "signal-val " + (kotaRatio >= 0.6 ? "warn" : "");
-    document.getElementById("si-kota").className = "signal-item " + (kotaRatio >= 0.6 ? "warn-item" : "");
+      try {
+        // Load commodity data
+        this.currentData = await this.fetchJSON(`/api/commodity/${this.selectedKey}${sim}`);
 
-    const stokEl = document.getElementById("dStok");
-    stokEl.textContent = d.stok.status;
-    stokEl.className = "signal-val " + d.stok.kelas;
-    document.getElementById("dStokPct").textContent = (d.stok.pct * 100).toFixed(1) + "% kapasitas";
-    document.getElementById("si-stok").className = "signal-item " + (d.stok.kelas !== "ok" ? "warn-item" : "");
+        // Load HET status
+        this.fetchJSON(`/api/het/${this.selectedKey}${sim}`)
+          .then(data => { this.hetData = data; })
+          .catch(() => { this.hetData = null; });
 
-    // Anomaly banner
-    const isAnom = parseFloat(deltaPct) >= d.price_threshold;
-    const banner = document.getElementById("anomalyBanner");
-    banner.className = "anomaly-banner " + (isAnom ? "anomali" : "normal");
-    document.getElementById("anomalyIcon").textContent = isAnom ? "⚠️" : "✅";
-    const statusEl = document.getElementById("anomalyStatus");
-    statusEl.textContent = isAnom ? "ANOMALI TERDETEKSI" : "Harga Normal";
-    statusEl.className = "anomaly-status " + (isAnom ? "danger-text" : "normal-text");
-    const deltaColor = isAnom ? "var(--danger)" : "var(--success)";
-    document.getElementById("anomalyDelta").textContent = `+${deltaPct}%`;
-    document.getElementById("anomalyDelta").style.color = deltaColor;
-    document.getElementById("anomalyThreshold").textContent = `threshold: ${d.price_threshold}%`;
+        // Reset RCA state
+        this.rcaResult = null;
+        this.resetChecks();
+      } catch (e) {
+        console.error('Gagal load data:', e);
+      }
+    },
 
-    resetChecks();
-    document.getElementById("resultBox").style.display = "none";
-    document.getElementById("runBtn").disabled = false;
-  } catch (e) {
-    console.error("Gagal load data:", e);
-  }
-}
+    // ── Simulation date ─────────────────────────────────────────────────────
 
-function resetChecks() {
-  document.getElementById("rcaBadge").textContent = "belum dijalankan";
-  document.getElementById("progressFill").style.width = "0%";
+    async onSimDateChange() {
+      await this.selectCommodity();
+      // If RCA result was showing, re-run
+      if (this.rcaResult) {
+        await this.runRCA();
+      }
+    },
 
-  for (let i = 1; i <= 4; i++) {
-    const ci = document.getElementById("c" + i);
-    ci.className = "check-item" + (i > 1 ? " skip" : "");
-    document.getElementById("n" + i).textContent = i;
-    document.getElementById("b" + i).className = "check-badge " + (i === 1 ? "badge-checking" : "badge-skip");
-    document.getElementById("b" + i).textContent = i === 1 ? "MENUNGGU" : "SKIP";
-    document.getElementById("d" + i).textContent = i === 1 ? "Menunggu analisis..." : "Menunggu hasil cek sebelumnya...";
-  }
-}
+    // ── RCA ──────────────────────────────────────────────────────────────────
 
-function setActive(n) {
-  const ci = document.getElementById("c" + n);
-  ci.className = "check-item active";
-  document.getElementById("n" + n).textContent = n;
-  document.getElementById("b" + n).className = "check-badge badge-checking";
-  document.getElementById("b" + n).textContent = "CEK...";
-  document.getElementById("d" + n).textContent = "Sedang memeriksa...";
-}
+    resetChecks() {
+      this.rcaBadge = 'belum dijalankan';
+      this.rcaProgress = 0;
+      this.checks = [
+        { step: 1, nama: 'Cek Kalender Hari Raya', status: 'pending', detail: 'Menunggu analisis...', uiState: '', badgeLabel: 'MENUNGGU' },
+        { step: 2, nama: 'Cek Cuaca Ekstrem (Open-Meteo)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+        { step: 3, nama: 'Cek Persebaran Kenaikan Antar Kota', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+        { step: 4, nama: 'Cek Stok Pedagang (Badan Pangan)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+      ];
+    },
 
-function setCheck(check) {
-  const ci = document.getElementById("c" + check.step);
-  const badge = document.getElementById("b" + check.step);
-  const num = document.getElementById("n" + check.step);
+    async runRCA() {
+      if (!this.selectedKey || this.rcaRunning) return;
 
-  if (check.status === "triggered") {
-    ci.className = "check-item triggered";
-    badge.className = "check-badge badge-triggered";
-    badge.textContent = "TRIGGERED";
-    num.textContent = "!";
-  } else if (check.status === "clear") {
-    ci.className = "check-item clear";
-    badge.className = "check-badge badge-clear";
-    badge.textContent = "CLEAR";
-    num.textContent = "✓";
-  } else {
-    ci.className = "check-item skip";
-    badge.className = "check-badge badge-skip";
-    badge.textContent = "SKIP";
-    num.textContent = check.step;
-  }
-  document.getElementById("d" + check.step).textContent = check.detail;
-}
+      this.rcaRunning = true;
+      this.rcaResult = null;
+      this.resetChecks();
+      this.rcaBadge = 'berjalan...';
 
-async function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+      const sim = this.simDate ? `?sim_date=${this.simDate}` : '';
 
-async function runRCA() {
-  const key = document.getElementById("commodity").value;
-  const btn = document.getElementById("runBtn");
-  const runText = document.getElementById("runBtnText");
-  const runIcon = document.getElementById("runBtnIcon");
-  btn.disabled = true;
-  runText.textContent = "Menganalisis...";
-  runIcon.textContent = "⟳";
-  resetChecks();
-  document.getElementById("resultBox").style.display = "none";
-  document.getElementById("rcaBadge").textContent = "berjalan...";
+      try {
+        const result = await this.fetchJSON(`/api/rca/${this.selectedKey}${sim}`);
+        if (!result) return;
 
-  try {
-    const result = await fetchJSON(rcaUrl(key));
+        // Animated sequential reveal
+        const total = result.checks.length;
+        for (let idx = 0; idx < total; idx++) {
+          const check = result.checks[idx];
 
-    const totalSteps = result.checks.length;
-    for (let idx = 0; idx < result.checks.length; idx++) {
-      const check = result.checks[idx];
-      setActive(check.step);
-      document.getElementById("progressFill").style.width = ((idx / totalSteps) * 100) + "%";
-      await delay(600);
-      setCheck(check);
-      await delay(200);
-    }
+          // Set active state
+          this.checks[idx].uiState = 'active';
+          this.checks[idx].badgeLabel = 'CEK...';
+          this.checks[idx].detail = 'Sedang memeriksa...';
+          this.rcaProgress = ((idx) / total) * 100;
 
-    document.getElementById("progressFill").style.width = "100%";
-    document.getElementById("rcaBadge").textContent = "selesai";
+          await this._delay(600);
 
-    await delay(300);
-    showResult(result);
-  } catch (e) {
-    console.error("RCA gagal:", e);
-    document.getElementById("rcaBadge").textContent = "error";
-  } finally {
-    btn.disabled = false;
-    runText.textContent = "Jalankan RCA";
-    runIcon.textContent = "▶";
-  }
-}
+          // Set final state
+          this.checks[idx].status = check.status;
+          this.checks[idx].detail = check.detail;
+          this.checks[idx].nama = check.nama;
 
-function showResult(result) {
-  const clsMap = {
-    demand: "result-demand",
-    supply: "result-supply",
-    distribusi: "result-distribusi",
-    unknown: "result-unknown"
+          if (check.status === 'triggered') {
+            this.checks[idx].uiState = 'triggered';
+            this.checks[idx].badgeLabel = 'TRIGGERED';
+          } else if (check.status === 'clear') {
+            this.checks[idx].uiState = 'clear';
+            this.checks[idx].badgeLabel = 'CLEAR';
+          } else {
+            this.checks[idx].uiState = 'skip';
+            this.checks[idx].badgeLabel = 'SKIP';
+          }
+
+          await this._delay(200);
+        }
+
+        this.rcaProgress = 100;
+        this.rcaBadge = 'selesai';
+
+        await this._delay(300);
+        this.rcaResult = result;
+
+      } catch (e) {
+        console.error('RCA gagal:', e);
+        this.rcaBadge = 'error';
+      } finally {
+        this.rcaRunning = false;
+      }
+    },
+
+    _delay(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    },
   };
-  const typeLabel = {
-    demand: "Demand",
-    supply: "Supply",
-    distribusi: "Distribusi",
-    unknown: "Unknown"
-  };
-  const box = document.getElementById("resultBox");
-  box.className = "result-card animate-in " + (clsMap[result.diagnosis] || "result-unknown");
-  box.innerHTML = `
-    <div class="result-top">
-      <div class="result-meta">
-        <div class="result-label">Diagnosis RCA</div>
-        <div class="result-title">${result.title}</div>
-      </div>
-      <div class="result-type-badge">${typeLabel[result.diagnosis] || result.diagnosis}</div>
-    </div>
-    <div class="result-desc">${result.description}</div>
-    <div class="action-box">
-      <div class="action-label">Rekomendasi Aksi</div>
-      <div class="action-text">${result.action}</div>
-    </div>
-  `;
-  box.style.display = "block";
 }
-
-// Init
-loadCommodities();
 </script>
 </body>
 </html>
