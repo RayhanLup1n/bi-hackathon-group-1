@@ -155,19 +155,25 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     from config.settings import DEFAULT_PRICE_THRESHOLD_PCT
     threshold = DEFAULT_PRICE_THRESHOLD_PCT
 
-    # Cuaca — real weather data from Open-Meteo (raw.cuaca_harian)
-    # Use provinsi_id from the first row to query weather for that province
-    provinsi_id = rows_today[0]["provinsi_id"] if rows_today else None
-    if provinsi_id:
-        from src.data.weather_data import get_weather_for_rca
-        cuaca = get_weather_for_rca(provinsi_id, tanggal=target_date)
-    else:
-        cuaca = CuacaInfo(
-            ekstrem=False,
-            desc="Provinsi tidak teridentifikasi",
-            daerah="",
-            detail="",
-        )
+    # Cuaca — check ALL provinces in the data, pick the most extreme
+    # This ensures we detect extreme weather regardless of which kota comes first
+    from src.data.weather_data import get_weather_for_rca
+    provinsi_ids = list({r["provinsi_id"] for r in rows_today if r.get("provinsi_id")})
+    cuaca = CuacaInfo(
+        ekstrem=False,
+        desc="Provinsi tidak teridentifikasi",
+        daerah="",
+        detail="",
+    )
+    for prov_id in provinsi_ids:
+        cuaca_check = get_weather_for_rca(prov_id, tanggal=target_date)
+        if cuaca_check.ekstrem:
+            # Found extreme weather — use this one (most severe wins)
+            cuaca = cuaca_check
+            break
+        # Keep the last non-extreme as fallback description
+        if not cuaca.daerah:
+            cuaca = cuaca_check
 
     # Stok placeholder — tidak ada data real stok untuk MVP
     stok = StokInfo(
