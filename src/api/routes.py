@@ -158,25 +158,6 @@ def get_stok_by_key(key: str, sim_date: Optional[date] = Query(None)) -> list[di
 # ─────────────────────────────────────────────────────────────────────────────
 
 @het_router.get(
-    "/{key}",
-    summary="HET status per komoditas",
-)
-def get_het_by_key(
-    key: str,
-    sim_date: Optional[date] = Query(None),
-) -> dict:
-    """Check HET status for one commodity."""
-    data = get_commodity_data(key, tanggal=sim_date)
-    if not data:
-        raise HTTPException(status_code=404, detail=f"Komoditas '{key}' tidak ditemukan")
-
-    info = KOMODITAS_MAP.get(key, {})
-    comcat_id = info.get("comcat_id", "")
-    result = check_het_status(comcat_id, data.price_now, data.name)
-    return result.model_dump()
-
-
-@het_router.get(
     "",
     summary="HET status semua komoditas",
 )
@@ -214,6 +195,25 @@ def get_het_summary_endpoint(
 
     results = check_het_all(commodity_prices)
     return get_het_summary(results)
+
+
+@het_router.get(
+    "/{key}",
+    summary="HET status per komoditas",
+)
+def get_het_by_key(
+    key: str,
+    sim_date: Optional[date] = Query(None),
+) -> dict:
+    """Check HET status for one commodity."""
+    data = get_commodity_data(key, tanggal=sim_date)
+    if not data:
+        raise HTTPException(status_code=404, detail=f"Komoditas '{key}' tidak ditemukan")
+
+    info = KOMODITAS_MAP.get(key, {})
+    comcat_id = info.get("comcat_id", "")
+    result = check_het_status(comcat_id, data.price_now, data.name)
+    return result.model_dump()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
