@@ -379,16 +379,17 @@ SUPABASE_PASSWORD=<password>
 - [ ] Re-run dbt dengan komoditas filter (turunkan DB size ~360→~175 MB)
 - [ ] Load PIHPS data Banten + Sulawesi Selatan
 
-### Checkpoint 6: HET Monitor + RCA Weather Integration ⬜ NEXT
-- [ ] Build `src/data/weather_data.py` — query cuaca untuk RCA engine
-- [ ] Update `commodity_data.py` — replace cuaca placeholder dengan data real
-- [ ] Update `rca_engine.py` — rename BMKG → Open-Meteo labels
-- [ ] Build `src/engine/het_monitor.py` — HET comparison engine
-- [ ] Add HET API endpoints di `routes.py`
-- [ ] Seed dummy HET reference data ke `app.het_reference`
-- [ ] Write tests: weather_data, het_monitor, komoditas_filter, rca integration
+### Checkpoint 6: HET Monitor + RCA Weather Integration ✅ DONE (May 9)
+- [x] Build `src/data/weather_data.py` — query cuaca untuk RCA engine
+- [x] Update `commodity_data.py` — replace cuaca placeholder dengan data real
+- [x] Update `rca_engine.py` — rename BMKG → Open-Meteo labels
+- [x] Build `src/engine/het_monitor.py` — HET comparison engine
+- [x] Add HET + cuaca API endpoints di `routes.py` (replace BMKG stubs)
+- [x] Remove unused BMKG Pydantic models dari schemas.py
+- [x] Write tests: 14 HET tests + 7 weather tests (total 33 pass)
+- [x] Bump version to v0.4.0
 
-### Checkpoint 7: Frontend + Demo Prep ⬜
+### Checkpoint 7: Frontend + Demo Prep ⬜ NEXT
 - [ ] Upgrade frontend ke Alpine.js/HTMX untuk interaktivitas
 - [ ] Connect dashboard ke API baru (real data + weather + HET)
 - [ ] Tambah HET monitoring view di dashboard
@@ -477,18 +478,19 @@ Dependencies dikelola di root `pyproject.toml`, Docker dikelola di root `docker-
 
 Code yang sudah ada dan statusnya:
 
-- **RCA Engine** (`src/engine/rca_engine.py`): 4-step sequential check, return early on trigger. Sudah tested (12+ tests pass). Cuaca check masih pakai placeholder — **perlu wire ke `weather_data.py`**. Label masih "BMKG" — **perlu rename ke "Open-Meteo"**.
-- **Schemas** (`src/models/schemas.py`): Pydantic models untuk CommodityData, RCAResult, CuacaInfo, StokInfo, etc. BMKG-specific models (BmkgWilayah, dll) bisa dihapus/replace.
-- **API Routes** (`src/api/routes.py`): Commodity + RCA + price endpoints sudah work dengan data real. BMKG placeholder endpoints masih ada — **perlu replace dengan weather endpoints**.
-- **Auth** (`src/api/auth_routes.py`): JWT + RBAC logic sudah migrasi ke PostgreSQL. Default users: admin/admin123, analyst/analyst123.
-- **Commodity Data** (`src/data/commodity_data.py`): Sudah filtered ke 6 MVP komoditas. Cuaca masih placeholder — **perlu update**.
-- **Weather Extractor** (`etl/extractors/openmeteo_extractor.py`): ✅ Open-Meteo API extractor. Data sudah loaded ke `raw.cuaca_harian`.
-- **Frontend**: UI sudah functional. Perlu upgrade ke Alpine.js dan connect ke API baru.
-- **Tests**: 12+ test cases untuk RCA engine. **Perlu tambah test untuk weather, HET, dan komoditas filter**.
+- **RCA Engine** (`src/engine/rca_engine.py`): 4-step sequential check. ✅ Labels updated ke Open-Meteo. 33 tests pass.
+- **HET Monitor** (`src/engine/het_monitor.py`): ✅ BARU. Compare harga vs HET reference → AMAN/WASPADA/KRITIS/MELAMPAUI.
+- **Weather Data** (`src/data/weather_data.py`): ✅ BARU. Query `raw.cuaca_harian` → `CuacaInfo` untuk RCA engine.
+- **Schemas** (`src/models/schemas.py`): Pydantic models. BMKG models sudah dihapus.
+- **API Routes** (`src/api/routes.py`): ✅ Updated. BMKG stubs replaced dengan real `/api/het/*` dan `/api/cuaca/*` endpoints.
+- **Auth** (`src/api/auth_routes.py`): JWT + RBAC sudah work. Default users: admin/admin123, analyst/analyst123.
+- **Commodity Data** (`src/data/commodity_data.py`): ✅ Updated. Filtered ke 6 MVP komoditas. Cuaca wired ke real Open-Meteo data.
+- **Weather Extractor** (`etl/extractors/openmeteo_extractor.py`): ✅ Open-Meteo API extractor. Data loaded.
+- **Frontend**: UI functional tapi masih pakai BMKG labels. **Perlu update untuk HET + weather display**.
+- **Tests**: 33 tests pass (14 HET + 7 weather + 12 RCA).
 
-### Files yang PERLU DIBUAT (Next Steps)
-1. `src/data/weather_data.py` — query `raw.cuaca_harian`, return `CuacaInfo` untuk RCA
-2. `src/engine/het_monitor.py` — compare harga vs HET reference, return status
-3. `tests/test_weather_data.py` — test weather data layer
-4. `tests/test_het_monitor.py` — test HET monitor
-5. `tests/test_komoditas_filter.py` — test MVP komoditas filter
+### Remaining Work
+1. Re-run dbt dengan komoditas filter (turunkan DB size ~360→~175 MB)
+2. Load PIHPS data Banten + Sulawesi Selatan (background, 2-4 jam)
+3. Frontend update (HET badge, weather display, komoditas filter)
+4. End-to-end testing + demo scenario preparation
