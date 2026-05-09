@@ -40,9 +40,8 @@ HISTORICAL_END   = date.today()
 
 PIPELINE_NAME = "data_ready_modelling"
 
-# Provinsi target untuk extraction per-kota
-# PIHPS Province IDs: Jawa Barat=12, DKI Jakarta=13
-TARGET_PROVINCE_IDS = [12, 13]
+# Import dari centralized config
+from config.constants import TARGET_PROVINCE_IDS
 
 
 # ── Task functions ────────────────────────────────────────────────────────────

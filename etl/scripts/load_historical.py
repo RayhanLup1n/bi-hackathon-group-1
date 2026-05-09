@@ -31,7 +31,8 @@ from loaders.postgres_loader import PostgresLoader, _get_dsn
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-TARGET_PROVINCE_IDS = [12, 13]  # Jawa Barat, DKI Jakarta
+# Import from centralized config
+from config.constants import TARGET_PROVINCE_IDS
 DEFAULT_START_YEAR = 2020
 DEFAULT_END_YEAR = 2026
 

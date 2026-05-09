@@ -14,13 +14,27 @@ from src.data.database import db_cursor
 from src.models.schemas import CommodityData, CuacaInfo, StokInfo, KotaInfo
 
 
+# MVP komoditas filter — only surface these in the dashboard/API
+# comcat_id values verified from raw.harga_pangan
+MVP_KOMODITAS_FILTER: set[str] = {
+    "com_11",  # Bawang Merah Ukuran Sedang
+    "com_12",  # Bawang Putih Ukuran Sedang
+    "com_13",  # Cabai Merah Besar
+    "com_14",  # Cabai Merah Keriting
+    "com_15",  # Cabai Rawit Hijau
+    "com_16",  # Cabai Rawit Merah
+}
+
 # Mapping comcat_id -> key yang user-friendly (untuk URL)
-# Ini hanya untuk komoditas fokus MVP — extend sesuai kebutuhan
+# Populated at startup from DB, filtered to MVP komoditas
 KOMODITAS_MAP: dict[str, str] = {}  # populated at startup from DB
 
 
 def _load_komoditas_map() -> None:
-    """Load komoditas mapping from database (called once at startup)."""
+    """Load komoditas mapping from database (called once at startup).
+
+    Only loads MVP komoditas (bawang merah, bawang putih, all cabai types).
+    """
     with db_cursor() as cur:
         cur.execute("""
             SELECT DISTINCT comcat_id, komoditas_nama
@@ -33,10 +47,16 @@ def _load_komoditas_map() -> None:
     # so all modules that imported KOMODITAS_MAP see the updated data
     KOMODITAS_MAP.clear()
     for row in rows:
-        # Create URL-friendly key: "Beras Kualitas Bawah I" -> "beras_kualitas_bawah_i"
+        comcat_id = row["comcat_id"]
+
+        # Filter: only include MVP komoditas
+        if comcat_id not in MVP_KOMODITAS_FILTER:
+            continue
+
+        # Create URL-friendly key: "Bawang Merah Ukuran Sedang" -> "bawang_merah_ukuran_sedang"
         key = row["komoditas_nama"].lower().replace(" ", "_").replace("-", "_")
         KOMODITAS_MAP[key] = {
-            "comcat_id": row["comcat_id"],
+            "comcat_id": comcat_id,
             "name": row["komoditas_nama"],
         }
 

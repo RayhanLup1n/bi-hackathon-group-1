@@ -14,6 +14,12 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+# ── dbt Variables ─────────────────────────────────────────────────────────────
+# MVP komoditas filter — only materialize these in marts/app tables.
+# Set to empty list to include ALL komoditas.
+vars:
+  mvp_comcat_ids: ['com_11', 'com_12', 'com_13', 'com_14', 'com_15', 'com_16']
+
 # Custom schema macro: agar dbt tidak prefix schema name
 # dengan default schema. Contoh: staging.stg_* bukan raw_staging.stg_*
 dispatch:

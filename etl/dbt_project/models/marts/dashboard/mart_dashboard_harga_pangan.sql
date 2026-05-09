@@ -35,6 +35,9 @@ WITH base AS (
         kuartal
     FROM {{ ref('stg_harga_pangan') }}
     WHERE harga IS NOT NULL
+      {% if var('mvp_comcat_ids', []) | length > 0 %}
+      AND comcat_id IN ('{{ var("mvp_comcat_ids") | join("', '") }}')
+      {% endif %}
 ),
 
 -- ── Harga terkini per komoditas-kota ─────────────────────────────────────────

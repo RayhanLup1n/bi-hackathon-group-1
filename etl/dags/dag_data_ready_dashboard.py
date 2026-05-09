@@ -39,8 +39,8 @@ DEFAULT_ARGS = {
 
 PIPELINE_NAME = "data_ready_dashboard"
 
-# Provinsi target — sama dengan modelling
-TARGET_PROVINCE_IDS = [12, 13]  # Jawa Barat, DKI Jakarta
+# Import dari centralized config
+from config.constants import TARGET_PROVINCE_IDS
 
 
 # ── Task functions ────────────────────────────────────────────────────────────

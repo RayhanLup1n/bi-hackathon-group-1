@@ -33,6 +33,9 @@ WITH base AS (
     FROM {{ ref('stg_harga_pangan') }}
     WHERE harga IS NOT NULL
       AND pasar_tipe = 1  -- fokus ke pasar tradisional untuk modelling
+      {% if var('mvp_comcat_ids', []) | length > 0 %}
+      AND comcat_id IN ('{{ var("mvp_comcat_ids") | join("', '") }}')
+      {% endif %}
 ),
 
 -- ── Lag features ─────────────────────────────────────────────────────────────

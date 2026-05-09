@@ -25,6 +25,9 @@
 
 WITH fact AS (
     SELECT * FROM {{ ref('stg_fact_harga_pangan') }}
+    {% if var('mvp_comcat_ids', []) | length > 0 %}
+    WHERE comcat_id IN ('{{ var("mvp_comcat_ids") | join("', '") }}')
+    {% endif %}
 ),
 
 dim_komoditas AS (
