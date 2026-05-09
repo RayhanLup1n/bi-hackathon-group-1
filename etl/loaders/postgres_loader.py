@@ -175,7 +175,35 @@ DDL_INDEXES = [
     CREATE INDEX IF NOT EXISTS idx_ml_predictions_lookup
     ON app.ml_predictions (komoditas_id, kota_id, target_date);
     """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_cuaca_harian_lookup
+    ON raw.cuaca_harian (tanggal, provinsi_id);
+    """,
 ]
+
+
+# ── Weather DDL (Open-Meteo) ──────────────────────────────────────────────────
+
+DDL_RAW_CUACA_HARIAN = """
+CREATE TABLE IF NOT EXISTS raw.cuaca_harian (
+    id                    BIGSERIAL PRIMARY KEY,
+    tanggal               DATE             NOT NULL,
+    lokasi_label          VARCHAR          NOT NULL,
+    provinsi_id           INTEGER          NOT NULL,
+    latitude              DOUBLE PRECISION NOT NULL,
+    longitude             DOUBLE PRECISION NOT NULL,
+    precipitation_sum     DOUBLE PRECISION,
+    rain_sum              DOUBLE PRECISION,
+    temperature_max       DOUBLE PRECISION,
+    temperature_min       DOUBLE PRECISION,
+    wind_speed_max        DOUBLE PRECISION,
+    et0_evapotranspiration DOUBLE PRECISION,
+    sunshine_duration     DOUBLE PRECISION,
+    _extracted_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    _source               VARCHAR   DEFAULT 'open_meteo',
+    UNIQUE (tanggal, latitude, longitude)
+);
+"""
 
 
 class PostgresLoader:
@@ -231,6 +259,7 @@ class PostgresLoader:
             cur.execute(DDL_RAW_KOTA)
             cur.execute(DDL_RAW_PIPELINE_LOG)
             cur.execute(DDL_RAW_HARI_BESAR)
+            cur.execute(DDL_RAW_CUACA_HARIAN)
 
             # Create app tables
             cur.execute(DDL_APP_USERS)
