@@ -431,12 +431,14 @@ SUPABASE_PASSWORD=<password>
 - [x] 33 tests pass
 
 ### Checkpoint 9: New Pages (RCA + Prediksi ML) ⬜ IN PROGRESS
-- [ ] Build `/rca` page — single column stacked: filter → RCA result → detail → timeline
-- [ ] Build `/prediksi` page — filter → summary cards → grafik → tabel prediksi
-- [ ] Add role guard (analyst+ only) to both pages
-- [ ] Add FastAPI routes to serve new HTML pages
-- [ ] Add navigation links between pages (header nav)
-- [ ] ML predictions API endpoint (read from app.ml_predictions)
+- [x] Build `/rca` page — single column stacked: filter → RCA result → detail → timeline
+- [x] Build `/prediksi` page — filter → summary cards → grafik → tabel prediksi
+- [x] Add role guard (analyst+ only) to both pages
+- [x] Add FastAPI routes to serve new HTML pages
+- [x] ML predictions API endpoint (read from app.ml_predictions)
+- [ ] Add navigation links between pages (header nav di index.html, admin.html)
+- [ ] Integrasi Chart.js/Plotly di halaman prediksi
+- [ ] End-to-end testing halaman RCA dan Prediksi ML
 
 ### Checkpoint 10: Architecture Upgrade (Post-hackathon) ⬜ FUTURE
 - [ ] Setup BigQuery/GCS untuk data warehouse
@@ -528,7 +530,7 @@ Code yang sudah ada dan statusnya:
 - **HET Monitor** (`src/engine/het_monitor.py`): ✅ Compare harga vs HET reference → AMAN/WASPADA/KRITIS/MELAMPAUI.
 - **Weather Data** (`src/data/weather_data.py`): ✅ Query `raw.cuaca_harian` → `CuacaInfo` untuk RCA engine.
 - **Schemas** (`src/models/schemas.py`): ✅ Clean — BMKG models dihapus.
-- **API Routes** (`src/api/routes.py`): ✅ Real `/api/het/*` dan `/api/cuaca/*` endpoints. BMKG stubs dihapus.
+- **API Routes** (`src/api/routes.py`): ✅ Real `/api/het/*`, `/api/cuaca/*`, `/api/predictions` endpoints. BMKG stubs dihapus.
 - **Auth** (`src/api/auth_routes.py`): ✅ JWT + RBAC boolean flags. is_active check. Default users: admin/admin123, analyst/analyst123.
 - **Auth DB** (`src/data/auth_db.py`): ✅ Boolean flags (is_admin/is_analyst/is_active). `_compute_role()` for backward compat.
 - **Commodity Data** (`src/data/commodity_data.py`): ✅ Filtered ke 6 MVP komoditas. Multi-province weather detection.
@@ -536,6 +538,8 @@ Code yang sudah ada dan statusnya:
 - **Frontend Dashboard** (`frontend/index.html`): ✅ Alpine.js + neobrutalism. HET badge, weather panel, RCA widget.
 - **Frontend Login** (`frontend/login.html`): ✅ Neobrutalism style.
 - **Frontend Admin** (`frontend/admin.html`): ✅ Neobrutalism + boolean checkboxes (is_admin/is_analyst/is_active).
+- **Frontend RCA** (`frontend/rca.html`): ✅ Alpine.js + neobrutalism. Animated 4-step RCA, filter, detail, cuaca + hari besar context.
+- **Frontend Prediksi** (`frontend/prediksi.html`): ✅ Alpine.js + neobrutalism. Summary cards, chart placeholder, prediction table, empty state.
 - **Tests**: ✅ 33 tests pass (14 HET + 7 weather + 12 RCA).
 
 ### Database Status
@@ -549,8 +553,9 @@ Code yang sudah ada dan statusnya:
 2. ~~Load Banten + Sulsel~~ ✅ Done (271K rows loaded)
 3. ~~Alpine.js upgrade~~ ✅ Done (neobrutalism + Alpine.js)
 4. ~~Users table boolean flags~~ ✅ Done (role VARCHAR → is_admin/is_analyst/is_active)
-5. Build `/rca` page — Analisis RCA (analyst+ only)
-6. Build `/prediksi` page — Prediksi ML (analyst+ only, empty state if no ML data)
-7. Add navigation between pages (header nav links)
-8. ML predictions API endpoint
-9. BigQuery migration (post-hackathon)
+5. ~~Build `/rca` page~~ ✅ Done (single column stacked, animated 4-step check, analyst+ guard)
+6. ~~Build `/prediksi` page~~ ✅ Done (summary cards, chart placeholder, prediction table, empty state)
+7. ~~ML predictions API endpoint~~ ✅ Done (`GET /api/predictions`)
+8. Add navigation between pages (header nav links di index.html, admin.html)
+9. Integrasi Chart.js/Plotly di halaman prediksi
+10. BigQuery migration (post-hackathon)
