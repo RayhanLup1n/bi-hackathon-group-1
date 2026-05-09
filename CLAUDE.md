@@ -376,8 +376,8 @@ SUPABASE_PASSWORD=<password>
 - [x] Load weather data: **11,605 rows** (5 lokasi, 2020-2026)
 - [x] Tambah HET thresholds + weather thresholds di config/settings.py
 - [x] Setup Supabase MCP (.claude/.mcp.json)
-- [ ] Re-run dbt dengan komoditas filter (turunkan DB size ~360→~175 MB)
-- [ ] Load PIHPS data Banten + Sulawesi Selatan
+- [x] Re-run dbt dengan komoditas filter (DB size 363→242 MB)
+- [x] Load PIHPS data Banten (3 kota, 104K rows) + Sulsel (5 kota, 167K rows)
 
 ### Checkpoint 6: HET Monitor + RCA Weather Integration ✅ DONE (May 9)
 - [x] Build `src/data/weather_data.py` — query cuaca untuk RCA engine
@@ -388,15 +388,19 @@ SUPABASE_PASSWORD=<password>
 - [x] Remove unused BMKG Pydantic models dari schemas.py
 - [x] Write tests: 14 HET tests + 7 weather tests (total 33 pass)
 - [x] Bump version to v0.4.0
+- [x] Fix multi-province weather check (cek cuaca semua provinsi, bukan hanya pertama)
 
-### Checkpoint 7: Frontend + Demo Prep ⬜ NEXT
-- [ ] Upgrade frontend ke Alpine.js/HTMX untuk interaktivitas
-- [ ] Connect dashboard ke API baru (real data + weather + HET)
-- [ ] Tambah HET monitoring view di dashboard
+### Checkpoint 7: Frontend + Demo Prep ✅ DONE (May 9)
+- [x] Update frontend: HET badge, weather panel, Open-Meteo labels
+- [x] Connect dashboard ke API baru (real data + weather + HET)
+- [x] Tambah HET monitoring view di dashboard (AMAN/WASPADA/KRITIS/MELAMPAUI)
+- [x] Tambah weather info di RCA display (storm icon + detail cuaca)
+- [x] End-to-end testing: 4 demo scenarios verified
+- [x] Demo scenario documentation (docs/demo-scenarios.md)
 - [ ] Tambah weather info di RCA display
 - [ ] End-to-end testing + demo scenario preparation
 
-### Checkpoint 8: Architecture Upgrade (Post-demo) ⬜
+### Checkpoint 8: Architecture Upgrade (Post-hackathon) ⬜ NEXT
 - [ ] Setup BigQuery/GCS untuk data warehouse
 - [ ] Migrasi data historis ke BigQuery
 - [ ] Optimasi Supabase — hanya app data
@@ -415,7 +419,7 @@ SUPABASE_PASSWORD=<password>
 
 | Source | URL | Data | Status |
 |--------|-----|------|--------|
-| BI PIHPS | `bi.go.id/hargapangan` | Harga 21 komoditas | ✅ **347,550 rows** (Jabar+DKI, 2020-2026) |
+| BI PIHPS | `bi.go.id/hargapangan` | Harga 21 komoditas | ✅ **619,430 rows** (4 prov, 18 kota, 2020-2026) |
 | Hari Besar | `python-holidays` package | Libur nasional + cuti bersama | ✅ **91 rows** (2024-2027) |
 | Open-Meteo | `open-meteo.com` | Historical weather data | ✅ **11,605 rows** (5 lokasi, 2020-2026) |
 | HET Bapanas | `bapanas.go.id` | Harga Eceran Tertinggi | 🔍 Dummy values in config |
@@ -478,19 +482,25 @@ Dependencies dikelola di root `pyproject.toml`, Docker dikelola di root `docker-
 
 Code yang sudah ada dan statusnya:
 
-- **RCA Engine** (`src/engine/rca_engine.py`): 4-step sequential check. ✅ Labels updated ke Open-Meteo. 33 tests pass.
-- **HET Monitor** (`src/engine/het_monitor.py`): ✅ BARU. Compare harga vs HET reference → AMAN/WASPADA/KRITIS/MELAMPAUI.
-- **Weather Data** (`src/data/weather_data.py`): ✅ BARU. Query `raw.cuaca_harian` → `CuacaInfo` untuk RCA engine.
-- **Schemas** (`src/models/schemas.py`): Pydantic models. BMKG models sudah dihapus.
-- **API Routes** (`src/api/routes.py`): ✅ Updated. BMKG stubs replaced dengan real `/api/het/*` dan `/api/cuaca/*` endpoints.
-- **Auth** (`src/api/auth_routes.py`): JWT + RBAC sudah work. Default users: admin/admin123, analyst/analyst123.
-- **Commodity Data** (`src/data/commodity_data.py`): ✅ Updated. Filtered ke 6 MVP komoditas. Cuaca wired ke real Open-Meteo data.
-- **Weather Extractor** (`etl/extractors/openmeteo_extractor.py`): ✅ Open-Meteo API extractor. Data loaded.
-- **Frontend**: UI functional tapi masih pakai BMKG labels. **Perlu update untuk HET + weather display**.
-- **Tests**: 33 tests pass (14 HET + 7 weather + 12 RCA).
+- **RCA Engine** (`src/engine/rca_engine.py`): ✅ 4-step sequential check. Labels updated ke Open-Meteo. 33 tests pass.
+- **HET Monitor** (`src/engine/het_monitor.py`): ✅ Compare harga vs HET reference → AMAN/WASPADA/KRITIS/MELAMPAUI.
+- **Weather Data** (`src/data/weather_data.py`): ✅ Query `raw.cuaca_harian` → `CuacaInfo` untuk RCA engine.
+- **Schemas** (`src/models/schemas.py`): ✅ Clean — BMKG models dihapus.
+- **API Routes** (`src/api/routes.py`): ✅ Real `/api/het/*` dan `/api/cuaca/*` endpoints. BMKG stubs dihapus.
+- **Auth** (`src/api/auth_routes.py`): ✅ JWT + RBAC. Default users: admin/admin123, analyst/analyst123.
+- **Commodity Data** (`src/data/commodity_data.py`): ✅ Filtered ke 6 MVP komoditas. Multi-province weather detection.
+- **Weather Extractor** (`etl/extractors/openmeteo_extractor.py`): ✅ Open-Meteo API extractor.
+- **Frontend** (`frontend/index.html`): ✅ HET badge, weather panel, Open-Meteo labels, v0.4.
+- **Tests**: ✅ 33 tests pass (14 HET + 7 weather + 12 RCA).
+
+### Database Status
+- **Total**: 242 MB / 500 MB (258 MB free)
+- **raw.harga_pangan**: 619,430 rows (4 provinsi, 18 kota, 2020-2026)
+- **raw.cuaca_harian**: 11,605 rows (5 lokasi, 2020-2026)
+- **marts (filtered)**: 174,290 rows (6 MVP komoditas only)
 
 ### Remaining Work
-1. Re-run dbt dengan komoditas filter (turunkan DB size ~360→~175 MB)
-2. Load PIHPS data Banten + Sulawesi Selatan (background, 2-4 jam)
-3. Frontend update (HET badge, weather display, komoditas filter)
-4. End-to-end testing + demo scenario preparation
+1. ~~Re-run dbt~~ ✅ Done (DB optimized 363→242 MB)
+2. ~~Load Banten + Sulsel~~ ✅ Done (271K rows loaded)
+3. Alpine.js/HTMX upgrade (optional — current vanilla JS works)
+4. BigQuery migration (post-hackathon)
