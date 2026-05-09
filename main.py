@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
-from src.api.routes import router, het_router, cuaca_router, stok_router
+from src.api.routes import router, het_router, cuaca_router, stok_router, predictions_router
 from src.api.auth_routes import auth_router
 
 import os
@@ -62,6 +62,7 @@ app.include_router(router)
 app.include_router(het_router)
 app.include_router(cuaca_router)
 app.include_router(stok_router)
+app.include_router(predictions_router)
 app.include_router(auth_router)
 
 
@@ -86,3 +87,11 @@ if os.path.exists(frontend_dir):
     @app.get("/admin", include_in_schema=False)
     def serve_admin():
         return FileResponse(os.path.join(frontend_dir, "admin.html"))
+
+    @app.get("/rca", include_in_schema=False)
+    def serve_rca():
+        return FileResponse(os.path.join(frontend_dir, "rca.html"))
+
+    @app.get("/prediksi", include_in_schema=False)
+    def serve_prediksi():
+        return FileResponse(os.path.join(frontend_dir, "prediksi.html"))

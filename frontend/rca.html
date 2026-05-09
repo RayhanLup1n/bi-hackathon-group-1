@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analisis RCA — R.A.D.A.R Pangan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #F3EEFF;
+      --surface:   #FFFFFF;
+      --surface2:  #FFFBEB;
+      --border:    #1a1a1a;
+      --accent:    #818CF8;
+      --accent2:   #6366f1;
+      --warn:      #FBBF24;
+      --danger:    #F87171;
+      --success:   #34D399;
+      --text:      #1a1a1a;
+      --text2:     #3f3f46;
+      --muted:     #71717a;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Inter', system-ui, sans-serif;
+      --radius:    16px;
+      --radius-sm: 12px;
+      --bw:        2.5px;
+      --shadow:    4px 4px 0px #1a1a1a;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); min-height: 100vh;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(129,140,248,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(249,168,212,0.10) 0%, transparent 50%),
+        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .app { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 24px 20px 48px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; padding: 14px 20px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 46px; height: 46px; background: var(--accent);
+      border: var(--bw) solid var(--border); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; box-shadow: 3px 3px 0 var(--border);
+    }
+    .header-title { font-size: 18px; font-weight: 900; letter-spacing: -0.5px; }
+    .header-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .nav-link {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
+      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .nav-link-default { background: var(--surface); color: var(--accent2); }
+    .nav-link-default:hover { background: #EDE9FE; }
+    .nav-link-active { background: var(--accent); color: #fff; }
+    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
+    .nav-link-danger:hover { background: #FECACA; }
+    .user-badge {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; background: var(--surface2);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .user-badge strong { color: var(--accent2); }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 22px; margin-bottom: 20px;
+    }
+    .card-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--text); margin-bottom: 12px;
+    }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 14px;
+      align-items: end;
+    }
+    @media (max-width: 700px) { .filter-bar { grid-template-columns: 1fr; } }
+
+    .filter-group label {
+      display: block; font-family: var(--mono); font-size: 10px;
+      font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px;
+      margin-bottom: 6px;
+    }
+    .filter-input {
+      width: 100%; padding: 10px 12px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); font-family: var(--mono); font-size: 12px;
+      font-weight: 600; box-shadow: 3px 3px 0 var(--border);
+      outline: none; cursor: pointer;
+    }
+    .filter-input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+    .btn-run {
+      padding: 10px 22px; background: var(--accent); color: #fff;
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      font-family: var(--sans); font-size: 13px; font-weight: 800;
+      cursor: pointer; box-shadow: var(--shadow);
+      transition: transform 0.1s, box-shadow 0.1s;
+      white-space: nowrap;
+    }
+    .btn-run:hover { background: var(--accent2); }
+    .btn-run:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--border); }
+    .btn-run:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; transform: translate(2px, 2px); }
+
+    /* ── Status card ── */
+    .status-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;
+    }
+    @media (max-width: 600px) { .status-row { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 18px;
+      box-shadow: var(--shadow); text-align: center;
+    }
+    .stat-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .stat-value { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
+    .stat-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+    .stat-anomaly { border-left: 6px solid var(--danger); }
+    .stat-normal { border-left: 6px solid var(--success); }
+
+    /* ── RCA Checklist ── */
+    .rca-section { margin-bottom: 20px; }
+    .rca-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; background: var(--surface2);
+      border: var(--bw) solid var(--border); border-radius: var(--radius) var(--radius) 0 0;
+      box-shadow: var(--shadow);
+    }
+    .rca-header-title { font-family: var(--mono); font-size: 12px; font-weight: 800; }
+    .rca-header-badge {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px;
+      border: 1.5px solid var(--border);
+    }
+    .rca-badge-anomaly { background: #FEE2E2; color: #DC2626; }
+    .rca-badge-normal { background: #D1FAE5; color: #065f46; }
+    .rca-badge-waiting { background: #F1F5F9; color: #64748b; }
+
+    .rca-list {
+      border: var(--bw) solid var(--border); border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+      overflow: hidden; box-shadow: var(--shadow);
+    }
+    .rca-item {
+      display: grid; grid-template-columns: 36px 1fr auto; align-items: center;
+      padding: 14px 18px; gap: 14px; background: var(--surface);
+      border-bottom: 1.5px solid #e5e5e5;
+      transition: background 0.2s;
+    }
+    .rca-item:last-child { border-bottom: none; }
+    .rca-item.active { background: #F5F3FF; }
+
+    .rca-step-num {
+      width: 30px; height: 30px; display: flex; align-items: center;
+      justify-content: center; border-radius: 8px;
+      border: var(--bw) solid var(--border); font-family: var(--mono);
+      font-size: 12px; font-weight: 800;
+    }
+    .step-pending { background: #F1F5F9; color: #94a3b8; }
+    .step-active { background: var(--accent); color: #fff; box-shadow: 2px 2px 0 var(--border); animation: pulse 0.6s ease infinite alternate; }
+    .step-pass { background: #D1FAE5; color: #065f46; }
+    .step-fail { background: #FEE2E2; color: #DC2626; }
+
+    @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.08); } }
+
+    .rca-step-name { font-size: 13px; font-weight: 700; }
+    .rca-step-desc { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; font-weight: 500; }
+    .rca-step-result { font-family: var(--mono); font-size: 11px; font-weight: 700; }
+
+    /* ── Detail Root Cause ── */
+    .detail-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 22px; margin-bottom: 20px;
+    }
+    .detail-title {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 14px;
+    }
+    .detail-cause {
+      padding: 16px; background: #FEF3C7; border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); box-shadow: 2px 2px 0 var(--border);
+      margin-bottom: 14px;
+    }
+    .detail-cause-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      color: #92400e; text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .detail-cause-text { font-size: 14px; font-weight: 700; color: #78350f; line-height: 1.6; }
+
+    .detail-recommendation {
+      padding: 16px; background: #DBEAFE; border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); box-shadow: 2px 2px 0 var(--border);
+    }
+    .detail-rec-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      color: #1e40af; text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .detail-rec-text { font-size: 13px; font-weight: 600; color: #1e3a5f; line-height: 1.6; }
+
+    /* ── Context cards row ── */
+    .context-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
+    }
+    @media (max-width: 600px) { .context-row { grid-template-columns: 1fr; } }
+
+    .context-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow);
+    }
+    .context-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 10px;
+    }
+    .weather-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid #e5e5e5;
+      font-size: 13px;
+    }
+    .weather-item:last-child { border-bottom: none; }
+    .weather-icon { font-size: 18px; flex-shrink: 0; }
+    .weather-val { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+    .weather-label { font-size: 12px; color: var(--muted); }
+
+    .holiday-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid #e5e5e5; font-size: 13px;
+    }
+    .holiday-item:last-child { border-bottom: none; }
+    .holiday-date { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 600; }
+    .holiday-name { font-weight: 700; }
+
+    .extreme-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 6px;
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      border: 1.5px solid var(--border);
+    }
+    .extreme-yes { background: #FEE2E2; color: #DC2626; }
+    .extreme-no { background: #D1FAE5; color: #065f46; }
+
+    /* ── Timeline ── */
+    .timeline-table {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+    }
+    .timeline-table thead { background: var(--surface2); }
+    .timeline-table th {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px;
+      padding: 10px 14px; text-align: left;
+      border-bottom: var(--bw) solid var(--border);
+    }
+    .timeline-table td {
+      padding: 10px 14px; border-bottom: 1px solid #e5e5e5;
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+    }
+    .timeline-table tbody tr:hover { background: #F5F3FF; }
+
+    .empty-state {
+      text-align: center; padding: 40px 20px;
+      font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 600;
+    }
+
+    .spinner { width: 18px; height: 18px; border: 3px solid rgba(99,102,241,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="app" x-data="rcaPage()" x-cloak>
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">📡</div>
+      <div>
+        <div class="header-title">R.A.D.A.R Pangan</div>
+        <div class="header-sub">analisis root cause &nbsp;·&nbsp; v0.4</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="user-badge">
+        <strong x-text="user?.username || '—'"></strong> · <span x-text="user?.role || ''"></span>
+      </span>
+      <a href="/" class="nav-link nav-link-default">← Dashboard</a>
+      <a href="/prediksi" class="nav-link nav-link-default">📈 Prediksi</a>
+      <template x-if="user?.is_admin || user?.role === 'admin'">
+        <a href="/admin" class="nav-link nav-link-default">👥 Admin</a>
+      </template>
+      <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
+    </div>
+  </header>
+
+  <!-- ── Filter Bar ── -->
+  <div class="card">
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Komoditas</label>
+        <select class="filter-input" x-model="selectedKey">
+          <template x-for="c in commodities" :key="c.key">
+            <option :value="c.key" x-text="c.name"></option>
+          </template>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Wilayah</label>
+        <select class="filter-input" x-model="selectedProvinsi">
+          <option value="">Semua Wilayah</option>
+          <template x-for="p in provinces" :key="p.id">
+            <option :value="p.id" x-text="p.name"></option>
+          </template>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Tanggal Simulasi</label>
+        <input type="date" class="filter-input" x-model="simDate">
+      </div>
+      <button class="btn-run" @click="runRCA()" :disabled="loading">
+        <template x-if="loading"><span class="spinner" style="width:14px;height:14px;border-width:2px;"></span></template>
+        <template x-if="!loading"><span>Jalankan RCA</span></template>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Status Cards ── -->
+  <template x-if="result">
+    <div>
+      <div class="status-row" style="margin-bottom:20px;">
+        <div class="stat-card" :class="result.is_anomaly ? 'stat-anomaly' : 'stat-normal'">
+          <div class="stat-label">Status</div>
+          <div class="stat-value" :style="result.is_anomaly ? 'color:#DC2626' : 'color:#059669'"
+               x-text="result.is_anomaly ? 'ANOMALI' : 'NORMAL'"></div>
+          <div class="stat-sub" x-text="result.root_cause || 'Tidak ada anomali terdeteksi'"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Delta Harga</div>
+          <div class="stat-value" :style="result.delta_pct > 0 ? 'color:#DC2626' : (result.delta_pct < 0 ? 'color:#059669' : '')"
+               x-text="(result.delta_pct > 0 ? '+' : '') + result.delta_pct.toFixed(1) + '%'"></div>
+          <div class="stat-sub" x-text="'Rp ' + (result.price_now||0).toLocaleString('id-ID') + '/kg'"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Persebaran Kota</div>
+          <div class="stat-value" x-text="result.kota_naik + '/' + result.total_kota"></div>
+          <div class="stat-sub" x-text="'kota naik (' + ((result.total_kota ? result.kota_naik/result.total_kota*100 : 0).toFixed(0)) + '%)'"></div>
+        </div>
+      </div>
+
+      <!-- ── RCA Checklist ── -->
+      <div class="rca-section">
+        <div class="rca-header">
+          <span class="rca-header-title">RCA Checklist — 4 Step Sequential Check</span>
+          <span class="rca-header-badge"
+                :class="result.is_anomaly ? 'rca-badge-anomaly' : 'rca-badge-normal'"
+                x-text="result.is_anomaly ? 'ANOMALI TERDETEKSI' : 'NORMAL'"></span>
+        </div>
+        <div class="rca-list">
+          <template x-for="(check, i) in animatedChecks" :key="i">
+            <div class="rca-item" :class="check.animState === 'active' ? 'active' : ''">
+              <div class="rca-step-num"
+                   :class="{
+                     'step-pending': check.animState === 'pending',
+                     'step-active':  check.animState === 'active',
+                     'step-pass':    check.animState === 'done' && check.result === 'TRIGGERED',
+                     'step-fail':    check.animState === 'done' && check.result !== 'TRIGGERED',
+                   }" x-text="i + 1"></div>
+              <div>
+                <div class="rca-step-name" x-text="check.name"></div>
+                <div class="rca-step-desc" x-text="check.detail || '—'"></div>
+              </div>
+              <div class="rca-step-result"
+                   :style="check.result === 'TRIGGERED' ? 'color:#DC2626' : 'color:#059669'"
+                   x-text="check.animState === 'done' ? check.result : (check.animState === 'active' ? '...' : '')"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- ── Detail Root Cause ── -->
+      <template x-if="result.is_anomaly && result.root_cause">
+        <div class="detail-card">
+          <div class="detail-title">Detail Root Cause</div>
+          <div class="detail-cause">
+            <div class="detail-cause-label">Penyebab</div>
+            <div class="detail-cause-text" x-text="result.root_cause"></div>
+          </div>
+          <div class="detail-recommendation">
+            <div class="detail-rec-label">Rekomendasi Kebijakan</div>
+            <div class="detail-rec-text" x-text="result.recommendation || 'Lakukan monitoring intensif dan koordinasi dengan TPID setempat.'"></div>
+          </div>
+        </div>
+      </template>
+
+      <!-- ── Context: Cuaca + Hari Besar ── -->
+      <div class="context-row">
+        <div class="context-card">
+          <div class="context-label">Info Cuaca (Open-Meteo)</div>
+          <template x-if="cuacaData">
+            <div>
+              <div style="margin-bottom:8px;">
+                <span class="extreme-badge" :class="cuacaData.ekstrem ? 'extreme-yes' : 'extreme-no'"
+                      x-text="cuacaData.ekstrem ? '⚠ Cuaca Ekstrem' : '✓ Normal'"></span>
+              </div>
+              <div class="weather-item">
+                <span class="weather-icon">🌧</span>
+                <span class="weather-val" x-text="cuacaData.detail?.precipitation_sum?.toFixed(1) || '—'"></span>
+                <span class="weather-label">mm curah hujan</span>
+              </div>
+              <div class="weather-item">
+                <span class="weather-icon">🌡</span>
+                <span class="weather-val" x-text="cuacaData.detail?.temperature_max?.toFixed(1) || '—'"></span>
+                <span class="weather-label">°C suhu maks</span>
+              </div>
+              <div class="weather-item">
+                <span class="weather-icon">💨</span>
+                <span class="weather-val" x-text="cuacaData.detail?.wind_speed_max?.toFixed(1) || '—'"></span>
+                <span class="weather-label">km/h angin maks</span>
+              </div>
+              <div class="weather-item" x-show="cuacaData.daerah">
+                <span class="weather-icon">📍</span>
+                <span class="weather-val" x-text="cuacaData.daerah || ''"></span>
+                <span class="weather-label"></span>
+              </div>
+            </div>
+          </template>
+          <template x-if="!cuacaData">
+            <div class="empty-state">Pilih komoditas dan jalankan RCA</div>
+          </template>
+        </div>
+
+        <div class="context-card">
+          <div class="context-label">Hari Besar Terdekat</div>
+          <template x-if="result.checks && result.checks.length > 0">
+            <div>
+              <template x-for="check in result.checks.filter(c => c.name.includes('Hari Raya'))" :key="check.name">
+                <div>
+                  <template x-if="check.result === 'TRIGGERED'">
+                    <div class="holiday-item" style="background:#FEF3C7;padding:10px;border-radius:8px;">
+                      <span style="font-size:20px;">🕌</span>
+                      <div>
+                        <div class="holiday-name" x-text="check.detail"></div>
+                        <div style="font-family:var(--mono);font-size:10px;color:#92400e;font-weight:600;">Demand window aktif</div>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="check.result !== 'TRIGGERED'">
+                    <div class="holiday-item">
+                      <span style="font-size:18px;">📅</span>
+                      <div>
+                        <div class="holiday-name" style="font-size:12px;" x-text="check.detail || 'Tidak dalam periode hari raya'"></div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+          <template x-if="!result.checks">
+            <div class="empty-state">Jalankan RCA untuk melihat info hari besar</div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ── Empty state ── -->
+  <template x-if="!result && !loading">
+    <div class="card">
+      <div class="empty-state" style="padding:60px 20px;">
+        <div style="font-size:40px;margin-bottom:12px;">🔍</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Pilih komoditas dan jalankan analisis</div>
+        <div>RCA engine akan memeriksa 4 faktor penyebab anomali harga secara berurutan</div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ── Loading state ── -->
+  <template x-if="loading && !result">
+    <div class="card">
+      <div class="empty-state" style="padding:60px 20px;">
+        <div class="spinner" style="margin:0 auto 16px;width:28px;height:28px;"></div>
+        <div>Mengambil data dan menjalankan analisis...</div>
+      </div>
+    </div>
+  </template>
+
+</div>
+
+<script>
+function rcaPage() {
+  return {
+    // Auth
+    token: localStorage.getItem('rca_token'),
+    user: JSON.parse(localStorage.getItem('rca_user') || 'null'),
+
+    // Data
+    commodities: [],
+    provinces: [
+      { id: 11, name: 'Banten' },
+      { id: 12, name: 'Jawa Barat' },
+      { id: 13, name: 'DKI Jakarta' },
+      { id: 26, name: 'Sulawesi Selatan' },
+    ],
+
+    // Filters
+    selectedKey: '',
+    selectedProvinsi: '',
+    simDate: '',
+
+    // State
+    loading: false,
+    result: null,
+    cuacaData: null,
+    animatedChecks: [],
+
+    async init() {
+      // Auth guard — analyst+ only
+      if (!this.token) { window.location.replace('/login'); return; }
+      try {
+        const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + this.token } });
+        if (!r.ok) throw new Error();
+        const me = await r.json();
+        this.user = me;
+        // Viewer cannot access RCA page
+        if (!me.is_admin && !me.is_analyst && me.role === 'viewer') {
+          window.location.replace('/');
+          return;
+        }
+      } catch {
+        window.location.replace('/login');
+        return;
+      }
+
+      // Load commodities
+      try {
+        const r = await fetch('/api/commodities/detail', this._authOpts());
+        if (r.ok) {
+          this.commodities = await r.json();
+          if (this.commodities.length) this.selectedKey = this.commodities[0].key;
+        }
+      } catch {}
+    },
+
+    _authOpts() {
+      return { headers: this.token ? { Authorization: 'Bearer ' + this.token } : {} };
+    },
+
+    async runRCA() {
+      if (!this.selectedKey || this.loading) return;
+      this.loading = true;
+      this.result = null;
+      this.cuacaData = null;
+      this.animatedChecks = [];
+
+      const dateParam = this.simDate ? `?sim_date=${this.simDate}` : '';
+
+      try {
+        // Fetch RCA + commodity data in parallel
+        const [rcaRes, comRes] = await Promise.all([
+          fetch(`/api/rca/${this.selectedKey}${dateParam}`, this._authOpts()),
+          fetch(`/api/commodity/${this.selectedKey}${dateParam}`, this._authOpts()),
+        ]);
+
+        if (!rcaRes.ok) throw new Error('RCA request failed');
+        const rcaData = await rcaRes.json();
+
+        let comData = null;
+        if (comRes.ok) comData = await comRes.json();
+
+        // Build result
+        this.result = {
+          is_anomaly: rcaData.is_anomaly,
+          root_cause: rcaData.root_cause,
+          recommendation: rcaData.recommendation,
+          delta_pct: rcaData.delta_pct || 0,
+          price_now: comData?.price_now || 0,
+          kota_naik: rcaData.kota_naik || 0,
+          total_kota: rcaData.total_kota || 0,
+          checks: rcaData.checks || [],
+        };
+
+        // Animate checks sequentially
+        this.animatedChecks = (rcaData.checks || []).map(c => ({
+          ...c,
+          animState: 'pending',
+        }));
+
+        for (let i = 0; i < this.animatedChecks.length; i++) {
+          this.animatedChecks[i].animState = 'active';
+          await this._sleep(500);
+          this.animatedChecks[i].animState = 'done';
+          await this._sleep(200);
+        }
+
+        // Fetch weather data
+        if (comData?.cuaca) {
+          this.cuacaData = comData.cuaca;
+        } else {
+          // Try first province or selected province
+          const provId = this.selectedProvinsi || 12;
+          try {
+            const wRes = await fetch(`/api/cuaca/${provId}${dateParam}`, this._authOpts());
+            if (wRes.ok) this.cuacaData = await wRes.json();
+          } catch {}
+        }
+
+      } catch (err) {
+        console.error('RCA Error:', err);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    _sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    logout() {
+      localStorage.removeItem('rca_token');
+      localStorage.removeItem('rca_user');
+      window.location.replace('/login');
+    },
+  };
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prediksi Harga — R.A.D.A.R Pangan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #F3EEFF;
+      --surface:   #FFFFFF;
+      --surface2:  #FFFBEB;
+      --border:    #1a1a1a;
+      --accent:    #818CF8;
+      --accent2:   #6366f1;
+      --warn:      #FBBF24;
+      --danger:    #F87171;
+      --success:   #34D399;
+      --text:      #1a1a1a;
+      --text2:     #3f3f46;
+      --muted:     #71717a;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Inter', system-ui, sans-serif;
+      --radius:    16px;
+      --radius-sm: 12px;
+      --bw:        2.5px;
+      --shadow:    4px 4px 0px #1a1a1a;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); min-height: 100vh;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(129,140,248,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(249,168,212,0.10) 0%, transparent 50%),
+        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .app { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 24px 20px 48px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; padding: 14px 20px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 46px; height: 46px; background: var(--accent);
+      border: var(--bw) solid var(--border); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; box-shadow: 3px 3px 0 var(--border);
+    }
+    .header-title { font-size: 18px; font-weight: 900; letter-spacing: -0.5px; }
+    .header-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .nav-link {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
+      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .nav-link-default { background: var(--surface); color: var(--accent2); }
+    .nav-link-default:hover { background: #EDE9FE; }
+    .nav-link-active { background: var(--accent); color: #fff; }
+    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
+    .nav-link-danger:hover { background: #FECACA; }
+    .user-badge {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; background: var(--surface2);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .user-badge strong { color: var(--accent2); }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 22px; margin-bottom: 20px;
+    }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;
+      align-items: end;
+    }
+    @media (max-width: 700px) { .filter-bar { grid-template-columns: 1fr; } }
+
+    .filter-group label {
+      display: block; font-family: var(--mono); font-size: 10px;
+      font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px;
+      margin-bottom: 6px;
+    }
+    .filter-input {
+      width: 100%; padding: 10px 12px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); font-family: var(--mono); font-size: 12px;
+      font-weight: 600; box-shadow: 3px 3px 0 var(--border);
+      outline: none; cursor: pointer;
+    }
+    .filter-input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+    /* ── Summary cards ── */
+    .summary-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 600px) { .summary-row { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow); text-align: center;
+    }
+    .stat-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .stat-value { font-size: 26px; font-weight: 900; letter-spacing: -1px; }
+    .stat-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+    /* ── Chart placeholder ── */
+    .chart-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      margin-bottom: 20px; overflow: hidden;
+    }
+    .chart-header {
+      padding: 16px 20px; background: var(--surface2);
+      border-bottom: var(--bw) solid var(--border);
+      font-family: var(--mono); font-size: 12px; font-weight: 800;
+    }
+    .chart-body { padding: 20px; }
+
+    .chart-placeholder {
+      height: 280px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 39px, #e5e5e5 39px, #e5e5e5 40px
+      );
+      border-radius: var(--radius-sm); position: relative;
+    }
+    .chart-placeholder-text {
+      background: var(--surface); padding: 14px 24px;
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: var(--shadow); font-family: var(--mono); font-size: 12px;
+      font-weight: 700; text-align: center; z-index: 1;
+    }
+    .chart-legend {
+      display: flex; gap: 20px; justify-content: center;
+      margin-top: 14px; font-family: var(--mono); font-size: 11px; color: var(--muted);
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 3px;
+      border: 1.5px solid var(--border);
+    }
+
+    /* ── Prediction table ── */
+    .pred-table-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow: hidden; margin-bottom: 20px;
+    }
+    .pred-table-header {
+      padding: 16px 20px; background: var(--surface2);
+      border-bottom: var(--bw) solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .pred-table-title { font-family: var(--mono); font-size: 12px; font-weight: 800; }
+    .pred-count {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px;
+      background: #EDE9FE; color: var(--accent2);
+      border: 1.5px solid var(--border);
+    }
+
+    .pred-table {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+    }
+    .pred-table th {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px;
+      padding: 10px 16px; text-align: left;
+      border-bottom: var(--bw) solid var(--border);
+      background: var(--surface2);
+    }
+    .pred-table td {
+      padding: 12px 16px; border-bottom: 1px solid #e5e5e5;
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+    }
+    .pred-table tbody tr:hover { background: #F5F3FF; }
+    .pred-table tbody tr:last-child td { border-bottom: none; }
+
+    .trend-up { color: #DC2626; font-weight: 800; }
+    .trend-down { color: #059669; font-weight: 800; }
+    .trend-neutral { color: var(--muted); }
+
+    .confidence-bar {
+      display: flex; align-items: center; gap: 4px;
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+    }
+    .conf-range {
+      height: 6px; background: #EDE9FE; border-radius: 3px;
+      border: 1px solid var(--border); flex: 1; max-width: 80px;
+      position: relative;
+    }
+    .conf-fill {
+      position: absolute; inset: 0;
+      background: var(--accent); border-radius: 3px;
+    }
+
+    .empty-state {
+      text-align: center; padding: 50px 20px;
+      font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 600;
+    }
+
+    .spinner { width: 18px; height: 18px; border: 3px solid rgba(99,102,241,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Info banner ── */
+    .info-banner {
+      padding: 16px 20px; background: #DBEAFE;
+      border: var(--bw) solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 20px;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .info-icon { font-size: 22px; flex-shrink: 0; }
+    .info-text { font-size: 13px; color: #1e3a5f; line-height: 1.6; }
+    .info-text strong { font-weight: 800; }
+
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="app" x-data="prediksiPage()" x-cloak>
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon">📡</div>
+      <div>
+        <div class="header-title">R.A.D.A.R Pangan</div>
+        <div class="header-sub">prediksi harga &nbsp;·&nbsp; machine learning &nbsp;·&nbsp; v0.4</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="user-badge">
+        <strong x-text="user?.username || '—'"></strong> · <span x-text="user?.role || ''"></span>
+      </span>
+      <a href="/" class="nav-link nav-link-default">← Dashboard</a>
+      <a href="/rca" class="nav-link nav-link-default">🔍 RCA</a>
+      <template x-if="user?.is_admin || user?.role === 'admin'">
+        <a href="/admin" class="nav-link nav-link-default">👥 Admin</a>
+      </template>
+      <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
+    </div>
+  </header>
+
+  <!-- ── Filter Bar ── -->
+  <div class="card">
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Komoditas</label>
+        <select class="filter-input" x-model="selectedKey" @change="loadPredictions()">
+          <option value="">Semua Komoditas</option>
+          <template x-for="c in commodities" :key="c.key">
+            <option :value="c.comcat_id" x-text="c.name"></option>
+          </template>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Kota</label>
+        <select class="filter-input" x-model="selectedKota" @change="loadPredictions()">
+          <option value="">Semua Kota</option>
+          <template x-for="k in cities" :key="k.id">
+            <option :value="k.id" x-text="k.name"></option>
+          </template>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Periode</label>
+        <select class="filter-input" x-model="period" @change="loadPredictions()">
+          <option value="7">7 Hari</option>
+          <option value="14">14 Hari</option>
+          <option value="30" selected>30 Hari</option>
+          <option value="90">90 Hari</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Summary Cards ── -->
+  <div class="summary-row">
+    <div class="stat-card">
+      <div class="stat-label">Harga Aktual</div>
+      <template x-if="currentPrice">
+        <div>
+          <div class="stat-value" x-text="'Rp ' + currentPrice.toLocaleString('id-ID')"></div>
+          <div class="stat-sub">/kg (rata-rata)</div>
+        </div>
+      </template>
+      <template x-if="!currentPrice">
+        <div class="stat-value" style="color:var(--muted)">—</div>
+      </template>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Prediksi Besok</div>
+      <template x-if="nextPrediction">
+        <div>
+          <div class="stat-value" :class="nextPrediction.trend > 0 ? 'trend-up' : (nextPrediction.trend < 0 ? 'trend-down' : '')"
+               x-text="'Rp ' + nextPrediction.price.toLocaleString('id-ID')"></div>
+          <div class="stat-sub">
+            <span x-text="'CI: ' + nextPrediction.lower.toLocaleString('id-ID') + ' — ' + nextPrediction.upper.toLocaleString('id-ID')"></span>
+          </div>
+        </div>
+      </template>
+      <template x-if="!nextPrediction">
+        <div class="stat-value" style="color:var(--muted)">—</div>
+      </template>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Model</div>
+      <template x-if="modelInfo">
+        <div>
+          <div class="stat-value" style="font-size:20px;" x-text="modelInfo.version"></div>
+          <div class="stat-sub" x-text="modelInfo.predictions + ' prediksi'"></div>
+        </div>
+      </template>
+      <template x-if="!modelInfo">
+        <div class="stat-value" style="color:var(--muted);font-size:20px;">Belum ada</div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ── Chart: Aktual vs Prediksi ── -->
+  <div class="chart-card">
+    <div class="chart-header">Grafik Harga: Aktual vs Prediksi</div>
+    <div class="chart-body">
+      <template x-if="predictions.length > 0">
+        <div>
+          <div class="chart-placeholder">
+            <div class="chart-placeholder-text">
+              📊 Grafik interaktif akan ditampilkan di sini<br>
+              <span style="font-size:10px;color:var(--muted);">Integrasi Chart.js / Plotly — coming soon</span>
+            </div>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#3B82F6;"></div> Harga Aktual</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--accent);"></div> Prediksi ML</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#E5E7EB;"></div> Confidence Interval</div>
+          </div>
+        </div>
+      </template>
+      <template x-if="predictions.length === 0">
+        <div class="empty-state">
+          <div style="font-size:32px;margin-bottom:8px;">📈</div>
+          <div>Data prediksi belum tersedia</div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ── Prediction Table ── -->
+  <div class="pred-table-card">
+    <div class="pred-table-header">
+      <span class="pred-table-title">Prediksi Anomali Mendatang</span>
+      <span class="pred-count" x-text="predictions.length + ' prediksi'"></span>
+    </div>
+    <template x-if="predictions.length > 0">
+      <div style="overflow-x:auto;">
+        <table class="pred-table">
+          <thead>
+            <tr>
+              <th>Target Date</th>
+              <th>Komoditas</th>
+              <th>Kota</th>
+              <th>Prediksi</th>
+              <th>Confidence</th>
+              <th>Model</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="(p, i) in predictions" :key="i">
+              <tr>
+                <td x-text="p.target_date"></td>
+                <td x-text="p.komoditas_id"></td>
+                <td x-text="p.kota_id"></td>
+                <td>
+                  <span :class="p.predicted_price > (currentPrice || 0) ? 'trend-up' : 'trend-down'"
+                        x-text="'Rp ' + p.predicted_price.toLocaleString('id-ID')"></span>
+                </td>
+                <td>
+                  <div class="confidence-bar">
+                    <span x-text="(p.confidence_lower||0).toLocaleString('id-ID')"></span>
+                    <div class="conf-range"><div class="conf-fill" style="width:60%;"></div></div>
+                    <span x-text="(p.confidence_upper||0).toLocaleString('id-ID')"></span>
+                  </div>
+                </td>
+                <td style="color:var(--muted);" x-text="p.model_version || '—'"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </template>
+    <template x-if="predictions.length === 0 && !loading">
+      <div class="empty-state" style="padding:40px;">
+        <div style="font-size:28px;margin-bottom:8px;">🤖</div>
+        <div style="font-weight:700;margin-bottom:4px;">Belum ada data prediksi</div>
+        <div>ML model belum meng-INSERT ke tabel app.ml_predictions</div>
+      </div>
+    </template>
+    <template x-if="loading">
+      <div class="empty-state" style="padding:30px;">
+        <div class="spinner" style="margin:0 auto 10px;"></div>
+        <div>Memuat data prediksi...</div>
+      </div>
+    </template>
+  </div>
+
+  <!-- ── Info Banner ── -->
+  <div class="info-banner">
+    <span class="info-icon">💡</span>
+    <div class="info-text">
+      <strong>Cara kerja:</strong> ML model memprediksi lonjakan harga berdasarkan pola historis, hari besar, dan data cuaca.
+      RCA Engine kemudian memvalidasi prediksi secara real-time ketika anomali benar-benar terjadi.
+      <br>
+      <strong>ML = Predictor</strong> (mempersiapkan) · <strong>RCA = Validator</strong> (mengkonfirmasi real-time)
+    </div>
+  </div>
+
+</div>
+
+<script>
+function prediksiPage() {
+  return {
+    // Auth
+    token: localStorage.getItem('rca_token'),
+    user: JSON.parse(localStorage.getItem('rca_user') || 'null'),
+
+    // Data
+    commodities: [],
+    cities: [],
+    predictions: [],
+
+    // Filters
+    selectedKey: '',
+    selectedKota: '',
+    period: '30',
+
+    // Derived
+    currentPrice: null,
+    nextPrediction: null,
+    modelInfo: null,
+    loading: false,
+
+    async init() {
+      // Auth guard — analyst+ only
+      if (!this.token) { window.location.replace('/login'); return; }
+      try {
+        const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + this.token } });
+        if (!r.ok) throw new Error();
+        const me = await r.json();
+        this.user = me;
+        if (!me.is_admin && !me.is_analyst && me.role === 'viewer') {
+          window.location.replace('/');
+          return;
+        }
+      } catch {
+        window.location.replace('/login');
+        return;
+      }
+
+      // Load commodities
+      try {
+        const r = await fetch('/api/commodities/detail', this._authOpts());
+        if (r.ok) this.commodities = await r.json();
+      } catch {}
+
+      // Load predictions
+      await this.loadPredictions();
+    },
+
+    _authOpts() {
+      return { headers: this.token ? { Authorization: 'Bearer ' + this.token } : {} };
+    },
+
+    async loadPredictions() {
+      this.loading = true;
+      this.predictions = [];
+      this.nextPrediction = null;
+      this.modelInfo = null;
+
+      try {
+        // Build query params
+        const params = new URLSearchParams();
+        if (this.selectedKey) params.set('komoditas_id', this.selectedKey);
+        if (this.selectedKota) params.set('kota_id', this.selectedKota);
+        params.set('limit', this.period);
+
+        const r = await fetch(`/api/predictions?${params}`, this._authOpts());
+        if (r.ok) {
+          const data = await r.json();
+          this.predictions = data.predictions || [];
+
+          // Derive summary
+          if (this.predictions.length > 0) {
+            const first = this.predictions[0];
+            this.nextPrediction = {
+              price: first.predicted_price,
+              lower: first.confidence_lower || first.predicted_price * 0.9,
+              upper: first.confidence_upper || first.predicted_price * 1.1,
+              trend: first.predicted_price > (this.currentPrice || 0) ? 1 : -1,
+            };
+            const versions = [...new Set(this.predictions.map(p => p.model_version).filter(Boolean))];
+            this.modelInfo = {
+              version: versions[0] || 'v1',
+              predictions: this.predictions.length,
+            };
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load predictions:', e);
+      }
+
+      // Load current price for comparison
+      if (this.selectedKey) {
+        try {
+          const comKey = this.commodities.find(c => c.comcat_id === this.selectedKey)?.key;
+          if (comKey) {
+            const r = await fetch(`/api/commodity/${comKey}`, this._authOpts());
+            if (r.ok) {
+              const d = await r.json();
+              this.currentPrice = d.price_now;
+            }
+          }
+        } catch {}
+      }
+
+      this.loading = false;
+    },
+
+    logout() {
+      localStorage.removeItem('rca_token');
+      localStorage.removeItem('rca_user');
+      window.location.replace('/login');
+    },
+  };
+}
+</script>
+</body>
+</html>

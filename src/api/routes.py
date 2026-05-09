@@ -268,3 +268,62 @@ def get_cuaca_all_provinces(
         })
     return results
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ML PREDICTIONS — Read from app.ml_predictions
+# ─────────────────────────────────────────────────────────────────────────────
+
+predictions_router = APIRouter(prefix="/api/predictions", tags=["ML Predictions"])
+
+
+@predictions_router.get(
+    "",
+    summary="Ambil prediksi ML dari tabel app.ml_predictions",
+)
+def get_predictions(
+    komoditas_id: Optional[str] = Query(None),
+    kota_id: Optional[int] = Query(None),
+    limit: int = Query(default=30, ge=1, le=365),
+) -> dict:
+    """Read ML predictions from database. Returns empty if no data yet."""
+    from src.data.database import db_cursor
+
+    conditions = []
+    params = []
+
+    if komoditas_id:
+        conditions.append("komoditas_id = %s")
+        params.append(komoditas_id)
+    if kota_id:
+        conditions.append("kota_id = %s")
+        params.append(kota_id)
+
+    where_clause = ""
+    if conditions:
+        where_clause = "WHERE " + " AND ".join(conditions)
+
+    try:
+        with db_cursor() as cur:
+            cur.execute(f"""
+                SELECT komoditas_id, kota_id, prediction_date, target_date,
+                       predicted_price, confidence_lower, confidence_upper,
+                       model_version, created_at
+                FROM app.ml_predictions
+                {where_clause}
+                ORDER BY target_date ASC
+                LIMIT %s
+            """, params + [limit])  # noqa: S608
+            rows = cur.fetchall()
+
+        predictions = [dict(r) for r in rows]
+        # Convert date/datetime to string for JSON serialization
+        for p in predictions:
+            for key in ("prediction_date", "target_date", "created_at"):
+                if p.get(key):
+                    p[key] = str(p[key])
+
+        return {"predictions": predictions, "total": len(predictions)}
+    except Exception:
+        # Return empty if table doesn't exist yet or any error
+        return {"predictions": [], "total": 0}
+
