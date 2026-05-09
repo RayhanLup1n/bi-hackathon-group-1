@@ -21,6 +21,11 @@ from datetime import date
 # Ensure project root is in path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Load Supabase credentials from .envs/.env
+from dotenv import load_dotenv
+_project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv(os.path.join(_project_root, ".envs", ".env"))
+
 import psycopg2
 import psycopg2.extras
 from loguru import logger
@@ -125,7 +130,7 @@ def main():
     print("=" * 60)
     print("WEATHER DATA LOAD COMPLETE")
     print("=" * 60)
-    print(f"  Period:      {start_date} → {end_date}")
+    print(f"  Period:      {start_date} to {end_date}")
     print(f"  Locations:   {sum(len(v) for v in WEATHER_LOCATIONS.values())}")
     print(f"  Records:     {len(records):,}")
     print(f"  Duration:    {elapsed:.1f} seconds")
