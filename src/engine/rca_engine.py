@@ -2,10 +2,10 @@
 RCA Rule Engine — Decision Tree untuk Root Cause Analysis inflasi harga pangan.
 
 Urutan pemeriksaan:
-  1. Cek Hari Raya   → Demand Spike
-  2. Cek Cuaca BMKG  → Gangguan Supply
-  3. Cek Persebaran Kota → Supply Nasional
-  4. Cek Stok Pedagang   → Distribusi Lokal / Unknown
+  1. Cek Hari Raya        → Demand Spike
+  2. Cek Cuaca (Open-Meteo) → Gangguan Supply
+  3. Cek Persebaran Kota  → Supply Nasional
+  4. Cek Stok Pedagang    → Distribusi Lokal / Unknown
 
 Untuk menambah rule baru, tambahkan method _check_*() dan daftarkan
 di RULE_SEQUENCE di bawah.
@@ -113,12 +113,12 @@ def _check_hari_raya(data: CommodityData, today: date) -> CheckResult:
 
 
 def _check_cuaca(data: CommodityData) -> CheckResult:
-    """Check 2: Ada cuaca ekstrem di daerah produksi? (sumber: BMKG)"""
+    """Check 2: Ada cuaca ekstrem di daerah produksi? (sumber: Open-Meteo Historical API)"""
     cuaca = data.cuaca
     if cuaca.ekstrem:
         return CheckResult(
             step=2,
-            nama="Cek Cuaca Ekstrem (BMKG)",
+            nama="Cek Cuaca Ekstrem (Open-Meteo)",
             status="triggered",
             detail=(
                 f"⚠ {cuaca.desc} terdeteksi di daerah produksi "
@@ -127,9 +127,9 @@ def _check_cuaca(data: CommodityData) -> CheckResult:
         )
     return CheckResult(
         step=2,
-        nama="Cek Cuaca Ekstrem (BMKG)",
+        nama="Cek Cuaca Ekstrem (Open-Meteo)",
         status="clear",
-        detail=f"Cuaca: {cuaca.desc} — tidak ada peringatan ekstrem dari BMKG",
+        detail=f"Cuaca: {cuaca.desc} — tidak ada cuaca ekstrem terdeteksi",
     )
 
 
@@ -210,7 +210,7 @@ def run_rca(data: CommodityData, today: date | None = None) -> RCAResult:
     checks.append(c1)
     if c1.status == "triggered":
         checks += [
-            _skip(2, "Cek Cuaca Ekstrem (BMKG)", "demand trigger sudah cukup kuat"),
+            _skip(2, "Cek Cuaca Ekstrem (Open-Meteo)", "demand trigger sudah cukup kuat"),
             _skip(3, "Cek Persebaran Kenaikan Antar Kota", "demand trigger sudah cukup kuat"),
             _skip(4, "Cek Stok Pedagang (Badan Pangan)", "demand trigger sudah cukup kuat"),
         ]

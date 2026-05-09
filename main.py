@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
-from src.api.routes import router, bmkg_router, stok_router
+from src.api.routes import router, het_router, cuaca_router, stok_router
 from src.api.auth_routes import auth_router
 
 import os
@@ -54,12 +54,13 @@ app = FastAPI(
         "Real-time Anti-inflation Detection, Analysis & Response. "
         "Platform pemantauan inflasi pangan berbasis data PIHPS."
     ),
-    version="0.3.0",
+    version="0.4.0",
     lifespan=lifespan,
 )
 
 app.include_router(router)
-app.include_router(bmkg_router)
+app.include_router(het_router)
+app.include_router(cuaca_router)
 app.include_router(stok_router)
 app.include_router(auth_router)
 

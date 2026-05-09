@@ -81,7 +81,7 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     - price_now: harga rata-rata hari ini (semua kota, pasar tradisional)
     - price_prev: harga rata-rata kemarin
     - kota_list: daftar kota dengan flag naik/turun
-    - cuaca: placeholder (tidak ada data real BMKG)
+    - cuaca: real weather data dari Open-Meteo (raw.cuaca_harian)
     - stok: placeholder (tidak ada data real stok)
     """
     if not KOMODITAS_MAP:
@@ -101,6 +101,7 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
         cur.execute("""
             SELECT DISTINCT ON (kota_nama)
                 kota_nama,
+                provinsi_id,
                 harga,
                 tanggal
             FROM raw.harga_pangan
@@ -154,13 +155,19 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     from config.settings import DEFAULT_PRICE_THRESHOLD_PCT
     threshold = DEFAULT_PRICE_THRESHOLD_PCT
 
-    # Cuaca placeholder — tidak ada data real BMKG untuk MVP
-    cuaca = CuacaInfo(
-        ekstrem=False,
-        desc="Data cuaca tidak tersedia (MVP)",
-        daerah="",
-        detail="",
-    )
+    # Cuaca — real weather data from Open-Meteo (raw.cuaca_harian)
+    # Use provinsi_id from the first row to query weather for that province
+    provinsi_id = rows_today[0]["provinsi_id"] if rows_today else None
+    if provinsi_id:
+        from src.data.weather_data import get_weather_for_rca
+        cuaca = get_weather_for_rca(provinsi_id, tanggal=target_date)
+    else:
+        cuaca = CuacaInfo(
+            ekstrem=False,
+            desc="Provinsi tidak teridentifikasi",
+            daerah="",
+            detail="",
+        )
 
     # Stok placeholder — tidak ada data real stok untuk MVP
     stok = StokInfo(
