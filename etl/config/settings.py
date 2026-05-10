@@ -31,7 +31,29 @@ class PihpsSettings(BaseSettings):
         alias="PIHPS_TIMEOUT_SECONDS",
     )
 
-    # ── Storage ─────────────────────────────────────────
+    # ── Supabase PostgreSQL ──────────────────────────────
+    supabase_host: str = Field(
+        default="localhost",
+        alias="SUPABASE_HOST",
+    )
+    supabase_port: int = Field(
+        default=5432,
+        alias="SUPABASE_PORT",
+    )
+    supabase_db: str = Field(
+        default="postgres",
+        alias="SUPABASE_DB",
+    )
+    supabase_user: str = Field(
+        default="postgres",
+        alias="SUPABASE_USER",
+    )
+    supabase_password: str = Field(
+        default="",
+        alias="SUPABASE_PASSWORD",
+    )
+
+    # ── Legacy (kept for reference, not used) ────────────
     duckdb_path: str = Field(
         default="/opt/airflow/data/pihps.duckdb",
         alias="DUCKDB_PATH",

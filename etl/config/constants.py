@@ -107,3 +107,55 @@ DEFAULT_HEADERS = BASE_HEADERS
 def cache_buster() -> int:
     """Generate cache-buster timestamp (parameter '_' pada setiap request)."""
     return int(time.time() * 1000)
+
+
+# ── Target Provinces ──────────────────────────────────────────────────────────
+# PIHPS province IDs for extraction.
+# Verified from raw.dim_provinsi via API GetRefProvince.
+TARGET_PROVINCE_IDS: list[int] = [
+    11,  # Banten (Tangerang — bagian dari Jabodetabek)
+    12,  # Jawa Barat (Bogor, Depok, Bekasi, Bandung, dll)
+    13,  # DKI Jakarta
+    26,  # Sulawesi Selatan (Makassar, dll)
+]
+
+# Province ID → nama (for logging/display)
+PROVINCE_NAMES: dict[int, str] = {
+    11: "Banten",
+    12: "Jawa Barat",
+    13: "DKI Jakarta",
+    26: "Sulawesi Selatan",
+}
+
+
+# ── MVP Komoditas ─────────────────────────────────────────────────────────────
+# comcat_id dari PIHPS yang menjadi fokus MVP.
+MVP_COMCAT_IDS: list[str] = [
+    "com_11",  # Bawang Merah Ukuran Sedang
+    "com_12",  # Bawang Putih Ukuran Sedang
+    "com_13",  # Cabai Merah Besar
+    "com_14",  # Cabai Merah Keriting
+    "com_15",  # Cabai Rawit Hijau
+    "com_16",  # Cabai Rawit Merah
+]
+
+# Human-readable mapping for display
+MVP_KOMODITAS_NAMES: dict[str, str] = {
+    "com_11": "Bawang Merah",
+    "com_12": "Bawang Putih",
+    "com_13": "Cabai Merah Besar",
+    "com_14": "Cabai Merah Keriting",
+    "com_15": "Cabai Rawit Hijau",
+    "com_16": "Cabai Rawit Merah",
+}
+
+
+# ── Open-Meteo Weather Locations ──────────────────────────────────────────────
+# Representative agricultural locations per province for weather data.
+# Format: (latitude, longitude, label)
+WEATHER_LOCATIONS: dict[int, list[tuple[float, float, str]]] = {
+    11: [(-6.18, 106.63, "Tangerang")],
+    12: [(-6.92, 107.60, "Bandung"), (-6.71, 108.55, "Cirebon")],
+    13: [(-6.20, 106.85, "Jakarta")],
+    26: [(-5.14, 119.43, "Makassar")],
+}

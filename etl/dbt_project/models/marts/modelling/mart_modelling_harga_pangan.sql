@@ -33,6 +33,9 @@ WITH base AS (
     FROM {{ ref('stg_harga_pangan') }}
     WHERE harga IS NOT NULL
       AND pasar_tipe = 1  -- fokus ke pasar tradisional untuk modelling
+      {% if var('mvp_comcat_ids', []) | length > 0 %}
+      AND comcat_id IN ('{{ var("mvp_comcat_ids") | join("', '") }}')
+      {% endif %}
 ),
 
 -- ── Lag features ─────────────────────────────────────────────────────────────
@@ -52,11 +55,11 @@ with_lags AS (
         -- Perubahan % harga
         CASE
             WHEN LAG(harga, 1) OVER w > 0
-            THEN ROUND((harga - LAG(harga, 1) OVER w) / LAG(harga, 1) OVER w * 100, 4)
+            THEN ROUND(((harga - LAG(harga, 1) OVER w) / LAG(harga, 1) OVER w * 100)::NUMERIC, 4)
         END                                         AS pct_change_1d,
         CASE
             WHEN LAG(harga, 7) OVER w > 0
-            THEN ROUND((harga - LAG(harga, 7) OVER w) / LAG(harga, 7) OVER w * 100, 4)
+            THEN ROUND(((harga - LAG(harga, 7) OVER w) / LAG(harga, 7) OVER w * 100)::NUMERIC, 4)
         END                                         AS pct_change_7d
 
     FROM base
@@ -112,7 +115,7 @@ with_rolling AS (
         -- Harga relatif terhadap rata-rata nasional pada hari yang sama
         AVG(harga) OVER (
             PARTITION BY comcat_id, tanggal
-        )                                           AS avg_harga_nasional,
+        )                                           AS avg_harga_nasional
 
     FROM with_lags
 ),
@@ -123,7 +126,7 @@ with_calendar AS (
         *,
         -- Apakah hari kerja (1=hari kerja, 0=akhir pekan)
         CASE WHEN hari_dalam_minggu NOT IN (0, 6) THEN 1 ELSE 0 END
-                                                    AS is_weekday,
+                                                    AS is_weekday,  -- PostgreSQL: DOW 0=Sunday, 6=Saturday
 
         -- Bulan Ramadan/Lebaran (harga cenderung naik) — April/Maret/Mei (variasi tiap tahun)
         -- Sebagai proxy sederhana: tandai bulan ke-3, 4, 5 sebagai musim tinggi
@@ -137,13 +140,13 @@ with_calendar AS (
         -- Harga dinormalisasi (z-score per komoditas-kota)
         CASE
             WHEN rolling_std_30d > 0
-            THEN ROUND((harga - rolling_avg_30d) / rolling_std_30d, 4)
+            THEN ROUND(((harga - rolling_avg_30d) / rolling_std_30d)::NUMERIC, 4)
         END                                         AS harga_zscore_30d,
 
         -- Rasio harga terhadap rata-rata nasional
         CASE
             WHEN avg_harga_nasional > 0
-            THEN ROUND(harga / avg_harga_nasional, 4)
+            THEN ROUND((harga / avg_harga_nasional)::NUMERIC, 4)
         END                                         AS harga_ratio_nasional
 
     FROM with_rolling
@@ -170,17 +173,17 @@ SELECT
     harga_lag_30d,
     delta_harga_1d,
     delta_harga_7d,
-    ROUND(pct_change_1d, 4)                         AS pct_change_1d,
-    ROUND(pct_change_7d, 4)                         AS pct_change_7d,
+    ROUND(pct_change_1d::NUMERIC, 4)                         AS pct_change_1d,
+    ROUND(pct_change_7d::NUMERIC, 4)                         AS pct_change_7d,
 
     -- ── Rolling Stats ─────────────────────────────────────────────────────
-    ROUND(rolling_avg_7d, 2)                        AS rolling_avg_7d,
-    ROUND(rolling_std_7d, 2)                        AS rolling_std_7d,
-    ROUND(rolling_avg_30d, 2)                       AS rolling_avg_30d,
-    ROUND(rolling_std_30d, 2)                       AS rolling_std_30d,
+    ROUND(rolling_avg_7d::NUMERIC, 2)                        AS rolling_avg_7d,
+    ROUND(rolling_std_7d::NUMERIC, 2)                        AS rolling_std_7d,
+    ROUND(rolling_avg_30d::NUMERIC, 2)                       AS rolling_avg_30d,
+    ROUND(rolling_std_30d::NUMERIC, 2)                       AS rolling_std_30d,
     rolling_min_30d,
     rolling_max_30d,
-    ROUND(avg_harga_nasional, 2)                    AS avg_harga_nasional,
+    ROUND(avg_harga_nasional::NUMERIC, 2)                    AS avg_harga_nasional,
     harga_zscore_30d,
     harga_ratio_nasional,
 

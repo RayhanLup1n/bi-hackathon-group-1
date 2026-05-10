@@ -23,10 +23,10 @@ WITH daily_national AS (
         pasar_tipe_label,
 
         -- Agregasi nasional
-        ROUND(AVG(harga_hari_ini), 2)               AS rata_harga_nasional,
-        ROUND(MIN(harga_hari_ini), 2)               AS harga_min,
-        ROUND(MAX(harga_hari_ini), 2)               AS harga_maks,
-        ROUND(STDDEV(harga_hari_ini), 2)            AS std_harga,
+        ROUND(AVG(harga_hari_ini)::NUMERIC, 2)               AS rata_harga_nasional,
+        ROUND(MIN(harga_hari_ini)::NUMERIC, 2)               AS harga_min,
+        ROUND(MAX(harga_hari_ini)::NUMERIC, 2)               AS harga_maks,
+        ROUND(STDDEV(harga_hari_ini)::NUMERIC, 2)            AS std_harga,
         COUNT(DISTINCT kota_id)                     AS jumlah_kota,
         COUNT(DISTINCT provinsi_id)                 AS jumlah_provinsi,
 
@@ -43,8 +43,8 @@ WITH daily_national AS (
                                                     AS kota_harga_stabil,
 
         -- Harga rata-rata kemarin (untuk delta nasional)
-        ROUND(AVG(harga_kemarin), 2)                AS rata_harga_kemarin,
-        ROUND(AVG(harga_minggu_lalu), 2)            AS rata_harga_minggu_lalu,
+        ROUND(AVG(harga_kemarin)::NUMERIC, 2)                AS rata_harga_kemarin,
+        ROUND(AVG(harga_minggu_lalu)::NUMERIC, 2)            AS rata_harga_minggu_lalu,
 
         tahun,
         bulan,
@@ -59,12 +59,12 @@ WITH daily_national AS (
 SELECT
     *,
     -- Delta nasional
-    ROUND(rata_harga_nasional - rata_harga_kemarin, 2)
+    ROUND((rata_harga_nasional - rata_harga_kemarin)::NUMERIC, 2)
                                                     AS delta_nasional_1d,
     CASE
         WHEN rata_harga_kemarin > 0
         THEN ROUND(
-            (rata_harga_nasional - rata_harga_kemarin) / rata_harga_kemarin * 100, 2
+            ((rata_harga_nasional - rata_harga_kemarin) / rata_harga_kemarin * 100)::NUMERIC, 2
         )
     END                                             AS pct_change_nasional_1d,
 

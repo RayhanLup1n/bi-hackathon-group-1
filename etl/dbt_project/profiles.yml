@@ -2,9 +2,14 @@ pihps_pipeline:
   target: prod
   outputs:
     prod:
-      type: duckdb
-      path: "{{ env_var('DUCKDB_PATH', '/opt/airflow/data/pihps.duckdb') }}"
+      type: postgres
+      host: "{{ env_var('SUPABASE_HOST', 'localhost') }}"
+      port: "{{ env_var('SUPABASE_PORT', '5432') | int }}"
+      dbname: "{{ env_var('SUPABASE_DB', 'postgres') }}"
+      user: "{{ env_var('SUPABASE_USER', 'postgres') }}"
+      password: "{{ env_var('SUPABASE_PASSWORD', '') }}"
+      schema: raw
       threads: 4
-      extensions:
-        - httpfs
-        - parquet
+      keepalives_idle: 0
+      connect_timeout: 30
+      sslmode: require

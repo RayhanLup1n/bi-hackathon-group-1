@@ -12,22 +12,22 @@ WITH source AS (
 cleaned AS (
     SELECT
         -- Primary identifiers
-        CAST(tanggal AS DATE)                           AS tanggal,
-        comcat_id,                                      -- "cat_1", "cat_2", dll
+        tanggal::DATE                                   AS tanggal,
+        comcat_id,
         TRIM(komoditas_nama)                            AS komoditas_nama,
-        CAST(pasar_tipe AS INTEGER)                     AS pasar_tipe,
+        pasar_tipe::INTEGER                             AS pasar_tipe,
 
         -- Dimensi wilayah
-        CAST(provinsi_id AS INTEGER)                    AS provinsi_id,
+        provinsi_id::INTEGER                            AS provinsi_id,
         TRIM(provinsi_nama)                             AS provinsi_nama,
-        CAST(kota_id AS INTEGER)                        AS kota_id,
+        kota_id::INTEGER                                AS kota_id,
         TRIM(kota_nama)                                 AS kota_nama,
         TRIM(pasar_nama)                                AS pasar_nama,
 
         -- Harga: filter nilai negatif atau nol yang tidak wajar
         CASE
             WHEN harga <= 0 THEN NULL
-            ELSE CAST(harga AS DOUBLE)
+            ELSE harga::DOUBLE PRECISION
         END                                             AS harga,
 
         LOWER(TRIM(satuan))                             AS satuan,
@@ -42,12 +42,12 @@ cleaned AS (
         END                                             AS pasar_tipe_label,
 
         -- Dimensi waktu turunan
-        EXTRACT(YEAR FROM tanggal)                      AS tahun,
-        EXTRACT(MONTH FROM tanggal)                     AS bulan,
-        EXTRACT(QUARTER FROM tanggal)                   AS kuartal,
-        EXTRACT(DOW FROM tanggal)                       AS hari_dalam_minggu,
-        DATE_TRUNC('week', tanggal)                     AS minggu,
-        DATE_TRUNC('month', tanggal)                    AS bulan_pertama,
+        EXTRACT(YEAR FROM tanggal)::INTEGER             AS tahun,
+        EXTRACT(MONTH FROM tanggal)::INTEGER            AS bulan,
+        EXTRACT(QUARTER FROM tanggal)::INTEGER          AS kuartal,
+        EXTRACT(DOW FROM tanggal)::INTEGER              AS hari_dalam_minggu,
+        DATE_TRUNC('week', tanggal)::DATE               AS minggu,
+        DATE_TRUNC('month', tanggal)::DATE              AS bulan_pertama,
 
         -- Audit
         _extracted_at,
@@ -70,6 +70,27 @@ deduped AS (
     FROM cleaned
 )
 
-SELECT * EXCLUDE (rn)
+-- PostgreSQL: explicit column select instead of EXCLUDE (rn)
+SELECT
+    tanggal,
+    comcat_id,
+    komoditas_nama,
+    pasar_tipe,
+    provinsi_id,
+    provinsi_nama,
+    kota_id,
+    kota_nama,
+    pasar_nama,
+    harga,
+    satuan,
+    pasar_tipe_label,
+    tahun,
+    bulan,
+    kuartal,
+    hari_dalam_minggu,
+    minggu,
+    bulan_pertama,
+    _extracted_at,
+    _source
 FROM deduped
 WHERE rn = 1

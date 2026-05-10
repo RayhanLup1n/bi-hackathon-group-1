@@ -1,7 +1,8 @@
 # ========================================
 # Dockerfile untuk BI PIHPS Pipeline
 # Base : Apache Airflow 2.9.2 (Python 3.11, Debian Bookworm)
-# Stack: Airflow + uv + dbt-duckdb + Playwright (fallback scraper)
+# Stack: Airflow + dbt-postgres + Playwright (fallback scraper)
+# Data target: Supabase PostgreSQL (cloud)
 # ========================================
 FROM apache/airflow:2.9.2-python3.11
 
@@ -51,13 +52,13 @@ RUN pip install --no-cache-dir \
         lxml \
         playwright \
         pandas \
-        "duckdb>=1.1.0" \
-        pyarrow \
+        psycopg2-binary \
         "dbt-core>=1.8.0" \
-        "dbt-duckdb>=1.8.0" \
+        "dbt-postgres>=1.8.0" \
         python-dotenv \
         loguru \
         tenacity \
+        holidays \
         "pydantic>=2.7.0" \
         "pydantic-settings>=2.3.0"
 
@@ -68,7 +69,7 @@ RUN playwright install chromium
 # ── 5. Copy source code project ──────────────────────────────────────────────
 COPY --chown=airflow:root . /opt/airflow/
 
-# Buat direktori data (untuk DuckDB file)
-RUN mkdir -p /opt/airflow/data/raw /opt/airflow/data/processed
+# Buat direktori data (untuk logs dan temporary files)
+RUN mkdir -p /opt/airflow/data
 
 WORKDIR /opt/airflow
