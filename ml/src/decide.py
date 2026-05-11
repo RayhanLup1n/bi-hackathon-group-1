@@ -73,10 +73,14 @@ ATURAN KEPUTUSAN:
 - Selalu gunakan minimal SATU tool sebelum memutuskan
 - Jika prediksi P90 sudah melampaui HET → minimal yellow
 - Jika ada changepoint DAN prediksi breaches HET → red
+- Jika is_cusum_alarm=true → indikasi drift harga sustained (early warning); rekomendasikan tindakan preventif
+- Jika is_changepoint=true DAN is_cusum_alarm=true → konfirmasi kuat adanya regime change harga → prioritas tinggi
 - Pertimbangkan konteks musiman (Ramadan, tahun baru, musim panen)
 - Rekomendasi harus spesifik: sebutkan instrumen intervensi \
   (operasi pasar, koordinasi stok antardaerah, sidak harga, usulan peningkatan pasokan)
 - Jika ada wilayah surplus teridentifikasi → rekomendasikan koordinasi stok ke wilayah defisit
+- Untuk redistribusi stok: HANYA sebutkan kota yang muncul di field 'kota_surplus_terdekat' atau 'top3_surplus_terdekat'. Tool sudah menyaring — kota yang tidak ada di daftar itu berarti terlalu jauh (beda pulau) dan TIDAK BOLEH disebut dalam rekomendasi. Jika 'kota_surplus_terdekat' null, rekomendasikan operasi pasar lokal saja.
+- LARANGAN KERAS: JANGAN PERNAH menyebut nama kota berdasarkan pengetahuan kamu sendiri. Kamu HANYA boleh menyebut kota yang secara eksplisit tertulis di hasil tool call. Jika kota tidak ada di output tool, kota itu tidak boleh muncul di rekomendasi dalam bentuk apapun — termasuk "jika logistik memungkinkan" atau frasa bersyarat lainnya.
 - Jangan hanya bilang "pantau terus" — itu bukan rekomendasi actionable
 
 FORMAT JAWABAN AKHIR (JSON):
@@ -123,7 +127,10 @@ TOOL_DEFINITIONS = [
             "name": "compare_regional_prices",
             "description": (
                 "Bandingkan harga komoditas di semua kota pada tanggal tertentu. "
-                "Berguna untuk identifikasi wilayah surplus (harga rendah) dan defisit (harga tinggi)."
+                "Berguna untuk identifikasi wilayah surplus (harga rendah) dan defisit (harga tinggi). "
+                "Hasil hanya berisi kota di pulau yang sama atau bertetangga dengan kota target. "
+                "Gunakan 'kota_surplus_terdekat' atau 'top3_surplus_terdekat' untuk rekomendasi redistribusi stok. "
+                "JANGAN sebutkan kota lain di luar daftar tersebut — kota yang tidak tampil berarti terlalu jauh."
             ),
             "parameters": {
                 "type": "object",
@@ -198,6 +205,7 @@ class ToolContext:
                 tanggal, komoditas_nama, kota_nama, harga_aktual, het_harga, has_het, bulan
         """
         self.df = df
+        self._target_pulau: str = "unknown"  # set per-request by ReasoningAgent.decide()
 
     def get_historical_pattern(self, komoditas_nama: str, bulan: int) -> dict[str, Any]:
         """Statistik harga per bulan untuk komoditas tertentu."""
@@ -243,16 +251,72 @@ class ToolContext:
 
         return result
 
+    # ── Island proximity helpers ───────────────────────────────────────────────
+
+    # Maps provinsi_nama keyword → pulau (island group)
+    _PROVINSI_TO_PULAU: dict[str, str] = {
+        "DKI Jakarta": "Jawa", "Jawa Barat": "Jawa", "Jawa Tengah": "Jawa",
+        "Jawa Timur": "Jawa", "DI Yogyakarta": "Jawa", "Banten": "Jawa",
+        "Aceh": "Sumatra", "Sumatera Utara": "Sumatra", "Sumatera Barat": "Sumatra",
+        "Riau": "Sumatra", "Kepulauan Riau": "Sumatra", "Jambi": "Sumatra",
+        "Sumatera Selatan": "Sumatra", "Bangka Belitung": "Sumatra",
+        "Bengkulu": "Sumatra", "Lampung": "Sumatra",
+        "Kalimantan Barat": "Kalimantan", "Kalimantan Tengah": "Kalimantan",
+        "Kalimantan Selatan": "Kalimantan", "Kalimantan Timur": "Kalimantan",
+        "Kalimantan Utara": "Kalimantan",
+        "Sulawesi Utara": "Sulawesi", "Sulawesi Tengah": "Sulawesi",
+        "Sulawesi Selatan": "Sulawesi", "Sulawesi Tenggara": "Sulawesi",
+        "Sulawesi Barat": "Sulawesi", "Gorontalo": "Sulawesi",
+        "Bali": "Bali",
+        "Nusa Tenggara Barat": "NTB", "Nusa Tenggara Timur": "NTT",
+        "Maluku": "Maluku", "Maluku Utara": "Maluku",
+        "Papua": "Papua", "Papua Barat": "Papua", "Papua Selatan": "Papua",
+        "Papua Tengah": "Papua", "Papua Pegunungan": "Papua",
+    }
+
+    # Neighboring island pairs (undirected)
+    _PULAU_NEIGHBORS: dict[str, set[str]] = {
+        "Jawa":       {"Sumatra", "Bali"},
+        "Sumatra":    {"Jawa", "Kalimantan"},
+        "Bali":       {"Jawa", "NTB"},
+        "NTB":        {"Bali", "NTT"},
+        "NTT":        {"NTB"},
+        "Kalimantan": {"Sumatra", "Sulawesi"},
+        "Sulawesi":   {"Kalimantan", "Maluku"},
+        "Maluku":     {"Sulawesi", "Papua"},
+        "Papua":      {"Maluku"},
+    }
+
+    def _get_pulau(self, provinsi_nama: str) -> str:
+        """Return island group for a province name."""
+        for key, pulau in self._PROVINSI_TO_PULAU.items():
+            if key.lower() in str(provinsi_nama).lower():
+                return pulau
+        return "unknown"
+
+    def _proximity(self, pulau_target: str, pulau_other: str) -> str:
+        """Return proximity label from target island to another island."""
+        if pulau_target == "unknown" or pulau_other == "unknown":
+            return "unknown"
+        if pulau_target == pulau_other:
+            return "same_island"
+        if pulau_other in self._PULAU_NEIGHBORS.get(pulau_target, set()):
+            return "neighboring"
+        return "far"
+
     def compare_regional_prices(self, komoditas_nama: str, tanggal: str) -> dict[str, Any]:
-        """Perbandingan harga per kota untuk komoditas pada tanggal tertentu."""
+        """Perbandingan harga per kota untuk komoditas pada tanggal tertentu,
+        dengan informasi proximity (kedekatan geografis) ke kota target."""
         ts   = pd.Timestamp(tanggal)
+        cols = ["kota_nama", "provinsi_nama", "harga_aktual", "harga_ratio_nasional"]
+        # keep only cols that actually exist in df
+        cols = [c for c in cols if c in self.df.columns]
+
         mask = (
             (self.df["komoditas_nama"] == komoditas_nama) &
             (pd.to_datetime(self.df["tanggal"]) == ts)
         )
-        sub  = self.df[mask][["kota_nama", "harga_aktual", "harga_ratio_nasional"]].dropna(
-            subset=["harga_aktual"]
-        )
+        sub  = self.df[mask][cols].dropna(subset=["harga_aktual"])
 
         if sub.empty:
             # Try nearest date within 7 days
@@ -265,32 +329,66 @@ class ToolContext:
             if nearby.empty:
                 return {"error": f"Tidak ada data regional untuk {komoditas_nama} sekitar {tanggal}"}
             latest = nearby.sort_values("tanggal").groupby("kota_nama").last().reset_index()
-            sub  = latest[["kota_nama", "harga_aktual", "harga_ratio_nasional"]].dropna(
-                subset=["harga_aktual"]
-            )
+            sub  = latest[cols].dropna(subset=["harga_aktual"])
 
         nasional_mean = float(sub["harga_aktual"].mean())
         rows = sub.sort_values("harga_aktual", ascending=False)
 
+        # Determine target city's island from the analysis context.
+        # We approximate by looking at what city was queried — not available here directly,
+        # so we use a session-level hint stored at __init__ time (see _target_pulau).
+        target_pulau = getattr(self, "_target_pulau", "unknown")
+
         kota_list = []
         for _, r in rows.iterrows():
+            provinsi = r.get("provinsi_nama", "") if "provinsi_nama" in r.index else ""
+            pulau    = self._get_pulau(str(provinsi))
+            is_surplus = r["harga_aktual"] < nasional_mean * 0.95
+            is_defisit = r["harga_aktual"] > nasional_mean * 1.05
             kota_list.append({
                 "kota": r["kota_nama"],
+                "provinsi": provinsi,
+                "pulau": pulau,
+                "proximity_ke_target": self._proximity(target_pulau, pulau),
                 "harga": int(r["harga_aktual"]),
                 "ratio_vs_nasional": round(float(r.get("harga_ratio_nasional") or
                                                   r["harga_aktual"] / nasional_mean), 3),
-                "status": "surplus (harga rendah)" if r["harga_aktual"] < nasional_mean * 0.95
-                          else "defisit (harga tinggi)" if r["harga_aktual"] > nasional_mean * 1.05
+                "status": "surplus (harga rendah)" if is_surplus
+                          else "defisit (harga tinggi)" if is_defisit
                           else "normal",
             })
+
+        # Only keep same_island + neighboring — never expose far entries to LLM
+        nearby_surplus = [
+            k for k in kota_list
+            if k["status"] == "surplus (harga rendah)"
+            and k["proximity_ke_target"] in ("same_island", "neighboring")
+        ]
+        nearby_surplus_sorted = sorted(
+            nearby_surplus,
+            key=lambda k: (0 if k["proximity_ke_target"] == "same_island" else 1, k["harga"])
+        )
+
+        nearby_kota = [
+            k for k in kota_list
+            if k["proximity_ke_target"] in ("same_island", "neighboring")
+        ]
+
+        # Termahal among nearby only
+        nearby_kota_by_price = sorted(nearby_kota, key=lambda k: k["harga"], reverse=True)
 
         return {
             "komoditas_nama": komoditas_nama,
             "tanggal": tanggal,
             "rata_rata_nasional": int(nasional_mean),
-            "kota_termahal": kota_list[0] if kota_list else None,
-            "kota_termurah": kota_list[-1] if kota_list else None,
-            "semua_kota": kota_list,
+            "kota_termahal_terdekat": nearby_kota_by_price[0] if nearby_kota_by_price else None,
+            "kota_surplus_terdekat": nearby_surplus_sorted[0] if nearby_surplus_sorted else None,
+            "top3_surplus_terdekat": nearby_surplus_sorted[:3],
+            "catatan": (
+                "Hanya kota pulau yang sama atau bertetangga ditampilkan. "
+                "JANGAN sebutkan kota lain di luar daftar ini dalam rekomendasi."
+            ),
+            "semua_kota_terdekat": nearby_kota,
         }
 
     def get_upcoming_events(self, tanggal_referensi: str) -> dict[str, Any]:
@@ -461,8 +559,7 @@ def _rule_based_decision(detection: DetectionResult, df_context: pd.DataFrame) -
 
     if disp and disp.disparity_score > 0.15:
         parts.append(
-            f"Disparitas harga antarkota signifikan — {disp.kota_termurah} terindikasi surplus, "
-            f"koordinasi stok ke {disp.kota_termahal} direkomendasikan."
+            f"Disparitas harga antarkota signifikan — koordinasi stok ke {disp.kota_termahal} direkomendasikan."
         )
 
     if not parts:
@@ -497,29 +594,35 @@ class ReasoningAgent:
     """
 
     MAX_ITERATIONS = 6    # maksimum tool call rounds sebelum force-stop
-    MODEL          = "gpt-4o-mini"
+    MODEL          = "google/gemini-2.5-flash"   # default: OpenRouter Gemini Flash
 
     def __init__(
         self,
         api_key: str | None = None,
+        base_url: str | None = None,
         tool_context: ToolContext | None = None,
         model: str | None = None,
     ):
         """
         Args:
-            api_key      : OpenAI API key (atau via env OPENAI_API_KEY)
+            api_key      : LLM API key. Via env: LLM_API_KEY
+                           (OpenRouter atau OpenAI langsung)
+            base_url     : API base URL. Via env: LLM_BASE_URL
+                           OpenRouter : https://openrouter.ai/api/v1
+                           OpenAI     : https://api.openai.com/v1
             tool_context : ToolContext dengan DataFrame
-            model        : Override model (default: gpt-4o-mini)
+            model        : Model ID. Via env: LLM_MODEL (default: google/gemini-2.5-flash)
         """
-        self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
+        self._api_key  = api_key  or os.environ.get("LLM_API_KEY",  "")
+        self._base_url = base_url or os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
+        self._model    = model    or os.environ.get("LLM_MODEL",    self.MODEL)
         self._tool_context = tool_context
-        self._model = model or self.MODEL
         self._client = None
 
         if self._api_key:
             try:
                 from openai import OpenAI
-                self._client = OpenAI(api_key=self._api_key)
+                self._client = OpenAI(api_key=self._api_key, base_url=self._base_url)
             except ImportError:
                 logger.warning("openai package tidak terinstall. Akan menggunakan fallback.")
 
@@ -533,20 +636,22 @@ class ReasoningAgent:
             "komoditas": h.komoditas_nama,
             "kota": h.kota_nama,
             "tanggal": str(detection.tanggal),
-            "harga_aktual": h.harga_aktual,
-            "het_harga": h.het_harga,
-            "has_het": h.has_het,
+            "harga_aktual": float(h.harga_aktual) if h.harga_aktual is not None else None,
+            "het_harga": float(h.het_harga) if h.het_harga is not None else None,
+            "has_het": bool(h.has_het),
             "alert_level_aktual": h.alert_level,
-            "jarak_ke_het_pct": round(h.jarak_ke_het_pct, 1) if h.jarak_ke_het_pct else None,
-            "prediksi_p50_7hari": h.pred_p50,
-            "prediksi_p90_7hari": h.pred_p90,
+            "jarak_ke_het_pct": round(float(h.jarak_ke_het_pct), 1) if h.jarak_ke_het_pct is not None else None,
+            "prediksi_p50_7hari": float(h.pred_p50) if h.pred_p50 is not None else None,
+            "prediksi_p90_7hari": float(h.pred_p90) if h.pred_p90 is not None else None,
             "pred_alert_level": h.pred_alert_level,
-            "is_changepoint": cp.is_changepoint if cp else False,
+            "is_changepoint": bool(cp.is_changepoint) if cp else False,
             "changepoint_direction": cp.direction if cp else "unknown",
-            "changepoint_sigma": round(cp.sigma_shift, 2) if cp else 0,
-            "disparity_score": round(d.disparity_score, 3) if d else None,
+            "changepoint_sigma": round(float(cp.sigma_shift), 2) if cp else 0,
+            "is_cusum_alarm": bool(detection.cusum.is_alarm) if detection.cusum else False,
+            "cusum_direction": detection.cusum.direction if detection.cusum else "stable",
+            "cusum_pos": round(float(detection.cusum.cusum_pos), 2) if detection.cusum else 0,
+            "disparity_score": round(float(d.disparity_score), 3) if d and d.disparity_score is not None else None,
             "kota_termahal": d.kota_termahal if d else None,
-            "kota_termurah": d.kota_termurah if d else None,
         }
 
         return (
@@ -568,6 +673,16 @@ class ReasoningAgent:
                 self._tool_context.df if self._tool_context else pd.DataFrame(),
             )
 
+        # Set target city's island so compare_regional_prices can prioritise nearby surplus
+        kota = detection.het_alert.kota_nama
+        df   = self._tool_context.df
+        if kota and "provinsi_nama" in df.columns:
+            match = df[df["kota_nama"] == kota]
+            if not match.empty:
+                self._tool_context._target_pulau = self._tool_context._get_pulau(
+                    str(match["provinsi_nama"].iloc[0])
+                )
+
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user",   "content": self._build_user_message(detection)},
@@ -586,6 +701,7 @@ class ReasoningAgent:
                     tool_choice="auto",
                     temperature=0.2,
                     max_tokens=1024,
+                    timeout=30,  # 30s per LLM call, prevents server hang
                 )
             except Exception as e:
                 logger.error(f"OpenAI API error: {e}")
@@ -603,11 +719,20 @@ class ReasoningAgent:
 
                 # Extract JSON from response
                 try:
-                    # Try to find JSON block in the response
-                    start = content.find("{")
-                    end   = content.rfind("}") + 1
-                    if start >= 0 and end > start:
-                        final_json = json.loads(content[start:end])
+                    import re as _re
+                    # 1. Prefer fenced code block: ```json ... ``` or ``` ... ```
+                    _fence = _re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, _re.DOTALL)
+                    if _fence:
+                        _raw = _fence.group(1)
+                    else:
+                        # 2. Fall back to first { … last }
+                        start = content.find("{")
+                        end   = content.rfind("}") + 1
+                        _raw  = content[start:end] if start >= 0 and end > start else ""
+                    if _raw:
+                        # Replace literal (unescaped) newlines inside JSON string values
+                        _raw = _re.sub(r'(?<=\S)\n(?=\S)', ' ', _raw)
+                        final_json = json.loads(_raw)
                 except (json.JSONDecodeError, ValueError):
                     logger.warning("Could not parse LLM JSON output, using fallback")
 

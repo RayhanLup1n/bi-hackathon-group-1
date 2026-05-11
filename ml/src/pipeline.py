@@ -43,8 +43,7 @@ from ml.src.features import (
     build_feature_dataset,
     encode_categoricals,
     get_feature_cols,
-    load_from_duckdb,
-    load_from_parquet,
+    load_from_postgres,
 )
 from ml.src.train import load_model
 
@@ -97,19 +96,25 @@ class FullAnalysisResult:
             "detection": {
                 "alert_level":       self.detection.het_alert.alert_level if self.detection else None,
                 "pred_alert_level":  self.detection.het_alert.pred_alert_level if self.detection else None,
-                "is_changepoint":    self.detection.changepoint.is_changepoint
+                "is_changepoint":    bool(self.detection.changepoint.is_changepoint)
                                      if self.detection and self.detection.changepoint else False,
-                "disparity_score":   self.detection.disparity.disparity_score
-                                     if self.detection and self.detection.disparity else None,
-                "jarak_ke_het_pct":  self.detection.het_alert.jarak_ke_het_pct if self.detection else None,
-                "het_harga":         self.detection.het_alert.het_harga if self.detection else None,
+                "is_cusum_alarm":    bool(self.detection.cusum.is_alarm)
+                                     if self.detection and self.detection.cusum else False,
+                "cusum_direction":   self.detection.cusum.direction
+                                     if self.detection and self.detection.cusum else "stable",
+                "disparity_score":   float(self.detection.disparity.disparity_score)
+                                     if self.detection and self.detection.disparity and self.detection.disparity.disparity_score is not None else None,
+                "jarak_ke_het_pct":  float(self.detection.het_alert.jarak_ke_het_pct)
+                                     if self.detection and self.detection.het_alert.jarak_ke_het_pct is not None else None,
+                "het_harga":         float(self.detection.het_alert.het_harga)
+                                     if self.detection and self.detection.het_alert.het_harga is not None else None,
             } if self.detection else {},
             "decision": {
                 "final_alert_level":     self.decision.final_alert_level,
                 "intervention_priority": self.decision.intervention_priority,
                 "rekomendasi":           self.decision.rekomendasi,
                 "confidence":            self.decision.confidence,
-                "is_llm_generated":      self.decision.is_llm_generated,
+                "is_llm_generated":      bool(self.decision.is_llm_generated),
                 "reasoning_trace":       self.decision.reasoning_trace,
             } if self.decision else {},
         }
@@ -131,11 +136,15 @@ class RadarPipeline:
         self,
         models_dir: str | Path,
         het_csv: str | Path,
-        openai_api_key: str | None = None,
+        llm_api_key: str | None = None,
+        llm_base_url: str | None = None,
+        llm_model: str | None = None,
     ):
-        self.models_dir     = Path(models_dir)
-        self.het_csv        = Path(het_csv)
-        self.openai_api_key = openai_api_key or os.environ.get("OPENAI_API_KEY", "")
+        self.models_dir   = Path(models_dir)
+        self.het_csv      = Path(het_csv)
+        self.llm_api_key  = llm_api_key  or os.environ.get("LLM_API_KEY",  "")
+        self.llm_base_url = llm_base_url or os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
+        self.llm_model    = llm_model    or os.environ.get("LLM_MODEL",    "google/gemini-2.5-flash")
 
         # Loaded on .load()
         self._df: pd.DataFrame | None = None
@@ -148,37 +157,35 @@ class RadarPipeline:
         cls,
         models_dir: str = "ml/models",
         het_csv: str = "ml/data/het_reference.csv",
-        duckdb_path: str | None = None,
-        parquet_path: str | None = None,
-        openai_api_key: str | None = None,
+        pg_conn_string: str | None = None,
+        llm_api_key: str | None = None,
+        llm_base_url: str | None = None,
+        llm_model: str | None = None,
     ) -> "RadarPipeline":
-        """
-        Factory method: create pipeline dan langsung load data.
-
-        Args:
-            duckdb_path : Path ke .duckdb (prioritas utama)
-            parquet_path: Path ke .parquet (fallback)
-        """
-        pipeline = cls(models_dir=models_dir, het_csv=het_csv, openai_api_key=openai_api_key)
-        pipeline.load(duckdb_path=duckdb_path, parquet_path=parquet_path)
+        """Factory method: create pipeline dan langsung load data dari Supabase."""
+        pipeline = cls(
+            models_dir=models_dir,
+            het_csv=het_csv,
+            llm_api_key=llm_api_key,
+            llm_base_url=llm_base_url,
+            llm_model=llm_model,
+        )
+        pipeline.load(pg_conn_string=pg_conn_string)
         return pipeline
 
     def load(
         self,
-        duckdb_path: str | None = None,
-        parquet_path: str | None = None,
+        pg_conn_string: str | None = None,
     ) -> None:
         """
-        Load data dan semua model ke memory.
+        Load data dari Supabase/PostgreSQL dan semua model ke memory.
         Hanya perlu dipanggil sekali (di startup server).
         """
         logger.info("Loading RadarPipeline...")
 
         # 1. Load data
-        if duckdb_path and Path(duckdb_path).exists():
-            raw_df = load_from_duckdb(duckdb_path)
-        elif parquet_path and Path(parquet_path).exists():
-            raw_df = load_from_parquet(parquet_path)
+        if pg_conn_string:
+            raw_df = load_from_postgres(pg_conn_string)
         else:
             logger.warning(
                 "Tidak ada sumber data tersedia. "
@@ -209,7 +216,9 @@ class RadarPipeline:
         # 3. Init agent
         tool_context = ToolContext(self._df) if not self._df.empty else None
         self._agent  = ReasoningAgent(
-            api_key=self.openai_api_key,
+            api_key=self.llm_api_key,
+            base_url=self.llm_base_url,
+            model=self.llm_model,
             tool_context=tool_context,
         )
 

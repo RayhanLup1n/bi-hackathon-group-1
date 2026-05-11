@@ -42,6 +42,8 @@ HET_RED_THRESHOLD    = 1.00   # 100% (tepat di HET atau di atas) → red
 CP_SIGMA_THRESHOLD   = 2.0    # Z-score threshold untuk change point detection
 CP_RECENT_WINDOW     = 14     # Hari terakhir untuk dianggap "recent"
 CP_BASELINE_WINDOW   = 60     # Hari untuk baseline mean & std
+CUSUM_SLACK          = 0.50   # k: allowable slack (units of σ); standar untuk seri ekonomi
+CUSUM_THRESHOLD      = 4.00   # h: decision threshold (units of σ); ARL ≈ 370 pada h=4
 
 
 # ── Data Classes ──────────────────────────────────────────────────────────────
@@ -89,22 +91,46 @@ class DisparityResult:
 
 
 @dataclass
+class CusumResult:
+    """
+    Hasil CUSUM (Cumulative Sum Control Chart) change point detection.
+
+    CUSUM mendeteksi drift kumulatif yang kecil namun sustained — lebih awal 2–4 hari
+    dibanding Z-score yang memerlukan spike tunggal besar. Ideal sebagai early warning
+    sebelum harga benar-benar melanggar HET.
+    """
+    komoditas_nama: str
+    kota_nama:      str
+    tanggal:        date
+    is_alarm:       bool          # True jika CUSUM melampaui decision threshold
+    cusum_pos:      float         # Akumulator drift naik (CUSUM+)
+    cusum_neg:      float         # Akumulator drift turun (CUSUM-)
+    direction:      Literal["up", "down", "stable"]
+    n_baseline:     int           # Jumlah observasi baseline yang digunakan
+
+
+@dataclass
 class DetectionResult:
     """Agregat semua sinyal deteksi untuk satu (komoditas, kota, tanggal)."""
     komoditas_nama:   str
     kota_nama:        str
     tanggal:          date
     het_alert:        HetAlertResult
-    changepoint:      ChangepointResult | None
+    changepoint:      ChangepointResult | None   # Z-score: spike tunggal mendadak
+    cusum:            CusumResult | None          # CUSUM: drift sustained (early warning)
     disparity:        DisparityResult | None
     # Composite final alert: escalate ke yang paling parah
     final_alert_level: AlertLevel = field(init=False)
 
     def __post_init__(self):
+        # Z-score spike tunggal → red | CUSUM sustained drift → yellow (early warning)
+        cp_alert    = "red"    if (self.changepoint and self.changepoint.is_changepoint) else "green"
+        cusum_alert = "yellow" if (self.cusum and self.cusum.is_alarm)                  else "green"
         self.final_alert_level = _escalate_alert(
             self.het_alert.alert_level,
             self.het_alert.pred_alert_level,
-            "red" if (self.changepoint and self.changepoint.is_changepoint) else "green",
+            cp_alert,
+            cusum_alert,
         )
 
 
@@ -273,6 +299,106 @@ def build_changepoint_result(
     )
 
 
+# ── B2) CUSUM Change Point Detection ─────────────────────────────────────────
+
+def detect_changepoint_cusum(
+    recent_prices: np.ndarray | list[float],
+    baseline_prices: np.ndarray | list[float],
+    slack: float = CUSUM_SLACK,
+    threshold: float = CUSUM_THRESHOLD,
+) -> tuple[bool, float, float, Literal["up", "down", "stable"]]:
+    """
+    CUSUM (Cumulative Sum Control Chart) untuk deteksi drift harga sustained.
+
+    Berbeda dari Z-score yang mendeteksi spike tunggal besar, CUSUM mengakumulasi
+    deviasi kecil dari baseline — sehingga dapat membunyikan alarm 2–4 hari lebih
+    awal ketika harga bergerak perlahan namun konsisten ke atas/bawah.
+
+    Algoritma:
+        CUSUM+[t] = max(0, CUSUM+[t-1] + z[t] - k)   ← deteksi drift naik
+        CUSUM-[t] = max(0, CUSUM-[t-1] - z[t] - k)   ← deteksi drift turun
+        z[t] = (x[t] - μ_baseline) / σ_baseline
+        Alarm ketika CUSUM+ > h atau CUSUM- > h
+
+    Args:
+        recent_prices   : Harga N hari terakhir (recent window)
+        baseline_prices : Harga baseline (in-control period)
+        slack           : k parameter — allowable slack sebelum akumulasi (default: 0.5σ)
+        threshold       : h parameter — decision threshold (default: 4σ, ARL ≈ 370)
+
+    Returns:
+        (is_alarm, cusum_pos, cusum_neg, direction)
+    """
+    recent   = np.array(recent_prices,   dtype=float)
+    baseline = np.array(baseline_prices, dtype=float)
+
+    recent   = recent[~np.isnan(recent)]
+    baseline = baseline[~np.isnan(baseline)]
+
+    if len(baseline) < 7 or len(recent) < 3:
+        return False, 0.0, 0.0, "stable"
+
+    mu0    = float(np.mean(baseline))
+    sigma0 = float(np.std(baseline))
+    if sigma0 < 1.0:
+        sigma0 = 1.0
+
+    cusum_pos = 0.0
+    cusum_neg = 0.0
+    for x in recent:
+        z = (x - mu0) / sigma0
+        cusum_pos = max(0.0, cusum_pos + z - slack)
+        cusum_neg = max(0.0, cusum_neg - z - slack)
+
+    is_alarm = (cusum_pos > threshold) or (cusum_neg > threshold)
+
+    direction: Literal["up", "down", "stable"]
+    if cusum_pos > threshold:
+        direction = "up"
+    elif cusum_neg > threshold:
+        direction = "down"
+    else:
+        direction = "stable"
+
+    return is_alarm, cusum_pos, cusum_neg, direction
+
+
+def build_cusum_result(
+    komoditas_nama: str,
+    kota_nama: str,
+    tanggal: date,
+    history_df: pd.DataFrame,
+    recent_window: int = CP_RECENT_WINDOW,
+    baseline_window: int = CP_BASELINE_WINDOW,
+) -> CusumResult | None:
+    """Build CusumResult dari history DataFrame untuk satu (komoditas, kota)."""
+    if history_df.empty or len(history_df) < recent_window + 7:
+        return None
+
+    sorted_df = history_df.sort_values("tanggal")
+    prices    = sorted_df["harga_aktual"].values
+
+    if len(prices) < recent_window + baseline_window:
+        recent   = prices[-recent_window:]
+        baseline = prices[:-recent_window] if len(prices) > recent_window else prices[:1]
+    else:
+        recent   = prices[-recent_window:]
+        baseline = prices[-(recent_window + baseline_window):-recent_window]
+
+    is_alarm, cusum_pos, cusum_neg, direction = detect_changepoint_cusum(recent, baseline)
+
+    return CusumResult(
+        komoditas_nama = komoditas_nama,
+        kota_nama      = kota_nama,
+        tanggal        = tanggal,
+        is_alarm       = is_alarm,
+        cusum_pos      = float(cusum_pos),
+        cusum_neg      = float(cusum_neg),
+        direction      = direction,
+        n_baseline     = len(baseline),
+    )
+
+
 def detect_changepoints_offline(
     df: pd.DataFrame,
     min_size: int = 14,
@@ -430,8 +556,11 @@ def run_detection(
     # A) HET alert
     het_alert = build_het_alert(row, pred_p50=pred_p50, pred_p90=pred_p90)
 
-    # B) Changepoint
+    # B1) Z-score change point (spike detection)
     changepoint = build_changepoint_result(komoditas, kota, tanggal, history_df)
+
+    # B2) CUSUM (sustained drift — fires 2–4 days earlier than Z-score)
+    cusum = build_cusum_result(komoditas, kota, tanggal, history_df)
 
     # C) Disparity
     kota_prices = dict(zip(day_df["kota_nama"], day_df["harga_aktual"]))
@@ -443,5 +572,6 @@ def run_detection(
         tanggal        = tanggal,
         het_alert      = het_alert,
         changepoint    = changepoint,
+        cusum          = cusum,
         disparity      = disparity,
     )

@@ -29,15 +29,32 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from dotenv import load_dotenv
+
 from ml.src.pipeline import FullAnalysisResult, RadarPipeline
+
+# ── Load .env (ml/.env jika ada, fallback ke .env di working dir) ─────────────
+load_dotenv("ml/.env", override=False)
 
 # ── Config dari environment ───────────────────────────────────────────────────
 
-MODELS_DIR     = os.environ.get("ML_MODELS_DIR",    "ml/models")
-HET_CSV        = os.environ.get("ML_HET_CSV",       "ml/data/het_reference.csv")
-DUCKDB_PATH    = os.environ.get("DUCKDB_PATH",      "")
-PARQUET_PATH   = os.environ.get("ML_PARQUET_PATH",  "")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY",   "")
+MODELS_DIR    = os.environ.get("ML_MODELS_DIR",    "ml/models")
+HET_CSV       = os.environ.get("ML_HET_CSV",       "ml/data/het_reference.csv")
+LLM_API_KEY   = os.environ.get("LLM_API_KEY",      "")
+LLM_BASE_URL  = os.environ.get("LLM_BASE_URL",     "https://openrouter.ai/api/v1")
+LLM_MODEL     = os.environ.get("LLM_MODEL",        "google/gemini-2.5-flash")
+
+# Supabase / PostgreSQL
+_SUPA_HOST = os.environ.get("SUPABASE_HOST", "")
+_SUPA_PORT = os.environ.get("SUPABASE_PORT", "5432")
+_SUPA_DB   = os.environ.get("SUPABASE_DB",   "postgres")
+_SUPA_USER = os.environ.get("SUPABASE_USER", "")
+_SUPA_PASS = os.environ.get("SUPABASE_PASSWORD", "")
+PG_CONN_STRING = (
+    f"postgresql://{_SUPA_USER}:{_SUPA_PASS}@{_SUPA_HOST}:{_SUPA_PORT}/{_SUPA_DB}"
+    if _SUPA_HOST and _SUPA_USER and _SUPA_PASS
+    else ""
+)
 
 # ── Global pipeline instance ──────────────────────────────────────────────────
 
@@ -54,11 +71,12 @@ async def lifespan(app: FastAPI):
     _pipeline = RadarPipeline(
         models_dir=MODELS_DIR,
         het_csv=HET_CSV,
-        openai_api_key=OPENAI_API_KEY,
+        llm_api_key=LLM_API_KEY,
+        llm_base_url=LLM_BASE_URL,
+        llm_model=LLM_MODEL,
     )
     _pipeline.load(
-        duckdb_path=DUCKDB_PATH or None,
-        parquet_path=PARQUET_PATH or None,
+        pg_conn_string=PG_CONN_STRING or None,
     )
 
     logger.info("ML pipeline ready.")
@@ -148,13 +166,18 @@ def analyze_single(req: AnalyzeRequest) -> dict[str, Any]:
     - Lapis 2: Deteksi changepoint + HET alert
     - Lapis 3: LLM reasoning → rekomendasi intervensi
     """
+    import traceback
     pipeline = _require_pipeline()
 
-    result = pipeline.analyze(
-        komoditas_nama=req.komoditas_nama,
-        kota_nama=req.kota_nama,
-        tanggal=req.tanggal,
-    )
+    try:
+        result = pipeline.analyze(
+            komoditas_nama=req.komoditas_nama,
+            kota_nama=req.kota_nama,
+            tanggal=req.tanggal,
+        )
+    except Exception as exc:
+        logger.error(f"analyze() error: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return _serialize_result(result)
 

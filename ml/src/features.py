@@ -97,6 +97,43 @@ def load_from_parquet(parquet_path: str | Path) -> pd.DataFrame:
     return df
 
 
+def load_from_postgres(
+    conn_string: str,
+    schema: str = "marts",
+    table: str = "mart_modelling_harga_pangan",
+) -> pd.DataFrame:
+    """
+    Load mart data dari PostgreSQL (Supabase).
+
+    Args:
+        conn_string: SQLAlchemy connection URL,
+                     e.g. "postgresql://user:pass@host:port/db"
+        schema     : Schema name (default: "marts")
+        table      : Table name (default: "mart_modelling_harga_pangan")
+
+    Returns:
+        DataFrame dengan semua kolom dari mart
+    """
+    from sqlalchemy import create_engine, text
+
+    logger.info(f"Loading data from PostgreSQL: {schema}.{table}")
+    # statement_timeout=0 disables per-query timeout for this bulk load
+    engine = create_engine(
+        conn_string,
+        connect_args={"options": "-c statement_timeout=0"},
+    )
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(
+                text(f'SELECT * FROM "{schema}"."{table}" ORDER BY tanggal'),
+                conn,
+            )
+        logger.info(f"Loaded {len(df):,} rows from {schema}.{table}")
+        return df
+    finally:
+        engine.dispose()
+
+
 def export_to_parquet(df: pd.DataFrame, output_path: str | Path) -> None:
     """Export DataFrame ke parquet untuk caching."""
     output_path = Path(output_path)
