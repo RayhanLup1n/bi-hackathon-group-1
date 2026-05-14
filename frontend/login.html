@@ -310,7 +310,8 @@
     const token = localStorage.getItem('rca_token');
     if (!token) return;
     fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } })
-      .then(r => { if (r.ok) window.location.replace('/'); })
+      .then(r => r.ok ? r.json() : null)
+      .then(me => { if (me) window.location.replace('/'); })
       .catch(() => {});
   })();
 

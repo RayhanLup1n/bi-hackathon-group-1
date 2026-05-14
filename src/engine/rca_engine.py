@@ -1,19 +1,21 @@
 """
 RCA Rule Engine — Decision Tree untuk Root Cause Analysis inflasi harga pangan.
 
-Urutan pemeriksaan:
+Urutan pemeriksaan (sequential, early exit):
   1. Cek Hari Raya        → Demand Spike
   2. Cek Cuaca (Open-Meteo) → Gangguan Supply
   3. Cek Persebaran Kota  → Supply Nasional
   4. Cek Stok Pedagang    → Distribusi Lokal / Unknown
 
-Untuk menambah rule baru, tambahkan method _check_*() dan daftarkan
-di RULE_SEQUENCE di bawah.
+Severity L0-L4 dihitung terpisah dari seluruh indikator yang tersedia.
 """
 
 from datetime import date
 
-from config.settings import HARI_RAYA_CALENDAR, HARI_RAYA_WINDOW_DAYS, HARI_RAYA_POST_WINDOW_DAYS
+from config.settings import (
+    HARI_RAYA_CALENDAR, HARI_RAYA_WINDOW_DAYS, HARI_RAYA_POST_WINDOW_DAYS,
+    STOK_MENIPIS_THRESHOLD,
+)
 from src.models.schemas import (
     CommodityData, RCAResult, CheckResult, DiagnosisType
 )
@@ -59,6 +61,21 @@ DIAGNOSIS_TEMPLATES: dict[DiagnosisType, dict] = {
             "dan koordinasikan pengiriman. Cek juga kondisi jalan atau isu logistik lokal."
         ),
     },
+    DiagnosisType.EKSPEKTASI: {
+        "title": "Tekanan Inflasi Ekspektatif",
+        "description": (
+            "Tidak ada gangguan supply, cuaca, atau distribusi yang terdeteksi, "
+            "namun inflasi bulanan di kota pantauan terus positif selama 3 bulan berturut-turut. "
+            "Indikasi kuat bahwa kenaikan harga didorong oleh ekspektasi pelaku pasar, "
+            "bukan oleh faktor fundamental yang segera bisa diatasi."
+        ),
+        "action": (
+            "Prioritaskan komunikasi publik dan transparansi harga untuk meredam ekspektasi. "
+            "Operasi pasar terbatas di titik-titik strategis. "
+            "Pantau apakah pedagang menaikan harga secara preventif — jika ya, "
+            "koordinasi dengan Satgas Pangan untuk penertiban."
+        ),
+    },
     DiagnosisType.UNKNOWN: {
         "title": "Penyebab Belum Teridentifikasi",
         "description": (
@@ -70,6 +87,19 @@ DIAGNOSIS_TEMPLATES: dict[DiagnosisType, dict] = {
             "kondisi supply dan distribusi sebelum mengambil keputusan intervensi."
         ),
     },
+}
+
+
+# ──────────────────────────────────────────────
+# SEVERITY LABELS (untuk display di frontend)
+# ──────────────────────────────────────────────
+
+SEVERITY_LABELS: dict[str, str] = {
+    "L0": "Aman",
+    "L1": "Waspada",
+    "L2": "Awas",
+    "L3": "Kritis",
+    "L4": "Darurat",
 }
 
 
@@ -184,6 +214,59 @@ def _skip(step: int, nama: str, reason: str) -> CheckResult:
 
 
 # ──────────────────────────────────────────────
+# SEVERITY SCORING
+# Hitung severity level dari indikator yang tersedia.
+# Skala: L0 (aman) → L4 (darurat)
+# ──────────────────────────────────────────────
+
+def _score_severity(
+    data: CommodityData, checks: list[CheckResult], delta_pct: float
+) -> tuple[str, list[str]]:
+    """
+    Hitung severity level dari indikator yang tersedia.
+    Skoring: 0 → L0, 1 → L1, 2 → L2, 3 → L3, 4+ → L4
+    """
+    yes: list[str] = []
+
+    # G1 — Anomali harga (delta >= threshold)
+    if delta_pct >= data.price_threshold:
+        yes.append("G1: Anomali Harga")
+
+    # D1 — Window hari raya aktif
+    c1 = next((c for c in checks if c.step == 1), None)
+    if c1 and c1.status == "triggered":
+        yes.append("D1: Window Hari Raya")
+
+    # S1 — Cuaca ekstrem di daerah produksi
+    if data.cuaca.ekstrem:
+        yes.append("S1: Cuaca Ekstrem")
+
+    # S3 — Stok menipis atau kritis
+    if data.stok.pct < STOK_MENIPIS_THRESHOLD:
+        yes.append("S3: Stok Menipis")
+
+    # T2 — Kenaikan serempak antar kota
+    kota_naik = sum(1 for k in data.kota_list if k.naik)
+    total_kota = len(data.kota_list)
+    if total_kota > 0 and kota_naik / total_kota >= data.threshold_kota:
+        yes.append("T2: Kenaikan Serempak")
+
+    score = len(yes)
+    if score == 0:
+        level = "L0"
+    elif score == 1:
+        level = "L1"
+    elif score == 2:
+        level = "L2"
+    elif score <= 3:
+        level = "L3"
+    else:
+        level = "L4"
+
+    return level, yes
+
+
+# ──────────────────────────────────────────────
 # RULE SEQUENCE
 # Urutan pemeriksaan dan kondisi exit masing-masing step
 # ──────────────────────────────────────────────
@@ -257,6 +340,7 @@ def _build_result(
     is_anomaly: bool,
 ) -> RCAResult:
     tmpl = DIAGNOSIS_TEMPLATES[diagnosis]
+    severity_level, yes_indicators = _score_severity(data, checks, delta_pct)
     return RCAResult(
         commodity_key=data.key,
         commodity_name=data.name,
@@ -267,4 +351,6 @@ def _build_result(
         checks=checks,
         price_delta_pct=round(delta_pct, 2),
         is_anomaly=is_anomaly,
+        severity_level=severity_level,
+        yes_indicators=yes_indicators,
     )

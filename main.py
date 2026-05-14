@@ -95,3 +95,7 @@ if os.path.exists(frontend_dir):
     @app.get("/prediksi", include_in_schema=False)
     def serve_prediksi():
         return FileResponse(os.path.join(frontend_dir, "prediksi.html"))
+
+    @app.get("/guide", include_in_schema=False)
+    def serve_guide():
+        return FileResponse(os.path.join(frontend_dir, "guide.html"))
