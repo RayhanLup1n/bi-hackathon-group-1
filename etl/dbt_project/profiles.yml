@@ -2,14 +2,12 @@ pihps_pipeline:
   target: prod
   outputs:
     prod:
-      type: postgres
-      host: "{{ env_var('SUPABASE_HOST', 'localhost') }}"
-      port: "{{ env_var('SUPABASE_PORT', '5432') | int }}"
-      dbname: "{{ env_var('SUPABASE_DB', 'postgres') }}"
-      user: "{{ env_var('SUPABASE_USER', 'postgres') }}"
-      password: "{{ env_var('SUPABASE_PASSWORD', '') }}"
-      schema: raw
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('GCP_PROJECT', 'radar-pangan-hackathon') }}"
+      dataset: raw
+      location: "{{ env_var('BQ_LOCATION', 'asia-southeast2') }}"
       threads: 4
-      keepalives_idle: 0
-      connect_timeout: 30
-      sslmode: require
+      timeout_seconds: 300
+      priority: interactive
+      retries: 1

@@ -9,12 +9,20 @@
   Date dimension — satu baris per tanggal unik yang ada di data.
   Include: kalender features + flag hari besar dari raw.hari_besar.
   Materialized as TABLE karena JOIN ke hari_besar.
+
+  BigQuery notes:
+  - EXTRACT(DAYOFWEEK FROM ...) returns 1=Sunday, 7=Saturday
+  - DATE_TRUNC(date, WEEK) / DATE_TRUNC(date, MONTH) syntax
+  - LOGICAL_OR() instead of BOOL_OR()
+  - LOWER() + LIKE instead of ILIKE
+  - DATE_SUB/DATE_ADD instead of INTERVAL arithmetic
 */
 
 WITH date_spine AS (
-    SELECT DISTINCT tanggal::DATE AS tanggal
+    SELECT DISTINCT CAST(tanggal AS DATE) AS tanggal
     FROM {{ source('raw', 'harga_pangan') }}
     WHERE tanggal IS NOT NULL
+      AND tanggal >= '2020-01-01'  -- partition filter required by BigQuery
 ),
 
 hari_besar_agg AS (
@@ -24,8 +32,8 @@ hari_besar_agg AS (
         TRUE                                    AS is_hari_besar,
         STRING_AGG(nama, '; ' ORDER BY nama)    AS nama_hari_besar,
         -- Flag apakah hari raya yang biasanya spike demand
-        BOOL_OR(kategori = 'islam')             AS is_hari_raya_islam,
-        BOOL_OR(kategori = 'cuti_bersama')      AS is_cuti_bersama
+        LOGICAL_OR(kategori = 'islam')          AS is_hari_raya_islam,
+        LOGICAL_OR(kategori = 'cuti_bersama')   AS is_cuti_bersama
     FROM {{ source('raw', 'hari_besar') }}
     GROUP BY tanggal
 ),
@@ -36,21 +44,21 @@ hari_raya_window AS (
     SELECT tanggal
     FROM {{ source('raw', 'hari_besar') }}
     WHERE kategori = 'islam'
-      AND nama ILIKE '%idul fitri%' OR nama ILIKE '%idul adha%'
+      AND (LOWER(nama) LIKE '%idul fitri%' OR LOWER(nama) LIKE '%idul adha%')
 )
 
 SELECT
     ds.tanggal,
-    EXTRACT(YEAR FROM ds.tanggal)::INTEGER      AS tahun,
-    EXTRACT(MONTH FROM ds.tanggal)::INTEGER     AS bulan,
-    EXTRACT(QUARTER FROM ds.tanggal)::INTEGER   AS kuartal,
-    EXTRACT(DOW FROM ds.tanggal)::INTEGER       AS hari_dalam_minggu,  -- 0=Sunday
-    DATE_TRUNC('week', ds.tanggal)::DATE        AS minggu,
-    DATE_TRUNC('month', ds.tanggal)::DATE       AS bulan_pertama,
+    CAST(EXTRACT(YEAR FROM ds.tanggal) AS INT64)      AS tahun,
+    CAST(EXTRACT(MONTH FROM ds.tanggal) AS INT64)     AS bulan,
+    CAST(EXTRACT(QUARTER FROM ds.tanggal) AS INT64)   AS kuartal,
+    CAST(EXTRACT(DAYOFWEEK FROM ds.tanggal) AS INT64) AS hari_dalam_minggu,  -- 1=Sunday, 7=Saturday
+    CAST(DATE_TRUNC(ds.tanggal, WEEK) AS DATE)        AS minggu,
+    CAST(DATE_TRUNC(ds.tanggal, MONTH) AS DATE)       AS bulan_pertama,
 
-    -- Weekday flag
+    -- Weekday flag (BigQuery: 1=Sunday, 7=Saturday → weekday = NOT IN (1, 7))
     CASE
-        WHEN EXTRACT(DOW FROM ds.tanggal) NOT IN (0, 6) THEN TRUE
+        WHEN EXTRACT(DAYOFWEEK FROM ds.tanggal) NOT IN (1, 7) THEN TRUE
         ELSE FALSE
     END                                         AS is_weekday,
 
@@ -75,8 +83,8 @@ SELECT
     CASE
         WHEN EXISTS (
             SELECT 1 FROM hari_raya_window hrw
-            WHERE ds.tanggal BETWEEN hrw.tanggal - INTERVAL '14 days'
-                                AND hrw.tanggal + INTERVAL '3 days'
+            WHERE ds.tanggal BETWEEN DATE_SUB(hrw.tanggal, INTERVAL 14 DAY)
+                                AND DATE_ADD(hrw.tanggal, INTERVAL 3 DAY)
         ) THEN TRUE
         ELSE FALSE
     END                                         AS is_window_hari_raya

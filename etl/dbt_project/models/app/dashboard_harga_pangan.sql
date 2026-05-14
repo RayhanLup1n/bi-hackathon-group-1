@@ -80,10 +80,10 @@ avg_nasional AS (
         tanggal,
         comcat_id,
         pasar_tipe,
-        ROUND(AVG(harga)::NUMERIC, 2)               AS harga_rata_nasional,
-        ROUND(MIN(harga)::NUMERIC, 2)                AS harga_min_nasional,
-        ROUND(MAX(harga)::NUMERIC, 2)                AS harga_maks_nasional,
-        COUNT(DISTINCT kota_id)                      AS jumlah_kota_dilaporkan
+        ROUND(CAST(AVG(harga) AS NUMERIC), 2)               AS harga_rata_nasional,
+        ROUND(CAST(MIN(harga) AS NUMERIC), 2)                AS harga_min_nasional,
+        ROUND(CAST(MAX(harga) AS NUMERIC), 2)                AS harga_maks_nasional,
+        COUNT(DISTINCT kota_id)                              AS jumlah_kota_dilaporkan
     FROM fact
     GROUP BY tanggal, comcat_id, pasar_tipe
 ),
@@ -110,24 +110,24 @@ combined AS (
         wl.harga_bulan_lalu,
 
         -- === Delta ===
-        ROUND((wl.harga_hari_ini - wl.harga_kemarin)::NUMERIC, 2)
+        ROUND(CAST(wl.harga_hari_ini - wl.harga_kemarin AS NUMERIC), 2)
                                                                     AS delta_1d,
-        ROUND((wl.harga_hari_ini - wl.harga_minggu_lalu)::NUMERIC, 2)
+        ROUND(CAST(wl.harga_hari_ini - wl.harga_minggu_lalu AS NUMERIC), 2)
                                                                     AS delta_7d,
-        ROUND((wl.harga_hari_ini - wl.harga_bulan_lalu)::NUMERIC, 2)
+        ROUND(CAST(wl.harga_hari_ini - wl.harga_bulan_lalu AS NUMERIC), 2)
                                                                     AS delta_30d,
 
         CASE
             WHEN wl.harga_kemarin > 0
             THEN ROUND(
-                ((wl.harga_hari_ini - wl.harga_kemarin) / wl.harga_kemarin * 100)::NUMERIC, 2
+                CAST((wl.harga_hari_ini - wl.harga_kemarin) / wl.harga_kemarin * 100 AS NUMERIC), 2
             )
         END                                                         AS pct_change_1d,
 
         CASE
             WHEN wl.harga_minggu_lalu > 0
             THEN ROUND(
-                ((wl.harga_hari_ini - wl.harga_minggu_lalu) / wl.harga_minggu_lalu * 100)::NUMERIC, 2
+                CAST((wl.harga_hari_ini - wl.harga_minggu_lalu) / wl.harga_minggu_lalu * 100 AS NUMERIC), 2
             )
         END                                                         AS pct_change_7d,
 
@@ -139,7 +139,7 @@ combined AS (
 
         CASE
             WHEN an.harga_rata_nasional > 0
-            THEN ROUND((wl.harga_hari_ini / an.harga_rata_nasional)::NUMERIC, 4)
+            THEN ROUND(CAST(wl.harga_hari_ini / an.harga_rata_nasional AS NUMERIC), 4)
         END                                                         AS rasio_vs_nasional,
 
         -- === Status Harga ===

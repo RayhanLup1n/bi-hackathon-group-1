@@ -10,10 +10,7 @@
   Static data, tidak berubah.
 */
 
-SELECT * FROM (
-    VALUES
-        (1, 'Pasar Tradisional'),
-        (2, 'Pasar Modern'),
-        (3, 'Pedagang Besar'),
-        (4, 'Produsen')
-) AS t (pasar_tipe, pasar_tipe_label)
+SELECT 1 AS pasar_tipe, 'Pasar Tradisional' AS pasar_tipe_label
+UNION ALL SELECT 2, 'Pasar Modern'
+UNION ALL SELECT 3, 'Pedagang Besar'
+UNION ALL SELECT 4, 'Produsen'
