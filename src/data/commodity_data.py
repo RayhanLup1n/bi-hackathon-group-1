@@ -1,8 +1,12 @@
 """
-Data layer: commodity data from Supabase PostgreSQL.
+Data layer: commodity data from BigQuery (data warehouse).
 
-Reads real PIHPS price data from raw.harga_pangan and provides
+Reads real PIHPS price data from BigQuery raw.harga_pangan and provides
 the same interface that routes.py expects.
+
+Architecture:
+    BigQuery → raw.harga_pangan (analytics queries)
+    Supabase → app.* (auth, HET, ML predictions — unchanged)
 """
 from __future__ import annotations
 
@@ -10,7 +14,9 @@ import math
 from datetime import date, timedelta
 from typing import Optional
 
-from src.data.database import db_cursor
+from google.cloud.bigquery import ScalarQueryParameter
+
+from src.data.bigquery_client import bq_query
 from src.models.schemas import CommodityData, CuacaInfo, StokInfo, KotaInfo
 
 
@@ -31,17 +37,16 @@ KOMODITAS_MAP: dict[str, str] = {}  # populated at startup from DB
 
 
 def _load_komoditas_map() -> None:
-    """Load komoditas mapping from database (called once at startup).
+    """Load komoditas mapping from BigQuery (called once at startup).
 
     Only loads MVP komoditas (bawang merah, bawang putih, all cabai types).
     """
-    with db_cursor() as cur:
-        cur.execute("""
-            SELECT DISTINCT comcat_id, komoditas_nama
-            FROM raw.harga_pangan
-            ORDER BY comcat_id
-        """)
-        rows = cur.fetchall()
+    rows = bq_query("""
+        SELECT DISTINCT comcat_id, komoditas_nama
+        FROM `raw.harga_pangan`
+        WHERE tanggal >= '2020-01-01'
+        ORDER BY comcat_id
+    """)
 
     # Use clear + update to mutate the existing dict object in-place
     # so all modules that imported KOMODITAS_MAP see the updated data
@@ -81,7 +86,7 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     - price_now: harga rata-rata hari ini (semua kota, pasar tradisional)
     - price_prev: harga rata-rata kemarin
     - kota_list: daftar kota dengan flag naik/turun
-    - cuaca: real weather data dari Open-Meteo (raw.cuaca_harian)
+    - cuaca: real weather data dari Open-Meteo (raw.cuaca_harian via BigQuery)
     - stok: placeholder (tidak ada data real stok)
     """
     if not KOMODITAS_MAP:
@@ -95,36 +100,57 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     target_date = tanggal or date.today()
     prev_date = target_date - timedelta(days=1)
 
-    # Get harga hari ini per kota (pasar tradisional = pasar_tipe 1)
-    with db_cursor() as cur:
-        # Harga hari ini per kota — cari tanggal terdekat jika hari ini belum ada
-        cur.execute("""
-            SELECT DISTINCT ON (kota_nama)
+    # BigQuery: no DISTINCT ON — use ROW_NUMBER() to get latest per kota
+    # Harga hari ini per kota — cari tanggal terdekat jika hari ini belum ada
+    rows_today = bq_query(
+        """
+        WITH ranked AS (
+            SELECT
                 kota_nama,
                 provinsi_id,
                 harga,
-                tanggal
-            FROM raw.harga_pangan
-            WHERE comcat_id = %s
+                tanggal,
+                ROW_NUMBER() OVER (PARTITION BY kota_nama ORDER BY tanggal DESC) AS rn
+            FROM `raw.harga_pangan`
+            WHERE comcat_id = @comcat_id
               AND pasar_tipe = 1
-              AND tanggal <= %s
-            ORDER BY kota_nama, tanggal DESC
-        """, [comcat_id, target_date])
-        rows_today = cur.fetchall()
+              AND tanggal >= '2020-01-01'
+              AND tanggal <= @target_date
+        )
+        SELECT kota_nama, provinsi_id, harga, tanggal
+        FROM ranked
+        WHERE rn = 1
+        """,
+        params=[
+            ScalarQueryParameter("comcat_id", "STRING", comcat_id),
+            ScalarQueryParameter("target_date", "DATE", target_date),
+        ],
+    )
 
-        # Harga kemarin per kota
-        cur.execute("""
-            SELECT DISTINCT ON (kota_nama)
+    # Harga kemarin per kota
+    rows_prev = bq_query(
+        """
+        WITH ranked AS (
+            SELECT
                 kota_nama,
                 harga,
-                tanggal
-            FROM raw.harga_pangan
-            WHERE comcat_id = %s
+                tanggal,
+                ROW_NUMBER() OVER (PARTITION BY kota_nama ORDER BY tanggal DESC) AS rn
+            FROM `raw.harga_pangan`
+            WHERE comcat_id = @comcat_id
               AND pasar_tipe = 1
-              AND tanggal <= %s
-            ORDER BY kota_nama, tanggal DESC
-        """, [comcat_id, prev_date])
-        rows_prev = cur.fetchall()
+              AND tanggal >= '2020-01-01'
+              AND tanggal <= @prev_date
+        )
+        SELECT kota_nama, harga, tanggal
+        FROM ranked
+        WHERE rn = 1
+        """,
+        params=[
+            ScalarQueryParameter("comcat_id", "STRING", comcat_id),
+            ScalarQueryParameter("prev_date", "DATE", prev_date),
+        ],
+    )
 
     if not rows_today:
         return None
@@ -195,29 +221,38 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     )
 
 
-# ─── Dashboard-specific queries ──────────────────────────────────────────────
+# --- Dashboard-specific queries -----------------------------------------------
 
 def get_price_summary(comcat_id: str, target_date: Optional[date] = None) -> dict:
     """Get price summary for dashboard (latest prices, deltas, national avg)."""
     tgl = target_date or date.today()
 
-    with db_cursor() as cur:
-        cur.execute("""
-            SELECT
-                kota_nama,
-                harga,
-                tanggal
-            FROM raw.harga_pangan
-            WHERE comcat_id = %s
-              AND pasar_tipe = 1
-              AND tanggal = (
-                  SELECT MAX(tanggal)
-                  FROM raw.harga_pangan
-                  WHERE comcat_id = %s AND tanggal <= %s
-              )
-            ORDER BY kota_nama
-        """, [comcat_id, comcat_id, tgl])
-        rows = cur.fetchall()
+    rows = bq_query(
+        """
+        WITH latest AS (
+            SELECT MAX(tanggal) AS max_tgl
+            FROM `raw.harga_pangan`
+            WHERE comcat_id = @comcat_id
+              AND tanggal >= '2020-01-01'
+              AND tanggal <= @tgl
+        )
+        SELECT
+            hp.kota_nama,
+            hp.harga,
+            hp.tanggal
+        FROM `raw.harga_pangan` hp
+        CROSS JOIN latest
+        WHERE hp.comcat_id = @comcat_id
+          AND hp.pasar_tipe = 1
+          AND hp.tanggal >= '2020-01-01'
+          AND hp.tanggal = latest.max_tgl
+        ORDER BY hp.kota_nama
+        """,
+        params=[
+            ScalarQueryParameter("comcat_id", "STRING", comcat_id),
+            ScalarQueryParameter("tgl", "DATE", tgl),
+        ],
+    )
 
     if not rows:
         return {}
@@ -242,20 +277,26 @@ def get_price_history(
     tgl = target_date or date.today()
     start = tgl - timedelta(days=n_days)
 
-    with db_cursor() as cur:
-        cur.execute("""
-            SELECT
-                tanggal,
-                ROUND(AVG(harga)::NUMERIC, 2) as avg_harga,
-                COUNT(DISTINCT kota_id) as jumlah_kota
-            FROM raw.harga_pangan
-            WHERE comcat_id = %s
-              AND pasar_tipe = 1
-              AND tanggal BETWEEN %s AND %s
-              AND harga > 0
-            GROUP BY tanggal
-            ORDER BY tanggal
-        """, [comcat_id, start, tgl])
-        rows = cur.fetchall()
+    rows = bq_query(
+        """
+        SELECT
+            tanggal,
+            ROUND(CAST(AVG(harga) AS NUMERIC), 2) as avg_harga,
+            COUNT(DISTINCT kota_id) as jumlah_kota
+        FROM `raw.harga_pangan`
+        WHERE comcat_id = @comcat_id
+          AND pasar_tipe = 1
+          AND tanggal >= '2020-01-01'
+          AND tanggal BETWEEN @start_date AND @end_date
+          AND harga > 0
+        GROUP BY tanggal
+        ORDER BY tanggal
+        """,
+        params=[
+            ScalarQueryParameter("comcat_id", "STRING", comcat_id),
+            ScalarQueryParameter("start_date", "DATE", start),
+            ScalarQueryParameter("end_date", "DATE", tgl),
+        ],
+    )
 
     return [dict(r) for r in rows]

@@ -31,21 +31,26 @@ _load_env()
 async def lifespan(app: FastAPI):
     """Initialize database connections and seed data at startup."""
     from src.data.database import init_pool, close_pool
+    from src.data.bigquery_client import get_bq_client, close_bq_client
     from src.data.commodity_data import init_commodity_data
     from src.data.auth_db import init_db_auth
 
-    # Initialize connection pool to Supabase PostgreSQL
+    # Initialize connection pool to Supabase PostgreSQL (app.* tables)
     init_pool()
 
-    # Load commodity mapping from database
+    # Initialize BigQuery client (raw/staging/marts queries)
+    get_bq_client()
+
+    # Load commodity mapping from BigQuery
     init_commodity_data()
 
-    # Seed default users if empty
+    # Seed default users if empty (Supabase)
     init_db_auth()
 
     yield
 
     # Cleanup on shutdown
+    close_bq_client()
     close_pool()
 
 
@@ -55,7 +60,7 @@ app = FastAPI(
         "Real-time Anti-inflation Detection, Analysis & Response. "
         "Platform pemantauan inflasi pangan berbasis data PIHPS."
     ),
-    version="0.4.0",
+    version="0.5.0",
     lifespan=lifespan,
 )
 

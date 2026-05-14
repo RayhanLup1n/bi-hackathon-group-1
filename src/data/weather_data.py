@@ -1,8 +1,12 @@
 """
-Data layer: weather data from raw.cuaca_harian (Open-Meteo).
+Data layer: weather data from BigQuery raw.cuaca_harian (Open-Meteo).
 
 Provides weather context for RCA engine by querying historical
-weather data and detecting extreme conditions.
+weather data from BigQuery and detecting extreme conditions.
+
+Architecture:
+    BigQuery → raw.cuaca_harian (analytics queries)
+    Supabase → app.* (auth, HET, ML predictions — unchanged)
 
 Integration:
     commodity_data.py calls get_weather_for_rca() to populate
@@ -13,7 +17,9 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Optional
 
-from src.data.database import db_cursor
+from google.cloud.bigquery import ScalarQueryParameter
+
+from src.data.bigquery_client import bq_query
 from src.models.schemas import CuacaInfo
 from config.settings import (
     WEATHER_PRECIP_EXTREME_MM,
@@ -33,10 +39,10 @@ def get_weather_for_rca(
     Check weather conditions for a province over the past N days.
 
     Checks (in order of severity):
-    1. Heavy rain (>100mm/day) → flood risk, crop damage
-    2. Extreme heat (>38°C) → crop stress
-    3. Damaging winds (>60 km/h) → crop/logistics damage
-    4. Drought (>14 consecutive dry days) → water stress
+    1. Heavy rain (>100mm/day) -> flood risk, crop damage
+    2. Extreme heat (>38 C) -> crop stress
+    3. Damaging winds (>60 km/h) -> crop/logistics damage
+    4. Drought (>14 consecutive dry days) -> water stress
 
     Args:
         provinsi_id: PIHPS province ID (11=Banten, 12=Jabar, etc.)
@@ -50,20 +56,25 @@ def get_weather_for_rca(
     days_back = lookback_days or WEATHER_LOOKBACK_DAYS
     start = target - timedelta(days=days_back)
 
-    with db_cursor() as cur:
-        cur.execute("""
-            SELECT
-                tanggal,
-                lokasi_label,
-                precipitation_sum,
-                temperature_max,
-                wind_speed_max
-            FROM raw.cuaca_harian
-            WHERE provinsi_id = %s
-              AND tanggal BETWEEN %s AND %s
-            ORDER BY tanggal DESC
-        """, [provinsi_id, start, target])
-        rows = cur.fetchall()
+    rows = bq_query(
+        """
+        SELECT
+            tanggal,
+            lokasi_label,
+            precipitation_sum,
+            temperature_max,
+            wind_speed_max
+        FROM `raw.cuaca_harian`
+        WHERE provinsi_id = @provinsi_id
+          AND tanggal BETWEEN @start_date AND @end_date
+        ORDER BY tanggal DESC
+        """,
+        params=[
+            ScalarQueryParameter("provinsi_id", "INT64", provinsi_id),
+            ScalarQueryParameter("start_date", "DATE", start),
+            ScalarQueryParameter("end_date", "DATE", target),
+        ],
+    )
 
     if not rows:
         return CuacaInfo(
@@ -88,7 +99,7 @@ def get_weather_for_rca(
                 ),
             )
 
-    # Check 2: Extreme heat (>38°C)
+    # Check 2: Extreme heat (>38 C)
     for row in rows:
         temp = row["temperature_max"] or 0
         if temp > WEATHER_TEMP_EXTREME_C:
@@ -167,21 +178,26 @@ def get_weather_summary(
     target = tanggal or date.today()
     start = target - timedelta(days=n_days)
 
-    with db_cursor() as cur:
-        cur.execute("""
-            SELECT
-                tanggal,
-                lokasi_label,
-                precipitation_sum,
-                rain_sum,
-                temperature_max,
-                temperature_min,
-                wind_speed_max
-            FROM raw.cuaca_harian
-            WHERE provinsi_id = %s
-              AND tanggal BETWEEN %s AND %s
-            ORDER BY tanggal DESC
-        """, [provinsi_id, start, target])
-        rows = cur.fetchall()
+    rows = bq_query(
+        """
+        SELECT
+            tanggal,
+            lokasi_label,
+            precipitation_sum,
+            rain_sum,
+            temperature_max,
+            temperature_min,
+            wind_speed_max
+        FROM `raw.cuaca_harian`
+        WHERE provinsi_id = @provinsi_id
+          AND tanggal BETWEEN @start_date AND @end_date
+        ORDER BY tanggal DESC
+        """,
+        params=[
+            ScalarQueryParameter("provinsi_id", "INT64", provinsi_id),
+            ScalarQueryParameter("start_date", "DATE", start),
+            ScalarQueryParameter("end_date", "DATE", target),
+        ],
+    )
 
     return [dict(row) for row in rows]

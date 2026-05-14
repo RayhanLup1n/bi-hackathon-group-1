@@ -100,6 +100,18 @@ TABLES: list[TableMigration] = [
         description="Pipeline audit trail",
         order_by="id",
     ),
+    TableMigration(
+        pg_table="raw.inflasi_bulanan",
+        bq_table="inflasi_bulanan",
+        description="Inflasi bulanan per komoditas (dummy, ~174 rows)",
+        order_by="id",
+    ),
+    TableMigration(
+        pg_table="raw.musim_panen",
+        bq_table="musim_panen",
+        description="Kalender musim panen per komoditas (18 rows)",
+        order_by="id",
+    ),
 ]
 
 
