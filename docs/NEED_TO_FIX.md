@@ -163,6 +163,85 @@
 
 ---
 
+## Architecture — Code Organization
+
+### Scorecard
+| Aspek | Skor | Status |
+|-------|------|--------|
+| Directory Layout | 3/5 | Logical, tapi `config/` vs `etl/config/` membingungkan |
+| Module Organization | 3/5 | 2 "god modules" (`routes.py`, `commodity_data.py`) |
+| Import Graph | **2/5** | Cross-layer `src/ → etl/`, 3× duplikasi constants |
+| Naming Conventions | 4/5 | Konsisten & deskriptif |
+| Separation of Concerns | 3/5 | Engine & data terpisah, tapi routes campur SQL |
+| Config Management | **2/5** | Constants tersebar di 4 tempat |
+| Test Organization | 3/5 | Engine tested, missing coverage di data layer |
+
+### Duplikasi MVP Constants — 3 tempat!
+```
+etl/config/constants.py    → MVP_COMCAT_IDS       (list)
+src/data/commodity_data.py → MVP_KOMODITAS_FILTER  (set)
+src/data/data_quality.py   → _MVP_COMCAT           (tuple)
+```
+**Fix**: Buat `config/constants.py` sebagai single source of truth.
+
+### Cross-layer import: `src/` → `etl/`
+```python
+# routes.py:257
+from etl.config.constants import TARGET_PROVINCE_IDS, PROVINCE_NAMES  # ← VIOLATION
+```
+**Fix**: Move shared constants ke `config/constants.py`.
+
+### `routes.py` — 414 lines, 7 routers (God Module)
+**Fix**: Split menjadi per-domain files:
+- `commodity_routes.py` — /api/commodities + /api/rca + /api/prices
+- `het_routes.py` — /api/het
+- `cuaca_routes.py` — /api/cuaca
+- `prediction_routes.py` — /api/predictions (extract SQL ke `src/data/prediction_data.py`)
+- `data_quality_routes.py` — /api/data-quality
+
+### `commodity_data.py` — 304 lines (God Module)
+Does 5 different things: constants, mapping, RCA data, weather aggregation, dashboard queries.
+**Fix**: Extract `price_data.py` (dashboard queries) and move weather aggregation to engine layer.
+
+### Proposed Directory Structure
+```
+config/
+├── settings.py              # thresholds (unchanged)
+└── constants.py              # ← NEW: MVP_COMCAT_IDS, TARGET_PROVINCE_IDS, etc.
+
+src/api/
+├── commodity_routes.py       # ← RENAMED from routes.py (slimmed)
+├── het_routes.py             # ← EXTRACTED
+├── cuaca_routes.py           # ← EXTRACTED
+├── prediction_routes.py      # ← EXTRACTED
+├── data_quality_routes.py    # ← EXTRACTED
+├── auth_routes.py            # (unchanged)
+└── ml_routes.py              # (unchanged)
+
+src/data/
+├── prediction_data.py        # ← NEW: ML predictions SQL (from routes.py)
+├── price_data.py             # ← NEW: dashboard queries (from commodity_data.py)
+└── (rest unchanged)
+
+tests/
+├── unit/                     # ← RESTRUCTURED
+│   ├── engine/               # test_rca_engine.py, test_het_monitor.py
+│   └── data/                 # test_weather_data.py, test_commodity_data.py (NEW)
+├── integration/              # ← NEW: API tests
+└── e2e/                      # (unchanged)
+```
+
+### Refactor Priority
+| # | Task | Effort | Impact |
+|---|------|--------|--------|
+| 1 | **`config/constants.py`** — single source of truth | 30 min | High |
+| 2 | **Extract predictions SQL** ke `src/data/` | 15 min | High |
+| 3 | **Split `routes.py`** → 5 domain files | 45 min | Medium |
+| 4 | **Extract `price_data.py`** | 20 min | Medium |
+| 5 | Restructure `tests/` → `unit/` + `integration/` + `e2e/` | 20 min | Low |
+
+---
+
 ## P3 — Code Quality / Tech Debt
 
 ### [CODE] `datetime.utcnow()` deprecated (Python 3.12+)
