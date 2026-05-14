@@ -1,0 +1,42 @@
+{
+  "feature_cols": [
+    "harga_lag_1d",
+    "harga_lag_7d",
+    "harga_lag_14d",
+    "harga_lag_30d",
+    "delta_harga_1d",
+    "delta_harga_7d",
+    "pct_change_1d",
+    "pct_change_7d",
+    "rolling_avg_7d",
+    "rolling_std_7d",
+    "rolling_avg_30d",
+    "rolling_std_30d",
+    "rolling_min_30d",
+    "rolling_max_30d",
+    "avg_harga_nasional",
+    "harga_zscore_30d",
+    "harga_ratio_nasional",
+    "bulan",
+    "kuartal",
+    "hari_dalam_minggu",
+    "is_weekday",
+    "is_ramadan_season",
+    "is_year_end_season",
+    "het_pct_utilization",
+    "jarak_ke_het_pct",
+    "comcat_id_encoded",
+    "kota_id",
+    "provinsi_id"
+  ],
+  "metrics": {
+    "val_mape": 4.747612688313552,
+    "val_pinball_loss": 1204.4134687544722,
+    "val_mae": 2408.8269375089444,
+    "test_mape": 5.4247633993067295,
+    "test_pinball_loss": 1438.4367139544606,
+    "test_mae": 2876.8734279089213
+  },
+  "trained_at": "2026-04-26T07:06:51.873391",
+  "best_iteration": 534
+}
