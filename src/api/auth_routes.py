@@ -23,6 +23,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pydantic import BaseModel
 
+import os
+
 from src.data.auth_db import (
     create_user,
     delete_user,
@@ -32,7 +34,10 @@ from src.data.auth_db import (
     verify_password,
 )
 
-_SECRET = "radarpangan-secret-key-change-in-production"
+# JWT secret from env var — falls back to a dev-only default (NEVER use in production)
+_SECRET = os.environ.get(
+    "JWT_SECRET", "radarpangan-dev-secret-DO-NOT-USE-IN-PROD"
+)
 _ALGO = "HS256"
 _TOKEN_HOURS = 8
 

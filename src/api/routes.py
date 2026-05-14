@@ -327,3 +327,74 @@ def get_predictions(
         # Return empty if table doesn't exist yet or any error
         return {"predictions": [], "total": 0}
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DATA QUALITY — Validation checks on raw.harga_pangan
+# ─────────────────────────────────────────────────────────────────────────────
+
+data_quality_router = APIRouter(prefix="/api/data-quality", tags=["Data Quality"])
+
+
+@data_quality_router.get(
+    "",
+    summary="Full data quality report (coverage + missing + outliers + duplicates)",
+)
+def get_quality_report() -> dict:
+    """Run all data quality checks and return combined summary.
+
+    Uses MVP komoditas filter by default. Queries BigQuery.
+    """
+    from src.data.data_quality import get_quality_summary
+
+    try:
+        return get_quality_summary()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Data quality check failed: {e}")
+
+
+@data_quality_router.get(
+    "/coverage",
+    summary="Data coverage summary (row counts, date range per komoditas)",
+)
+def get_coverage() -> dict:
+    from src.data.data_quality import get_data_coverage
+    return get_data_coverage()
+
+
+@data_quality_router.get(
+    "/outliers",
+    summary="Price outliers (z-score > 3 from 30-day rolling mean)",
+)
+def get_outliers(
+    z_threshold: float = Query(default=3.0, ge=1.0, le=10.0),
+    last_n_days: int = Query(default=90, ge=7, le=365),
+) -> dict:
+    from src.data.data_quality import check_outliers
+
+    items = check_outliers(z_threshold=z_threshold, last_n_days=last_n_days)
+    return {"count": len(items), "z_threshold": z_threshold, "items": items}
+
+
+@data_quality_router.get(
+    "/missing",
+    summary="Missing price dates in last N days",
+)
+def get_missing_dates(
+    last_n_days: int = Query(default=30, ge=7, le=365),
+) -> dict:
+    from src.data.data_quality import check_missing_dates
+
+    items = check_missing_dates(last_n_days=last_n_days)
+    return {"count": len(items), "last_n_days": last_n_days, "items": items}
+
+
+@data_quality_router.get(
+    "/duplicates",
+    summary="Duplicate rows (same comcat_id + kota_id + tanggal)",
+)
+def get_duplicates() -> dict:
+    from src.data.data_quality import check_duplicates
+
+    items = check_duplicates()
+    return {"count": len(items), "items": items}
+
