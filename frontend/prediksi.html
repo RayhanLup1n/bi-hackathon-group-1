@@ -47,7 +47,7 @@
 
     .app { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 24px 20px 48px; }
 
-    /* ── Header ── */
+    /* -- Header -- */
     .header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 24px; padding: 14px 20px;
@@ -85,14 +85,14 @@
     }
     .user-badge strong { color: var(--accent2); }
 
-    /* ── Card ── */
+    /* -- Card -- */
     .card {
       background: var(--surface); border: var(--bw) solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
       padding: 22px; margin-bottom: 20px;
     }
 
-    /* ── Filter bar ── */
+    /* -- Filter bar -- */
     .filter-bar {
       display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;
       align-items: end;
@@ -113,7 +113,7 @@
     }
     .filter-input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-    /* ── Summary cards ── */
+    /* -- Summary cards -- */
     .summary-row {
       display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
       margin-bottom: 20px;
@@ -133,44 +133,100 @@
     .stat-value { font-size: 26px; font-weight: 900; letter-spacing: -1px; }
     .stat-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 500; }
 
-    /* ── Chart placeholder ── */
-    .chart-card {
+    /* -- ML Server Status -- */
+    .ml-status-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 16px 20px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .ml-status-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid var(--border); flex-shrink: 0;
+    }
+    .ml-status-dot.online { background: var(--success); }
+    .ml-status-dot.offline { background: var(--danger); }
+    .ml-status-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+    .ml-status-text { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+    .ml-status-detail { font-family: var(--mono); font-size: 10px; color: var(--muted); font-weight: 500; }
+
+    /* -- Alert level badges -- */
+    .alert-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 6px;
+      font-family: var(--mono); font-size: 11px; font-weight: 800;
+      text-transform: uppercase; border: 2px solid var(--border);
+    }
+    .alert-green { background: #D1FAE5; color: #065F46; }
+    .alert-yellow { background: #FEF3C7; color: #92400E; }
+    .alert-red { background: #FEE2E2; color: #991B1B; }
+    .alert-unknown { background: #F3F4F6; color: #6B7280; }
+
+    /* -- ML Result Card -- */
+    .ml-result-card {
       background: var(--surface); border: var(--bw) solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
       margin-bottom: 20px; overflow: hidden;
     }
-    .chart-header {
+    .ml-result-header {
       padding: 16px 20px; background: var(--surface2);
       border-bottom: var(--bw) solid var(--border);
-      font-family: var(--mono); font-size: 12px; font-weight: 800;
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .chart-body { padding: 20px; }
+    .ml-result-title { font-family: var(--mono); font-size: 12px; font-weight: 800; }
+    .ml-result-body { padding: 20px; }
 
-    .chart-placeholder {
-      height: 280px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: repeating-linear-gradient(
-        0deg, transparent, transparent 39px, #e5e5e5 39px, #e5e5e5 40px
-      );
-      border-radius: var(--radius-sm); position: relative;
+    .prediction-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      margin-bottom: 16px;
     }
-    .chart-placeholder-text {
-      background: var(--surface); padding: 14px 24px;
-      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
-      box-shadow: var(--shadow); font-family: var(--mono); font-size: 12px;
-      font-weight: 700; text-align: center; z-index: 1;
+    @media (max-width: 500px) { .prediction-grid { grid-template-columns: 1fr; } }
+    .pred-box {
+      padding: 16px; border: 2px solid var(--border); border-radius: var(--radius-sm);
+      text-align: center;
     }
-    .chart-legend {
-      display: flex; gap: 20px; justify-content: center;
-      margin-top: 14px; font-family: var(--mono); font-size: 11px; color: var(--muted);
+    .pred-box-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+      margin-bottom: 4px;
     }
-    .legend-item { display: flex; align-items: center; gap: 6px; }
-    .legend-dot {
-      width: 10px; height: 10px; border-radius: 3px;
-      border: 1.5px solid var(--border);
+    .pred-box-value { font-size: 22px; font-weight: 900; }
+    .pred-box-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    /* -- Detection section -- */
+    .detection-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 600px) { .detection-row { grid-template-columns: 1fr; } }
+    .detect-item {
+      padding: 14px; border: 2px solid var(--border); border-radius: var(--radius-sm);
+      text-align: center;
+    }
+    .detect-label {
+      font-family: var(--mono); font-size: 9px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .detect-value { font-size: 14px; font-weight: 800; }
+
+    /* -- Recommendation card -- */
+    .reco-card {
+      padding: 16px 20px; border: 2px solid var(--border); border-radius: var(--radius-sm);
+      background: #FFFBEB;
+    }
+    .reco-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--accent2);
+      margin-bottom: 6px;
+    }
+    .reco-text { font-size: 13px; line-height: 1.6; }
+    .reco-meta {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 8px; font-weight: 500;
     }
 
-    /* ── Prediction table ── */
+    /* -- Prediction table -- */
     .pred-table-card {
       background: var(--surface); border: var(--bw) solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
@@ -210,20 +266,6 @@
     .trend-down { color: #059669; font-weight: 800; }
     .trend-neutral { color: var(--muted); }
 
-    .confidence-bar {
-      display: flex; align-items: center; gap: 4px;
-      font-family: var(--mono); font-size: 10px; color: var(--muted);
-    }
-    .conf-range {
-      height: 6px; background: #EDE9FE; border-radius: 3px;
-      border: 1px solid var(--border); flex: 1; max-width: 80px;
-      position: relative;
-    }
-    .conf-fill {
-      position: absolute; inset: 0;
-      background: var(--accent); border-radius: 3px;
-    }
-
     .empty-state {
       text-align: center; padding: 50px 20px;
       font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 600;
@@ -232,7 +274,7 @@
     .spinner { width: 18px; height: 18px; border: 3px solid rgba(99,102,241,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Info banner ── */
+    /* -- Info banner -- */
     .info-banner {
       padding: 16px 20px; background: #DBEAFE;
       border: var(--bw) solid var(--border); border-radius: var(--radius);
@@ -243,13 +285,29 @@
     .info-text { font-size: 13px; color: #1e3a5f; line-height: 1.6; }
     .info-text strong { font-weight: 800; }
 
+    /* -- Source tabs -- */
+    .source-tabs {
+      display: flex; gap: 0; margin-bottom: 20px;
+    }
+    .source-tab {
+      flex: 1; padding: 12px; text-align: center; cursor: pointer;
+      font-family: var(--mono); font-size: 11px; font-weight: 800;
+      border: var(--bw) solid var(--border);
+      transition: background 0.15s;
+    }
+    .source-tab:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    .source-tab:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; border-left: none; }
+    .source-tab.active { background: var(--accent); color: #fff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+    .source-tab:not(.active) { background: var(--surface); color: var(--text); }
+    .source-tab:not(.active):hover { background: #EDE9FE; }
+
     [x-cloak] { display: none !important; }
   </style>
 </head>
 <body>
 <div class="app" x-data="prediksiPage()" x-cloak>
 
-  <!-- ── Header ── -->
+  <!-- -- Header -- -->
   <header class="header">
     <div class="header-left">
       <div class="logo-icon">📡</div>
@@ -262,7 +320,7 @@
       <span class="user-badge">
         <strong x-text="user?.username || '—'"></strong> · <span x-text="user?.role || ''"></span>
       </span>
-      <a href="/" class="nav-link nav-link-default">← Dashboard</a>
+      <a href="/" class="nav-link nav-link-default">&larr; Dashboard</a>
       <a href="/rca" class="nav-link nav-link-default">🔍 RCA</a>
       <template x-if="user?.is_admin || user?.role === 'admin'">
         <a href="/admin" class="nav-link nav-link-default">👥 Admin</a>
@@ -271,174 +329,329 @@
     </div>
   </header>
 
-  <!-- ── Filter Bar ── -->
+  <!-- -- ML Server Status -- -->
+  <div class="ml-status-card">
+    <div class="ml-status-dot" :class="mlStatus"></div>
+    <div>
+      <div class="ml-status-text" x-text="mlStatusText"></div>
+      <div class="ml-status-detail" x-text="mlStatusDetail"></div>
+    </div>
+  </div>
+
+  <!-- -- Source Tabs -- -->
+  <div class="source-tabs">
+    <div class="source-tab" :class="{ active: source === 'ml' }" @click="switchSource('ml')">
+      🤖 ML Inference (Real-time)
+    </div>
+    <div class="source-tab" :class="{ active: source === 'db' }" @click="switchSource('db')">
+      📊 Database (app.ml_predictions)
+    </div>
+  </div>
+
+  <!-- -- Filter Bar -- -->
   <div class="card">
     <div class="filter-bar">
       <div class="filter-group">
         <label>Komoditas</label>
-        <select class="filter-input" x-model="selectedKey" @change="loadPredictions()">
-          <option value="">Semua Komoditas</option>
-          <template x-for="c in commodities" :key="c.key">
-            <option :value="c.comcat_id" x-text="c.name"></option>
-          </template>
-        </select>
+        <template x-if="source === 'ml'">
+          <select class="filter-input" x-model="selectedMlKomoditas" @change="analyze()">
+            <option value="">Pilih Komoditas</option>
+            <template x-for="k in mlKomoditasList" :key="k">
+              <option :value="k" x-text="k"></option>
+            </template>
+          </select>
+        </template>
+        <template x-if="source === 'db'">
+          <select class="filter-input" x-model="selectedKey" @change="loadDbPredictions()">
+            <option value="">Semua Komoditas</option>
+            <template x-for="c in commodities" :key="c.key">
+              <option :value="c.comcat_id" x-text="c.name"></option>
+            </template>
+          </select>
+        </template>
       </div>
       <div class="filter-group">
         <label>Kota</label>
-        <select class="filter-input" x-model="selectedKota" @change="loadPredictions()">
-          <option value="">Semua Kota</option>
-          <template x-for="k in cities" :key="k.id">
-            <option :value="k.id" x-text="k.name"></option>
-          </template>
-        </select>
+        <template x-if="source === 'ml'">
+          <select class="filter-input" x-model="selectedMlKota" @change="analyze()">
+            <option value="">Pilih Kota</option>
+            <template x-for="k in mlKotaList" :key="k.kota_nama">
+              <option :value="k.kota_nama" x-text="k.kota_nama + ' (' + k.provinsi_nama + ')'"></option>
+            </template>
+          </select>
+        </template>
+        <template x-if="source === 'db'">
+          <select class="filter-input" x-model="selectedKota" @change="loadDbPredictions()">
+            <option value="">Semua Kota</option>
+            <template x-for="k in cities" :key="k.id">
+              <option :value="k.id" x-text="k.name"></option>
+            </template>
+          </select>
+        </template>
       </div>
       <div class="filter-group">
-        <label>Periode</label>
-        <select class="filter-input" x-model="period" @change="loadPredictions()">
-          <option value="7">7 Hari</option>
-          <option value="14">14 Hari</option>
-          <option value="30" selected>30 Hari</option>
-          <option value="90">90 Hari</option>
-        </select>
+        <label x-text="source === 'ml' ? 'Tanggal' : 'Periode'"></label>
+        <template x-if="source === 'ml'">
+          <input type="date" class="filter-input" x-model="mlTanggal" @change="analyze()">
+        </template>
+        <template x-if="source === 'db'">
+          <select class="filter-input" x-model="period" @change="loadDbPredictions()">
+            <option value="7">7 Hari</option>
+            <option value="14">14 Hari</option>
+            <option value="30" selected>30 Hari</option>
+            <option value="90">90 Hari</option>
+          </select>
+        </template>
       </div>
     </div>
   </div>
 
-  <!-- ── Summary Cards ── -->
-  <div class="summary-row">
-    <div class="stat-card">
-      <div class="stat-label">Harga Aktual</div>
-      <template x-if="currentPrice">
-        <div>
-          <div class="stat-value" x-text="'Rp ' + currentPrice.toLocaleString('id-ID')"></div>
-          <div class="stat-sub">/kg (rata-rata)</div>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- ML SOURCE: Real-time inference results                                -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <template x-if="source === 'ml'">
+    <div>
+
+      <!-- Loading -->
+      <template x-if="mlLoading">
+        <div class="card" style="text-align:center;padding:40px;">
+          <div class="spinner" style="margin:0 auto 10px;"></div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--muted);">Menjalankan analisis 3-layer ML...</div>
         </div>
       </template>
-      <template x-if="!currentPrice">
-        <div class="stat-value" style="color:var(--muted)">—</div>
-      </template>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Prediksi Besok</div>
-      <template x-if="nextPrediction">
-        <div>
-          <div class="stat-value" :class="nextPrediction.trend > 0 ? 'trend-up' : (nextPrediction.trend < 0 ? 'trend-down' : '')"
-               x-text="'Rp ' + nextPrediction.price.toLocaleString('id-ID')"></div>
-          <div class="stat-sub">
-            <span x-text="'CI: ' + nextPrediction.lower.toLocaleString('id-ID') + ' — ' + nextPrediction.upper.toLocaleString('id-ID')"></span>
+
+      <!-- No selection -->
+      <template x-if="!mlLoading && !mlResult && !mlError">
+        <div class="card" style="text-align:center;padding:40px;">
+          <div style="font-size:32px;margin-bottom:8px;">🤖</div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:700;">Pilih komoditas dan kota</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px;">
+            untuk menjalankan analisis ML 3-layer (Forecast + Detection + Decision)
           </div>
         </div>
       </template>
-      <template x-if="!nextPrediction">
-        <div class="stat-value" style="color:var(--muted)">—</div>
-      </template>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Model</div>
-      <template x-if="modelInfo">
-        <div>
-          <div class="stat-value" style="font-size:20px;" x-text="modelInfo.version"></div>
-          <div class="stat-sub" x-text="modelInfo.predictions + ' prediksi'"></div>
+
+      <!-- Error -->
+      <template x-if="!mlLoading && mlError">
+        <div class="card" style="border-color:#DC2626;background:#FEF2F2;">
+          <div style="font-family:var(--mono);font-size:12px;font-weight:800;color:#DC2626;margin-bottom:6px;">ML Server Error</div>
+          <div style="font-family:var(--mono);font-size:11px;color:#991B1B;" x-text="mlError"></div>
         </div>
       </template>
-      <template x-if="!modelInfo">
-        <div class="stat-value" style="color:var(--muted);font-size:20px;">Belum ada</div>
-      </template>
-    </div>
-  </div>
 
-  <!-- ── Chart: Aktual vs Prediksi ── -->
-  <div class="chart-card">
-    <div class="chart-header">Grafik Harga: Aktual vs Prediksi</div>
-    <div class="chart-body">
-      <template x-if="predictions.length > 0">
+      <!-- ML Result -->
+      <template x-if="!mlLoading && mlResult">
         <div>
-          <div class="chart-placeholder">
-            <div class="chart-placeholder-text">
-              📊 Grafik interaktif akan ditampilkan di sini<br>
-              <span style="font-size:10px;color:var(--muted);">Integrasi Chart.js / Plotly — coming soon</span>
+          <!-- Summary Cards -->
+          <div class="summary-row">
+            <div class="stat-card">
+              <div class="stat-label">Prediksi 7 Hari (P50)</div>
+              <template x-if="mlResult.predictions.p50_7d">
+                <div>
+                  <div class="stat-value" x-text="'Rp ' + Math.round(mlResult.predictions.p50_7d).toLocaleString('id-ID')"></div>
+                  <div class="stat-sub" x-text="'P90: Rp ' + Math.round(mlResult.predictions.p90_7d || 0).toLocaleString('id-ID')"></div>
+                </div>
+              </template>
+              <template x-if="!mlResult.predictions.p50_7d">
+                <div class="stat-value" style="color:var(--muted)">—</div>
+              </template>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Prediksi 14 Hari (P50)</div>
+              <template x-if="mlResult.predictions.p50_14d">
+                <div>
+                  <div class="stat-value" x-text="'Rp ' + Math.round(mlResult.predictions.p50_14d).toLocaleString('id-ID')"></div>
+                  <div class="stat-sub" x-text="'P90: Rp ' + Math.round(mlResult.predictions.p90_14d || 0).toLocaleString('id-ID')"></div>
+                </div>
+              </template>
+              <template x-if="!mlResult.predictions.p50_14d">
+                <div class="stat-value" style="color:var(--muted)">—</div>
+              </template>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Alert Level</div>
+              <div>
+                <span class="alert-badge" :class="'alert-' + (mlResult.decision?.final_alert_level || mlResult.detection?.alert_level || 'unknown')"
+                      x-text="(mlResult.decision?.final_alert_level || mlResult.detection?.alert_level || 'unknown').toUpperCase()"></span>
+                <div class="stat-sub" x-text="'Priority: ' + (mlResult.decision?.intervention_priority || '—')"></div>
+              </div>
             </div>
           </div>
-          <div class="chart-legend">
-            <div class="legend-item"><div class="legend-dot" style="background:#3B82F6;"></div> Harga Aktual</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--accent);"></div> Prediksi ML</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#E5E7EB;"></div> Confidence Interval</div>
+
+          <!-- Detection Details -->
+          <div class="ml-result-card" x-show="mlResult.detection && Object.keys(mlResult.detection).length > 0">
+            <div class="ml-result-header">
+              <span class="ml-result-title">LAPIS 2 — Detection Signals</span>
+              <span class="alert-badge" :class="'alert-' + (mlResult.detection?.alert_level || 'unknown')"
+                    x-text="'HET: ' + (mlResult.detection?.alert_level || '—').toUpperCase()"></span>
+            </div>
+            <div class="ml-result-body">
+              <div class="detection-row">
+                <div class="detect-item">
+                  <div class="detect-label">Changepoint</div>
+                  <div class="detect-value" :style="mlResult.detection?.is_changepoint ? 'color:#DC2626' : 'color:var(--success)'"
+                       x-text="mlResult.detection?.is_changepoint ? 'TERDETEKSI' : 'Tidak ada'"></div>
+                </div>
+                <div class="detect-item">
+                  <div class="detect-label">CUSUM Drift</div>
+                  <div class="detect-value" :style="mlResult.detection?.is_cusum_alarm ? 'color:#F59E0B' : 'color:var(--success)'"
+                       x-text="mlResult.detection?.is_cusum_alarm ? (mlResult.detection?.cusum_direction || 'up').toUpperCase() : 'Stabil'"></div>
+                </div>
+                <div class="detect-item">
+                  <div class="detect-label">Jarak ke HET</div>
+                  <div class="detect-value" x-text="mlResult.detection?.jarak_ke_het_pct != null ? (mlResult.detection.jarak_ke_het_pct > 0 ? '+' : '') + mlResult.detection.jarak_ke_het_pct.toFixed(1) + '%' : '—'"></div>
+                </div>
+              </div>
+              <template x-if="mlResult.detection?.disparity_score != null">
+                <div style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;margin-top:4px;">
+                  Disparity Score: <strong x-text="mlResult.detection.disparity_score.toFixed(3)"></strong>
+                  (ketimpangan harga antar kota)
+                </div>
+              </template>
+            </div>
           </div>
-        </div>
-      </template>
-      <template x-if="predictions.length === 0">
-        <div class="empty-state">
-          <div style="font-size:32px;margin-bottom:8px;">📈</div>
-          <div>Data prediksi belum tersedia</div>
-        </div>
-      </template>
-    </div>
-  </div>
 
-  <!-- ── Prediction Table ── -->
-  <div class="pred-table-card">
-    <div class="pred-table-header">
-      <span class="pred-table-title">Prediksi Anomali Mendatang</span>
-      <span class="pred-count" x-text="predictions.length + ' prediksi'"></span>
-    </div>
-    <template x-if="predictions.length > 0">
-      <div style="overflow-x:auto;">
-        <table class="pred-table">
-          <thead>
-            <tr>
-              <th>Target Date</th>
-              <th>Komoditas</th>
-              <th>Kota</th>
-              <th>Prediksi</th>
-              <th>Confidence</th>
-              <th>Model</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="(p, i) in predictions" :key="i">
-              <tr>
-                <td x-text="p.target_date"></td>
-                <td x-text="p.komoditas_id"></td>
-                <td x-text="p.kota_id"></td>
-                <td>
-                  <span :class="p.predicted_price > (currentPrice || 0) ? 'trend-up' : 'trend-down'"
-                        x-text="'Rp ' + p.predicted_price.toLocaleString('id-ID')"></span>
-                </td>
-                <td>
-                  <div class="confidence-bar">
-                    <span x-text="(p.confidence_lower||0).toLocaleString('id-ID')"></span>
-                    <div class="conf-range"><div class="conf-fill" style="width:60%;"></div></div>
-                    <span x-text="(p.confidence_upper||0).toLocaleString('id-ID')"></span>
+          <!-- LLM Recommendation -->
+          <template x-if="mlResult.decision && mlResult.decision.rekomendasi">
+            <div class="ml-result-card">
+              <div class="ml-result-header">
+                <span class="ml-result-title">LAPIS 3 — Rekomendasi Intervensi</span>
+                <span class="alert-badge" :class="'alert-' + mlResult.decision.final_alert_level"
+                      x-text="mlResult.decision.final_alert_level.toUpperCase()"></span>
+              </div>
+              <div class="ml-result-body">
+                <div class="reco-card">
+                  <div class="reco-label">Rekomendasi</div>
+                  <div class="reco-text" x-text="mlResult.decision.rekomendasi"></div>
+                  <div class="reco-meta">
+                    Confidence: <strong x-text="mlResult.decision.confidence"></strong>
+                    &middot; <span x-text="mlResult.decision.is_llm_generated ? 'LLM-generated' : 'Rule-based fallback'"></span>
+                    &middot; Priority: <strong x-text="mlResult.decision.intervention_priority"></strong>/5
                   </div>
-                </td>
-                <td style="color:var(--muted);" x-text="p.model_version || '—'"></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-    </template>
-    <template x-if="predictions.length === 0 && !loading">
-      <div class="empty-state" style="padding:40px;">
-        <div style="font-size:28px;margin-bottom:8px;">🤖</div>
-        <div style="font-weight:700;margin-bottom:4px;">Belum ada data prediksi</div>
-        <div>ML model belum meng-INSERT ke tabel app.ml_predictions</div>
-      </div>
-    </template>
-    <template x-if="loading">
-      <div class="empty-state" style="padding:30px;">
-        <div class="spinner" style="margin:0 auto 10px;"></div>
-        <div>Memuat data prediksi...</div>
-      </div>
-    </template>
-  </div>
+                </div>
+              </div>
+            </div>
+          </template>
 
-  <!-- ── Info Banner ── -->
+        </div>
+      </template>
+
+    </div>
+  </template>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- DB SOURCE: Data from app.ml_predictions table                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <template x-if="source === 'db'">
+    <div>
+      <!-- Summary Cards -->
+      <div class="summary-row">
+        <div class="stat-card">
+          <div class="stat-label">Harga Aktual</div>
+          <template x-if="currentPrice">
+            <div>
+              <div class="stat-value" x-text="'Rp ' + currentPrice.toLocaleString('id-ID')"></div>
+              <div class="stat-sub">/kg (rata-rata)</div>
+            </div>
+          </template>
+          <template x-if="!currentPrice">
+            <div class="stat-value" style="color:var(--muted)">—</div>
+          </template>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Prediksi Besok</div>
+          <template x-if="nextPrediction">
+            <div>
+              <div class="stat-value" :class="nextPrediction.trend > 0 ? 'trend-up' : (nextPrediction.trend < 0 ? 'trend-down' : '')"
+                   x-text="'Rp ' + nextPrediction.price.toLocaleString('id-ID')"></div>
+              <div class="stat-sub">
+                <span x-text="'CI: ' + nextPrediction.lower.toLocaleString('id-ID') + ' — ' + nextPrediction.upper.toLocaleString('id-ID')"></span>
+              </div>
+            </div>
+          </template>
+          <template x-if="!nextPrediction">
+            <div class="stat-value" style="color:var(--muted)">—</div>
+          </template>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Model</div>
+          <template x-if="modelInfo">
+            <div>
+              <div class="stat-value" style="font-size:20px;" x-text="modelInfo.version"></div>
+              <div class="stat-sub" x-text="modelInfo.predictions + ' prediksi'"></div>
+            </div>
+          </template>
+          <template x-if="!modelInfo">
+            <div class="stat-value" style="color:var(--muted);font-size:20px;">Belum ada</div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Prediction Table -->
+      <div class="pred-table-card">
+        <div class="pred-table-header">
+          <span class="pred-table-title">Prediksi dari Database</span>
+          <span class="pred-count" x-text="dbPredictions.length + ' prediksi'"></span>
+        </div>
+        <template x-if="dbPredictions.length > 0">
+          <div style="overflow-x:auto;">
+            <table class="pred-table">
+              <thead>
+                <tr>
+                  <th>Target Date</th>
+                  <th>Komoditas</th>
+                  <th>Kota</th>
+                  <th>Prediksi</th>
+                  <th>Confidence</th>
+                  <th>Model</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="(p, i) in dbPredictions" :key="i">
+                  <tr>
+                    <td x-text="p.target_date"></td>
+                    <td x-text="p.komoditas_id"></td>
+                    <td x-text="p.kota_id"></td>
+                    <td>
+                      <span :class="p.predicted_price > (currentPrice || 0) ? 'trend-up' : 'trend-down'"
+                            x-text="'Rp ' + p.predicted_price.toLocaleString('id-ID')"></span>
+                    </td>
+                    <td>
+                      <span style="font-family:var(--mono);font-size:10px;color:var(--muted);"
+                            x-text="(p.confidence_lower||0).toLocaleString('id-ID') + ' — ' + (p.confidence_upper||0).toLocaleString('id-ID')"></span>
+                    </td>
+                    <td style="color:var(--muted);" x-text="p.model_version || '—'"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+        <template x-if="dbPredictions.length === 0 && !dbLoading">
+          <div class="empty-state" style="padding:40px;">
+            <div style="font-size:28px;margin-bottom:8px;">🤖</div>
+            <div style="font-weight:700;margin-bottom:4px;">Belum ada data prediksi</div>
+            <div>ML model belum meng-INSERT ke tabel app.ml_predictions</div>
+          </div>
+        </template>
+        <template x-if="dbLoading">
+          <div class="empty-state" style="padding:30px;">
+            <div class="spinner" style="margin:0 auto 10px;"></div>
+            <div>Memuat data prediksi...</div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <!-- -- Info Banner -- -->
   <div class="info-banner">
     <span class="info-icon">💡</span>
     <div class="info-text">
-      <strong>Cara kerja:</strong> ML model memprediksi lonjakan harga berdasarkan pola historis, hari besar, dan data cuaca.
-      RCA Engine kemudian memvalidasi prediksi secara real-time ketika anomali benar-benar terjadi.
+      <strong>Arsitektur 3 Lapis:</strong>
+      Lapis 1 (LightGBM Quantile) memprediksi harga 7 & 14 hari ke depan.
+      Lapis 2 (Detection) mendeteksi changepoint dan pelanggaran HET.
+      Lapis 3 (LLM Agent) memberikan rekomendasi intervensi.
       <br>
       <strong>ML = Predictor</strong> (mempersiapkan) · <strong>RCA = Validator</strong> (mengkonfirmasi real-time)
     </div>
@@ -453,24 +666,36 @@ function prediksiPage() {
     token: localStorage.getItem('rca_token'),
     user: JSON.parse(localStorage.getItem('rca_user') || 'null'),
 
-    // Data
+    // Source toggle: 'ml' (real-time inference) or 'db' (app.ml_predictions table)
+    source: 'ml',
+
+    // -- ML source state --
+    mlStatus: 'loading',         // 'online', 'offline', 'loading'
+    mlStatusText: 'Memeriksa ML Server...',
+    mlStatusDetail: '',
+    mlKomoditasList: [],         // komoditas names from ML server
+    mlKotaList: [],              // kota objects from ML server
+    selectedMlKomoditas: '',
+    selectedMlKota: '',
+    mlTanggal: new Date().toISOString().split('T')[0],
+    mlResult: null,              // FullAnalysisResult
+    mlLoading: false,
+    mlError: null,
+
+    // -- DB source state --
     commodities: [],
     cities: [],
-    predictions: [],
-
-    // Filters
+    dbPredictions: [],
     selectedKey: '',
     selectedKota: '',
     period: '30',
-
-    // Derived
     currentPrice: null,
     nextPrediction: null,
     modelInfo: null,
-    loading: false,
+    dbLoading: false,
 
     async init() {
-      // Auth guard — analyst+ only
+      // Auth guard - analyst+ only
       if (!this.token) { window.location.replace('/login'); return; }
       try {
         const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + this.token } });
@@ -486,28 +711,117 @@ function prediksiPage() {
         return;
       }
 
-      // Load commodities
+      // Load commodities for DB source
       try {
         const r = await fetch('/api/commodities/detail', this._authOpts());
         if (r.ok) this.commodities = await r.json();
       } catch {}
 
-      // Load predictions
-      await this.loadPredictions();
+      // Check ML server health
+      await this.checkMlHealth();
     },
 
     _authOpts() {
       return { headers: this.token ? { Authorization: 'Bearer ' + this.token } : {} };
     },
 
-    async loadPredictions() {
-      this.loading = true;
-      this.predictions = [];
+    // ── ML Server Methods ──────────────────────────────────────────────
+
+    async checkMlHealth() {
+      try {
+        const r = await fetch('/api/ml/health', this._authOpts());
+        if (r.ok) {
+          const data = await r.json();
+          if (data.status === 'ok') {
+            this.mlStatus = 'online';
+            this.mlStatusText = 'ML Server Online';
+            this.mlStatusDetail = `${data.models_loaded} model loaded · ${(data.data_rows || 0).toLocaleString('id-ID')} rows data · LLM: ${data.llm_available ? 'aktif' : 'fallback'}`;
+            // Load komoditas and kota lists
+            await this.loadMlLists();
+          } else {
+            this.mlStatus = 'loading';
+            this.mlStatusText = 'ML Server Loading...';
+            this.mlStatusDetail = 'Pipeline sedang memuat data dan model';
+          }
+        } else {
+          throw new Error('Not OK');
+        }
+      } catch {
+        this.mlStatus = 'offline';
+        this.mlStatusText = 'ML Server Offline';
+        this.mlStatusDetail = 'Jalankan: uvicorn ml.serve.api:app --port 8001';
+        // Auto-switch to DB source if ML is offline
+        this.source = 'db';
+        await this.loadDbPredictions();
+      }
+    },
+
+    async loadMlLists() {
+      try {
+        const [komR, kotaR] = await Promise.all([
+          fetch('/api/ml/komoditas', this._authOpts()),
+          fetch('/api/ml/kota', this._authOpts()),
+        ]);
+        if (komR.ok) {
+          const data = await komR.json();
+          this.mlKomoditasList = data.komoditas || [];
+        }
+        if (kotaR.ok) {
+          const data = await kotaR.json();
+          this.mlKotaList = data.kota || [];
+        }
+      } catch (e) {
+        console.error('Failed to load ML lists:', e);
+      }
+    },
+
+    async analyze() {
+      if (!this.selectedMlKomoditas || !this.selectedMlKota) {
+        this.mlResult = null;
+        this.mlError = null;
+        return;
+      }
+
+      this.mlLoading = true;
+      this.mlError = null;
+      this.mlResult = null;
+
+      try {
+        const r = await fetch('/api/ml/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(this.token ? { Authorization: 'Bearer ' + this.token } : {}),
+          },
+          body: JSON.stringify({
+            komoditas_nama: this.selectedMlKomoditas,
+            kota_nama: this.selectedMlKota,
+            tanggal: this.mlTanggal,
+          }),
+        });
+
+        if (r.ok) {
+          this.mlResult = await r.json();
+        } else {
+          const err = await r.json().catch(() => ({ detail: 'Unknown error' }));
+          this.mlError = err.detail || `Error ${r.status}`;
+        }
+      } catch (e) {
+        this.mlError = 'Gagal terhubung ke ML server: ' + e.message;
+      }
+
+      this.mlLoading = false;
+    },
+
+    // ── DB Methods (existing functionality) ────────────────────────────
+
+    async loadDbPredictions() {
+      this.dbLoading = true;
+      this.dbPredictions = [];
       this.nextPrediction = null;
       this.modelInfo = null;
 
       try {
-        // Build query params
         const params = new URLSearchParams();
         if (this.selectedKey) params.set('komoditas_id', this.selectedKey);
         if (this.selectedKota) params.set('kota_id', this.selectedKota);
@@ -516,26 +830,26 @@ function prediksiPage() {
         const r = await fetch(`/api/predictions?${params}`, this._authOpts());
         if (r.ok) {
           const data = await r.json();
-          this.predictions = data.predictions || [];
+          this.dbPredictions = data.predictions || [];
 
           // Derive summary
-          if (this.predictions.length > 0) {
-            const first = this.predictions[0];
+          if (this.dbPredictions.length > 0) {
+            const first = this.dbPredictions[0];
             this.nextPrediction = {
               price: first.predicted_price,
               lower: first.confidence_lower || first.predicted_price * 0.9,
               upper: first.confidence_upper || first.predicted_price * 1.1,
               trend: first.predicted_price > (this.currentPrice || 0) ? 1 : -1,
             };
-            const versions = [...new Set(this.predictions.map(p => p.model_version).filter(Boolean))];
+            const versions = [...new Set(this.dbPredictions.map(p => p.model_version).filter(Boolean))];
             this.modelInfo = {
               version: versions[0] || 'v1',
-              predictions: this.predictions.length,
+              predictions: this.dbPredictions.length,
             };
           }
         }
       } catch (e) {
-        console.error('Failed to load predictions:', e);
+        console.error('Failed to load DB predictions:', e);
       }
 
       // Load current price for comparison
@@ -552,8 +866,19 @@ function prediksiPage() {
         } catch {}
       }
 
-      this.loading = false;
+      this.dbLoading = false;
     },
+
+    // ── Source Toggle ──────────────────────────────────────────────────
+
+    async switchSource(src) {
+      this.source = src;
+      if (src === 'db' && this.dbPredictions.length === 0) {
+        await this.loadDbPredictions();
+      }
+    },
+
+    // ── Auth ───────────────────────────────────────────────────────────
 
     logout() {
       localStorage.removeItem('rca_token');
