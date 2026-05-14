@@ -1,22 +1,27 @@
 """
 RCA Rule Engine — Decision Tree untuk Root Cause Analysis inflasi harga pangan.
 
-Urutan pemeriksaan:
-  1. Cek Hari Raya   → Demand Spike
-  2. Cek Cuaca BMKG  → Gangguan Supply
-  3. Cek Persebaran Kota → Supply Nasional
-  4. Cek Stok Pedagang   → Distribusi Lokal / Unknown
+Semua 4 check selalu dijalankan (tidak ada skip).
+Diagnosis ditentukan dari check pertama yang triggered:
+  1. Cek Hari Raya        → Demand Spike
+  2. Cek Cuaca BMKG       → Gangguan Supply
+  3. Cek Persebaran Kota  → Supply Nasional
+  4. Cek Stok Pedagang    → Distribusi Lokal / Unknown
 
-Untuk menambah rule baru, tambahkan method _check_*() dan daftarkan
-di RULE_SEQUENCE di bawah.
+Severity L0–L4 dihitung terpisah dari seluruh hasil check.
 """
 
 from datetime import date
 
-from config.settings import HARI_RAYA_CALENDAR, HARI_RAYA_WINDOW_DAYS, HARI_RAYA_POST_WINDOW_DAYS
+from config.settings import (
+    HARI_RAYA_CALENDAR, HARI_RAYA_WINDOW_DAYS, HARI_RAYA_POST_WINDOW_DAYS,
+    STOK_MENIPIS_THRESHOLD,
+)
 from src.models.schemas import (
     CommodityData, RCAResult, CheckResult, DiagnosisType
 )
+from src.data.inflasi_db import get_inflasi_tren
+from src.data.commodity_data import get_related_deltas
 
 # ──────────────────────────────────────────────
 # DIAGNOSIS TEMPLATES
@@ -57,6 +62,21 @@ DIAGNOSIS_TEMPLATES: dict[DiagnosisType, dict] = {
         "action": (
             "Balancing stock relevan di sini. Identifikasi daerah surplus terdekat "
             "dan koordinasikan pengiriman. Cek juga kondisi jalan atau isu logistik lokal."
+        ),
+    },
+    DiagnosisType.EKSPEKTASI: {
+        "title": "Tekanan Inflasi Ekspektatif",
+        "description": (
+            "Tidak ada gangguan supply, cuaca, atau distribusi yang terdeteksi, "
+            "namun inflasi bulanan di kota pantauan terus positif selama 3 bulan berturut-turut. "
+            "Indikasi kuat bahwa kenaikan harga didorong oleh ekspektasi pelaku pasar, "
+            "bukan oleh faktor fundamental yang segera bisa diatasi."
+        ),
+        "action": (
+            "Prioritaskan komunikasi publik dan transparansi harga untuk meredam ekspektasi. "
+            "Operasi pasar terbatas di titik-titik strategis. "
+            "Pantau apakah pedagang menaikan harga secara preventif — jika ya, "
+            "koordinasi dengan Satgas Pangan untuk penertiban."
         ),
     },
     DiagnosisType.UNKNOWN: {
@@ -179,8 +199,126 @@ def _check_stok(data: CommodityData) -> CheckResult:
     )
 
 
-def _skip(step: int, nama: str, reason: str) -> CheckResult:
-    return CheckResult(step=step, nama=nama, status="skip", detail=f"Dilewati — {reason}")
+def _check_cross_commodity(data: CommodityData) -> CheckResult:
+    """Check 6: Apakah komoditas terkait juga naik anomali? (korelasi supply chain / substitusi)"""
+    related = get_related_deltas(data.key)
+
+    if not related:
+        return CheckResult(
+            step=6,
+            nama="Cek Korelasi Komoditas Terkait",
+            status="clear",
+            detail="Tidak ada komoditas terkait yang dikonfigurasi",
+        )
+
+    anomali = [r for r in related if r["delta_pct"] >= r["threshold"]]
+    lines = "\n".join(
+        f"{'⚠' if r['delta_pct'] >= r['threshold'] else '·'} "
+        f"{r['name']}: +{r['delta_pct']:.1f}% (ambang {r['threshold']:.0f}%)"
+        for r in related
+    )
+
+    if anomali:
+        return CheckResult(
+            step=6,
+            nama="Cek Korelasi Komoditas Terkait",
+            status="triggered",
+            detail=(
+                f"⚠ {len(anomali)} komoditas terkait juga anomali — "
+                f"indikasi gangguan supply chain sistemik\n{lines}"
+            ),
+        )
+    return CheckResult(
+        step=6,
+        nama="Cek Korelasi Komoditas Terkait",
+        status="clear",
+        detail=f"Komoditas terkait tidak menunjukkan anomali:\n{lines}",
+    )
+
+
+def _check_inflasi_tren(data: CommodityData, today: date) -> CheckResult:
+    """Check 5: Apakah inflasi M-to-M positif 3 bulan berturut di kota pantauan? (sumber: BPS)"""
+    kota_names = [k.nama for k in data.kota_list]
+    triggered, detail = get_inflasi_tren(kota_names, today)
+    return CheckResult(
+        step=5,
+        nama="Cek Tren Inflasi Bulanan (BPS)",
+        status="triggered" if triggered else "clear",
+        detail=detail,
+    )
+
+
+# ──────────────────────────────────────────────
+# SEVERITY SCORING (5 indikator tersedia dari 10)
+# Skala: L0 (aman) → L4 (darurat)
+# ──────────────────────────────────────────────
+
+# Label deskriptif per level (untuk display di frontend)
+SEVERITY_LABELS: dict[str, str] = {
+    "L0": "Aman",
+    "L1": "Waspada",
+    "L2": "Awas",
+    "L3": "Kritis",
+    "L4": "Darurat",
+}
+
+
+def _score_severity(
+    data: CommodityData, checks: list[CheckResult], delta_pct: float
+) -> tuple[str, list[str]]:
+    """
+    Hitung severity level dari 6 indikator yang datanya tersedia.
+    Skoring proporsional terhadap 6 indikator:
+      0 → L0, 1 → L1, 2 → L2, 3-4 → L3, 5-6 → L4
+    """
+    yes: list[str] = []
+
+    # G1 — Anomali harga
+    if delta_pct >= data.price_threshold:
+        yes.append("G1: Anomali Harga")
+
+    # D1 — Window hari raya aktif
+    c1 = next((c for c in checks if c.step == 1), None)
+    if c1 and c1.status == "triggered":
+        yes.append("D1: Window Hari Raya")
+
+    # S1 — Cuaca ekstrem di daerah produksi
+    if data.cuaca.ekstrem:
+        yes.append("S1: Cuaca Ekstrem")
+
+    # S3 — Stok menipis atau kritis
+    if data.stok.pct < STOK_MENIPIS_THRESHOLD:
+        yes.append("S3: Stok Menipis")
+
+    # T2 — Kenaikan serempak antar kota
+    kota_naik = sum(1 for k in data.kota_list if k.naik)
+    total_kota = len(data.kota_list)
+    if total_kota > 0 and kota_naik / total_kota >= data.threshold_kota:
+        yes.append("T2: Kenaikan Serempak")
+
+    # E1 — Tren inflasi M-to-M positif 3 bulan berturut (dari BPS)
+    c5 = next((c for c in checks if c.step == 5), None)
+    if c5 and c5.status == "triggered":
+        yes.append("E1: Tren Inflasi 3 Bulan")
+
+    # C1 — Komoditas terkait juga naik anomali (korelasi supply chain)
+    c6 = next((c for c in checks if c.step == 6), None)
+    if c6 and c6.status == "triggered":
+        yes.append("C1: Korelasi Komoditas")
+
+    score = len(yes)
+    if score == 0:
+        level = "L0"
+    elif score == 1:
+        level = "L1"
+    elif score == 2:
+        level = "L2"
+    elif score <= 4:
+        level = "L3"
+    else:
+        level = "L4"
+
+    return level, yes
 
 
 # ──────────────────────────────────────────────
@@ -190,8 +328,8 @@ def _skip(step: int, nama: str, reason: str) -> CheckResult:
 
 def run_rca(data: CommodityData, today: date | None = None) -> RCAResult:
     """
-    Jalankan decision tree RCA secara sequential.
-    Return early saat trigger pertama ditemukan.
+    Jalankan semua 4 check tanpa early exit.
+    Diagnosis ditentukan dari check pertama yang triggered.
 
     today: tanggal referensi untuk cek kalender hari raya.
            Default date.today(). Bisa di-override untuk simulasi.
@@ -199,52 +337,32 @@ def run_rca(data: CommodityData, today: date | None = None) -> RCAResult:
     if today is None:
         today = date.today()
 
-    checks: list[CheckResult] = []
-
-    # Hitung delta harga
     delta_pct = ((data.price_now - data.price_prev) / data.price_prev) * 100
     is_anomaly = delta_pct >= data.price_threshold
 
-    # ── Check 1: Hari Raya ──────────────────────
     c1 = _check_hari_raya(data, today)
-    checks.append(c1)
-    if c1.status == "triggered":
-        checks += [
-            _skip(2, "Cek Cuaca Ekstrem (BMKG)", "demand trigger sudah cukup kuat"),
-            _skip(3, "Cek Persebaran Kenaikan Antar Kota", "demand trigger sudah cukup kuat"),
-            _skip(4, "Cek Stok Pedagang (Badan Pangan)", "demand trigger sudah cukup kuat"),
-        ]
-        diagnosis = DiagnosisType.DEMAND
-        return _build_result(data, diagnosis, checks, delta_pct, is_anomaly)
-
-    # ── Check 2: Cuaca ──────────────────────────
     c2 = _check_cuaca(data)
-    checks.append(c2)
-    if c2.status == "triggered":
-        checks += [
-            _skip(3, "Cek Persebaran Kenaikan Antar Kota", "cuaca trigger ditemukan"),
-            _skip(4, "Cek Stok Pedagang (Badan Pangan)", "cuaca trigger ditemukan"),
-        ]
-        diagnosis = DiagnosisType.SUPPLY
-        return _build_result(data, diagnosis, checks, delta_pct, is_anomaly)
-
-    # ── Check 3: Persebaran Kota ────────────────
     c3 = _check_persebaran_kota(data)
-    checks.append(c3)
-    if c3.status == "triggered":
-        checks.append(
-            _skip(4, "Cek Stok Pedagang (Badan Pangan)", "persebaran kota trigger ditemukan")
-        )
-        diagnosis = DiagnosisType.SUPPLY
-        return _build_result(data, diagnosis, checks, delta_pct, is_anomaly)
-
-    # ── Check 4: Stok ───────────────────────────
     c4 = _check_stok(data)
-    checks.append(c4)
-    if c4.status == "clear":
-        diagnosis = DiagnosisType.DISTRIBUSI
-    else:
+    c5 = _check_inflasi_tren(data, today)
+    c6 = _check_cross_commodity(data)
+    checks = [c1, c2, c3, c4, c5, c6]
+
+    # Diagnosis dari trigger pertama yang ditemukan
+    # c4 "clear" = stok normal; c4 "triggered" = stok menipis/kritis
+    if c1.status == "triggered":
+        diagnosis = DiagnosisType.DEMAND
+    elif c2.status == "triggered":
+        diagnosis = DiagnosisType.SUPPLY
+    elif c3.status == "triggered":
+        diagnosis = DiagnosisType.SUPPLY
+    elif c4.status == "triggered":
         diagnosis = DiagnosisType.UNKNOWN
+    elif c5.status == "triggered":
+        # Stok normal, tidak ada trigger supply/demand, tapi tren inflasi persisten
+        diagnosis = DiagnosisType.EKSPEKTASI
+    else:
+        diagnosis = DiagnosisType.DISTRIBUSI
 
     return _build_result(data, diagnosis, checks, delta_pct, is_anomaly)
 
@@ -257,6 +375,7 @@ def _build_result(
     is_anomaly: bool,
 ) -> RCAResult:
     tmpl = DIAGNOSIS_TEMPLATES[diagnosis]
+    severity_level, yes_indicators = _score_severity(data, checks, delta_pct)
     return RCAResult(
         commodity_key=data.key,
         commodity_name=data.name,
@@ -267,4 +386,6 @@ def _build_result(
         checks=checks,
         price_delta_pct=round(delta_pct, 2),
         is_anomaly=is_anomaly,
+        severity_level=severity_level,
+        yes_indicators=yes_indicators,
     )

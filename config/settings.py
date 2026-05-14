@@ -23,6 +23,16 @@ KOTA_SPREAD_THRESHOLD = 0.60          # 60% kota naik = supply nasional
 STOK_MENIPIS_THRESHOLD = 0.60         # < 60% kapasitas normal → Menipis
 STOK_KRITIS_THRESHOLD  = 0.35         # < 35% kapasitas normal → Kritis
 
+# ── Cross-Commodity Correlation ───────────────────────────────────────────
+# Pasangan komoditas yang berkorelasi — saat satu anomali, pasangannya juga dicek.
+# Saat real: perluas sesuai ketersediaan data PIHPS multi-komoditas.
+COMMODITY_RELATIONS: dict[str, list[str]] = {
+    "cabai":  ["bawang"],
+    "bawang": ["cabai"],
+    "beras":  ["ayam"],
+    "ayam":   ["beras"],
+}
+
 # ── Data Sources (isi saat connect ke real API) ───────────────────────────
 BMKG_API_URL = ""                     # https://api.bmkg.go.id/...
 BADAN_PANGAN_API_URL = ""             # https://panganku.id/api/...

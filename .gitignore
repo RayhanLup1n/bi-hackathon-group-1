@@ -1,5 +1,4 @@
 .env
-data/
 *.duckdb
 __pycache__/
 *.pyc
@@ -11,6 +10,8 @@ dist/
 .pytest_cache/
 logs/
 .DS_Store
+desktop.ini
+.claude/
 dbt_project/target/
 dbt_project/logs/
 dbt_project/dbt_packages/

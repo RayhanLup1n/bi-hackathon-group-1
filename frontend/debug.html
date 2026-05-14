@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DB Debug — RCA RadarPangan</title>
+  <title>Pantau Database — RCA RadarPangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
   <style>
@@ -408,11 +408,14 @@
     <div class="header-left">
       <a class="back-btn" href="/">← Dashboard</a>
       <div>
-        <div class="header-title">DB Debug Viewer</div>
+        <div class="header-title">Pantau Database</div>
         <div class="header-sub">stok pedagang · peringatan BMKG · cuaca harian semua wilayah</div>
       </div>
     </div>
-    <button class="refresh-btn" onclick="loadAll()">↺ Refresh</button>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="userBadge" style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.7);border:1px solid var(--border);border-radius:var(--radius-sm)">—</span>
+      <button class="refresh-btn" onclick="loadAll()">↺ Refresh</button>
+    </div>
   </header>
 
   <!-- Sim date filter -->
@@ -478,8 +481,27 @@
 
 </div>
 <script>
+// Auth guard — semua role boleh akses
+(async function initAuth() {
+  const token = localStorage.getItem('rca_token');
+  if (!token) { window.location.replace('/login'); return; }
+  try {
+    const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) throw new Error();
+    const me = await r.json();
+    document.getElementById('userBadge').innerHTML =
+      `<strong style="color:var(--accent)">${me.username}</strong> · ${me.role}`;
+  } catch {
+    localStorage.removeItem('rca_token');
+    window.location.replace('/login');
+  }
+})();
+
 async function fetchJSON(url) {
-  const res = await fetch(url);
+  const token = localStorage.getItem('rca_token');
+  const headers = token ? { Authorization: 'Bearer ' + token } : {};
+  const res = await fetch(url, { headers });
+  if (res.status === 401) { window.location.replace('/login'); return; }
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
