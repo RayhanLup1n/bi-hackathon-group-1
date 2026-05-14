@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **R.A.D.A.R Pangan** (Real-time Anti-inflation Detection, Analysis & Response) is a platform for monitoring, predicting, and responding to food price inflation in Indonesia. It integrates real PIHPS price data, holiday calendars, and ML predictions to detect anomalies, compare prices against HET (Harga Eceran Tertinggi), and recommend policy interventions — all in Bahasa Indonesia.
 
 **Tim**: Simatana (Hackathon PIDI — Digitalisasi Ketahanan Pangan)
-**Stage**: MVP / Proof of Concept — target demo mid-May 2026
+**Stage**: MVP / Proof of Concept — target demo June 4, 2026
 **Branch kerja**: `feat/workflow-integration` (JANGAN langsung push ke `main`)
 
 ## Architecture
@@ -17,63 +17,87 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 ┌─────────────────────────────────────────────────────┐
 │                   DATA SOURCES                       │
-│  BI PIHPS (harga)  │  Hari Besar  │  (future: cuaca)│
+│  BI PIHPS (harga)  │  Hari Besar  │  Open-Meteo     │
 └────────┬───────────┴──────┬───────┴─────────────────┘
          │                  │
          ▼                  ▼
 ┌─────────────────────────────────────────────────────┐
 │          ETL Pipeline (Airflow + dbt)                │
 │          Runs in Docker (local)                      │
-│          Target: Supabase PostgreSQL                 │
+│          Target: Google BigQuery (raw/staging/marts)  │
 └────────────────────┬────────────────────────────────┘
                      │
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│         Supabase PostgreSQL (Cloud)                  │
-│         Shared by all team members                   │
-│                                                      │
-│  ETL schemas:          │  App schemas:                │
-│  • raw.*               │  • app.users                 │
-│  • staging.*           │  • app.het_reference         │
-│  • marts.*             │  • app.ml_predictions        │
-│                        │  • app.komoditas_config      │
-└──────────┬─────────────┴─────────┬──────────────────┘
-           │                       │
-     ┌─────┴──────┐          ┌─────┴──────┐
-     │  FastAPI   │          │ ML Model   │
-     │  Backend   │          │ (teammate) │
-     └─────┬──────┘          └────────────┘
-           │
-     ┌─────┴──────┐
-     │  Frontend  │
-     │  HTML +    │
-     │  Alpine.js │
-     └────────────┘
+         ┌───────────┴───────────┐
+         ▼                       ▼
+┌────────────────────┐  ┌────────────────────────────┐
+│  Google BigQuery   │  │  Supabase PostgreSQL       │
+│  (Data Warehouse)  │  │  (App/Transactional)       │
+│                    │  │                            │
+│  • raw.*           │  │  • app.users               │
+│  • staging.*       │  │  • app.het_reference       │
+│  • marts.*         │  │  • app.ml_predictions      │
+│                    │  │  • app.komoditas_config     │
+└────────┬───────────┘  └─────────┬──────────────────┘
+         │                        │
+         └────────┬───────────────┘
+                  ▼
+            ┌──────────┐          ┌────────────┐
+            │ FastAPI  │          │ ML Model   │
+            │ Backend  │          │ (teammate) │
+            └─────┬────┘          └────────────┘
+                  │
+            ┌─────┴──────┐
+            │  Frontend  │
+            │  HTML +    │
+            │  Alpine.js │
+            └────────────┘
 ```
 
-### Database: Supabase PostgreSQL
+### Database: Dual Architecture (BigQuery + Supabase)
 
-**Connection**: Credentials di `.envs/.env` (JANGAN commit password ke git)
+**Prinsip**: Data warehouse (raw/staging/marts) di BigQuery, app/transactional data di Supabase PostgreSQL.
+
+**BigQuery** (Data Warehouse — free tier: 10 GB storage, 1 TB queries/month):
+- Project: `radar-pangan-hackathon`
+- Region: `asia-southeast2`
+- Auth: Application Default Credentials (ADC) via `gcloud auth application-default login`
+- Infrastructure: Managed via Terraform (`infra/`)
 
 ```
-PostgreSQL (Supabase Cloud)
+BigQuery (Google Cloud)
 │
 ├── raw.                              ← ETL raw extracts
-│   ├── harga_pangan                  (harga harian dari BI PIHPS, ~347K+ rows)
-│   ├── cuaca_harian                  (cuaca harian dari Open-Meteo, ~11K rows)
+│   ├── harga_pangan                  (619K+ rows, PARTITIONED BY tanggal, CLUSTERED BY comcat_id/provinsi_id/kota_id)
+│   ├── cuaca_harian                  (11K rows, PARTITIONED BY tanggal, CLUSTERED BY provinsi_id)
 │   ├── dim_provinsi                  (master provinsi)
 │   ├── dim_kota                      (master kota)
 │   ├── hari_besar                    (hari libur nasional + cuti bersama)
-│   └── pipeline_log                  (audit trail ETL runs)
+│   ├── inflasi_bulanan               (inflasi bulanan dummy untuk ML)
+│   ├── musim_panen                   (musim panen dummy untuk ML)
+│   └── pipeline_log                  (audit trail ETL runs, PARTITIONED BY started_at)
 │
-├── staging.                          ← dbt cleaned views
+├── staging.                          ← dbt cleaned views (BigQuery SQL)
 │   ├── stg_harga_pangan             (deduplicated, validated, enriched)
-│   └── stg_hari_besar               (categorized holidays)
+│   ├── stg_dim_komoditas            (komoditas dimension)
+│   ├── stg_dim_pasar_tipe           (pasar tipe dimension)
+│   ├── stg_dim_tanggal              (kalender + hari besar flags)
+│   ├── stg_dim_provinsi             (provinsi dimension)
+│   ├── stg_dim_kota                 (kota dimension)
+│   └── stg_fact_harga_pangan        (normalized fact: FK + harga only)
 │
-├── marts.                            ← dbt aggregated tables
+├── marts.                            ← dbt aggregated tables (BigQuery SQL)
 │   ├── mart_modelling_harga_pangan  (ML features: lag, rolling, z-score)
 │   ├── mart_dashboard_harga_pangan  (daily monitoring: delta, status, alert)
-│   └── mart_dashboard_ringkasan     (national-level aggregations)
+│   └── mart_dashboard_ringkasan_nasional (national-level aggregations)
+│
+└── app.                              ← dbt denormalized table for frontend
+    └── dashboard_harga_pangan        (pre-computed dashboard data)
+```
+
+**Supabase PostgreSQL** (App/Transactional — connection via `.envs/.env`):
+
+```
+PostgreSQL (Supabase Cloud)
 │
 └── app.                              ← Application-managed tables
     ├── users                         (auth: id, username, password_hash, is_admin, is_analyst, is_active, created_at)
@@ -82,10 +106,17 @@ PostgreSQL (Supabase Cloud)
     └── komoditas_config              (mapping komoditas aktif di MVP)
 ```
 
+**IMPORTANT BigQuery notes for dbt models**:
+- `harga_pangan` has `require_partition_filter=true` — ALL queries MUST include `WHERE tanggal >= '2020-01-01'`
+- Source-level dbt tests on `harga_pangan` are disabled (full table scan not allowed) — enforce tests at staging level
+- BigQuery SQL differs from PostgreSQL: see `etl/dbt_project/models/` for syntax patterns
+
 ### ETL Pipeline
 
-**Stack**: Airflow + dbt + Python extractors (in Docker)
-**Target**: Supabase PostgreSQL (migrated from DuckDB)
+**Stack**: Airflow + dbt-bigquery + Python extractors (in Docker)
+**Target**: Google BigQuery (migrated from DuckDB → Supabase PostgreSQL → BigQuery)
+**dbt SQL dialect**: BigQuery SQL (NOT PostgreSQL)
+**dbt auth**: OAuth via Application Default Credentials (ADC)
 
 | DAG | Fungsi | Schedule |
 |-----|--------|----------|
@@ -103,7 +134,7 @@ PostgreSQL (Supabase Cloud)
 
 **Engine Logic** (3 modules):
 1. **HET Monitor** — bandingkan harga aktual vs HET reference → status AMAN / WASPADA / KRITIS / MELAMPAUI
-2. **RCA Engine** — rule-based root cause analysis:
+2. **RCA Engine** — rule-based root cause analysis (4-step sequential, early exit):
    - Check 1: Hari Raya demand window (H-14 s/d H+3)
    - Check 2: Cuaca Ekstrem dari Open-Meteo (hujan >100mm, drought >14 hari, suhu >38°C, angin >60km/h)
    - Check 3: Persebaran kenaikan antar kota (>60% kota naik = supply nasional)
@@ -111,6 +142,8 @@ PostgreSQL (Supabase Cloud)
 3. **Weather Data Layer** — query `raw.cuaca_harian` untuk RCA cuaca check
 
 **Auth**: JWT HS256 (8 jam expire), bcrypt password hashing, RBAC via boolean flags (is_admin/is_analyst/is_active)
+
+**Dual Database Connection**: FastAPI connects to both BigQuery (analytics/warehouse data) and Supabase PostgreSQL (auth, HET, ML predictions)
 
 ### Frontend
 
@@ -199,7 +232,6 @@ FastAPI tinggal SELECT dari tabel ini untuk ditampilkan di dashboard.
 - React PWA rebuild (tetap HTML + Alpine.js)
 - Notification system (Telegram/WA/email)
 - Docker deployment untuk production
-- BigQuery/GCS migration (post-hackathon, untuk scale data warehouse)
 
 ## Setup & Commands
 
@@ -225,7 +257,34 @@ uv sync
 # 4. Copy dan isi credentials
 cp .envs/.env.example .envs/.env
 # Edit .envs/.env → isi SUPABASE_PASSWORD (minta ke Rayhan)
+
+# 5. Setup GCP (untuk BigQuery access)
+# Install gcloud CLI: https://cloud.google.com/sdk/docs/install
+gcloud auth application-default login
+# Pastikan project benar:
+gcloud config set project radar-pangan-hackathon
 ```
+
+### BigQuery Infrastructure (Terraform)
+
+```bash
+# Dari root project
+cd infra
+
+# Init terraform (pertama kali)
+terraform init
+
+# Preview changes
+terraform plan
+
+# Apply changes
+terraform apply
+
+# Kembali ke root
+cd ..
+```
+
+**PENTING**: Terraform state (`terraform.tfstate`) JANGAN di-commit — sudah di `.gitignore`.
 
 ### Run App
 
@@ -280,11 +339,13 @@ docker-compose down
 
 ```bash
 # Dari root project (bukan dari etl/)
+# Pastikan ADC sudah login: gcloud auth application-default login
 uv run dbt run --profiles-dir etl/dbt_project --project-dir etl/dbt_project
 uv run dbt test --profiles-dir etl/dbt_project --project-dir etl/dbt_project
 ```
 
-Perlu set environment variables Supabase sebelum run dbt (atau pastikan `.envs/.env` ter-load).
+dbt sekarang pakai **BigQuery** (bukan PostgreSQL). Auth via ADC (Application Default Credentials).
+Env vars opsional: `GCP_PROJECT` (default: `radar-pangan-hackathon`), `BQ_LOCATION` (default: `asia-southeast2`).
 
 Access points:
 - App Login: `http://localhost:8000/login`
@@ -307,27 +368,35 @@ Access points:
 ```
 .envs/.env              ← Supabase PostgreSQL credentials (JANGAN commit password!)
 etl/.env                ← ETL-specific config (PIHPS API, delays, etc.)
+infra/terraform.tfvars  ← Terraform vars (project_id, region) — gitignored
 ```
 
-Format `.env` harus menggunakan `=` (bukan `:`):
+Format `.envs/.env` harus menggunakan `=` (bukan `:`):
 ```
+# Supabase PostgreSQL (app.* tables only)
 SUPABASE_HOST=db.xxx.supabase.co
 SUPABASE_PORT=5432
 SUPABASE_DB=postgres
 SUPABASE_USER=postgres
 SUPABASE_PASSWORD=<password>
+
+# BigQuery (data warehouse — raw/staging/marts)
+# Auth via ADC: gcloud auth application-default login
+GCP_PROJECT=radar-pangan-hackathon
+BQ_LOCATION=asia-southeast2
 ```
 
 ## Do's and Don'ts
 
-### DO ✅
+### DO
 - **DO** selalu kerja di branch `feat/workflow-integration`, bukan `main`
 - **DO** gunakan `.env` untuk credentials — JANGAN hardcode
 - **DO** tulis test sebelum implementasi (TDD approach)
 - **DO** auto-commit saat fitur/fix berhasil (checkpoint)
 - **DO** gunakan conventional commits format
-- **DO** simpan data yang sudah normalized ke PostgreSQL (jangan raw dump)
 - **DO** gunakan dbt untuk transformasi data — jangan transform di Python jika bisa di SQL
+- **DO** tulis dbt models dalam **BigQuery SQL** (BUKAN PostgreSQL SQL)
+- **DO** tambahkan `WHERE tanggal >= '2020-01-01'` saat query `raw.harga_pangan` (partition filter required)
 - **DO** handle error gracefully di ETL (retry, logging, fallback)
 - **DO** gunakan parameterized queries / ORM — jangan string concatenation untuk SQL
 - **DO** cek apakah data sudah ada sebelum INSERT (idempotent/upsert)
@@ -337,7 +406,7 @@ SUPABASE_PASSWORD=<password>
 ### DON'T ❌
 - **DON'T** commit password/secrets ke git
 - **DON'T** push langsung ke `main`
-- **DON'T** pakai SQLite untuk data baru — semua pakai Supabase PostgreSQL
+- **DON'T** pakai SQLite untuk data baru
 - **DON'T** buat dummy data baru jika data real sudah tersedia di pipeline
 - **DON'T** hardcode tanggal hari raya — gunakan `python-holidays` package
 - **DON'T** pakai BMKG API untuk data historis (tidak tersedia) — pakai Open-Meteo jika butuh cuaca historis
@@ -345,6 +414,8 @@ SUPABASE_PASSWORD=<password>
 - **DON'T** ubah schema `marts.*` tanpa koordinasi dengan ML teammate
 - **DON'T** tambahkan AI attribution (Co-Authored-By, Generated by) di commit message
 - **DON'T** over-engineer — fokus ke fungsionalitas MVP yang bisa di-demo
+- **DON'T** tulis dbt SQL dengan syntax PostgreSQL (e.g. `::INT`, `ILIKE`, `BOOL_OR`, `EXTRACT(DOW)`) — gunakan BigQuery SQL
+- **DON'T** query `raw.harga_pangan` tanpa partition filter — BigQuery akan error
 
 ## Sprint Checkpoints
 
@@ -430,7 +501,7 @@ SUPABASE_PASSWORD=<password>
 - [x] Plan 5 pages + role access matrix (Login, Dashboard, RCA, Prediksi ML, Admin)
 - [x] 33 tests pass
 
-### Checkpoint 9: New Pages (RCA + Prediksi ML) ⬜ IN PROGRESS
+### Checkpoint 9: New Pages (RCA + Prediksi ML) ✅ DONE (May 9)
 - [x] Build `/rca` page — single column stacked: filter → RCA result → detail → timeline
 - [x] Build `/prediksi` page — filter → summary cards → grafik → tabel prediksi
 - [x] Add role guard (analyst+ only) to both pages
@@ -440,10 +511,32 @@ SUPABASE_PASSWORD=<password>
 - [ ] Integrasi Chart.js/Plotly di halaman prediksi
 - [ ] End-to-end testing halaman RCA dan Prediksi ML
 
-### Checkpoint 10: Architecture Upgrade (Post-hackathon) ⬜ FUTURE
-- [ ] Setup BigQuery/GCS untuk data warehouse
-- [ ] Migrasi data historis ke BigQuery
-- [ ] Optimasi Supabase — hanya app data
+### Checkpoint 10: BigQuery Migration ✅ DONE (May 14)
+- [x] Setup GCP project + Terraform IaC (`infra/` directory)
+- [x] Provision BigQuery datasets (raw, staging, marts) + 8 raw tables via Terraform
+- [x] Partitioning: `harga_pangan` by tanggal (CLUSTERED BY comcat_id/provinsi_id/kota_id)
+- [x] Build `etl/scripts/migrate_to_bigquery.py` — batch migrate from Supabase to BigQuery
+- [x] Migrate 631K+ rows from Supabase to BigQuery (6 tables, ~100 seconds, FREE batch load)
+- [x] Rewrite `etl/dbt_project/profiles.yml` — dbt-postgres → dbt-bigquery (oauth + ADC)
+- [x] Convert all 11 dbt SQL models: PostgreSQL → BigQuery SQL (9 syntax patterns)
+- [x] Add partition filters (`tanggal >= '2020-01-01'`) to all queries on `raw.harga_pangan`
+- [x] Remove source-level dbt tests on partitioned table (enforce at staging level)
+- [x] All 11 dbt models pass, 17/17 dbt tests pass on BigQuery
+- [x] Update `pyproject.toml` — add google-cloud-bigquery, pandas-gbq, dbt-bigquery
+
+### Checkpoint 11: FastAPI Dual Connection ⬜ IN PROGRESS
+- [ ] Create `src/data/bigquery_client.py` — BigQuery client wrapper for FastAPI
+- [ ] Update `src/data/commodity_data.py` — query BigQuery instead of Supabase for analytics
+- [ ] Update `src/data/weather_data.py` — query BigQuery instead of Supabase for weather
+- [ ] Keep Supabase connection for app.* tables (auth, HET, ML predictions)
+- [ ] End-to-end testing: all API endpoints still work with dual connection
+
+### Checkpoint 12: Cleanup + Polish ⬜ FUTURE
+- [ ] Cleanup Supabase — drop raw/staging/marts schemas (only keep app.*)
+- [ ] Update `.envs/.env.example` with GCP env vars
+- [ ] Navigation between pages (header nav links)
+- [ ] Chart.js/Plotly integration in prediksi page
+- [ ] End-to-end testing all pages
 - [ ] Proposal tahap 2 writing
 
 ## Team Responsibilities
@@ -470,32 +563,46 @@ SUPABASE_PASSWORD=<password>
 ```
 bi-hackathon-group-1/
 ├── .envs/
-│   ├── .env                    ← Supabase credentials (gitignored)
+│   ├── .env                    ← Supabase + GCP credentials (gitignored)
 │   └── .env.example            ← Template tanpa secrets
 ├── config/
 │   └── settings.py             ← App thresholds & config
+├── infra/                       ← Terraform IaC for BigQuery
+│   ├── main.tf                 ← GCP provider + BigQuery API
+│   ├── bigquery.tf             ← 3 datasets + 8 raw tables
+│   ├── variables.tf            ← project_id, region, bq_location
+│   ├── outputs.tf              ← Output definitions
+│   ├── terraform.tfvars        ← Actual values (gitignored)
+│   └── terraform.tfvars.example ← Template
 ├── etl/
 │   ├── .env                    ← ETL-specific config (gitignored)
 │   ├── Dockerfile              ← Airflow + dbt + Playwright image
 │   ├── config/                 ← ETL settings (pydantic-settings) + constants
 │   ├── dags/                   ← Airflow DAGs
-│   ├── dbt_project/            ← dbt models, profiles, macros
+│   ├── dbt_project/            ← dbt models (BigQuery SQL), profiles, macros
 │   ├── extractors/             ← Data extractors (PIHPS, Open-Meteo, Playwright)
 │   ├── loaders/                ← Database loaders (postgres_loader.py)
-│   └── scripts/                ← Seed scripts (hari besar, historical load, weather load)
+│   └── scripts/                ← Seed scripts, historical load, migration
+│       ├── migrate_to_bigquery.py  ← Supabase → BigQuery data migration
+│       ├── load_historical.py      ← PIHPS historical data loader
+│       ├── load_weather_historical.py ← Open-Meteo weather loader
+│       ├── seed_hari_besar.py      ← python-holidays seeder
+│       ├── seed_ml_reference_data.py ← ML dummy data (inflasi, musim panen)
+│       └── migrate_users_boolean_flags.py ← Role → boolean flags migration
 ├── frontend/
 │   ├── index.html              ← Main dashboard (Alpine.js + neobrutalism)
 │   ├── login.html              ← Login page (neobrutalism)
 │   ├── admin.html              ← User management (boolean checkboxes)
-│   ├── rca.html                ← TODO: Analisis RCA (analyst+ only)
-│   ├── prediksi.html           ← TODO: Prediksi ML (analyst+ only)
+│   ├── rca.html                ← Analisis RCA (analyst+ only)
+│   ├── prediksi.html           ← Prediksi ML (analyst+ only)
 │   └── debug.html              ← DB inspector
 ├── src/
 │   ├── api/
 │   │   ├── routes.py           ← Commodity + RCA + price + HET + weather endpoints
-│   │   └── auth_routes.py      ← Auth endpoints (JWT + RBAC boolean flags)
+│   │   ├── auth_routes.py      ← Auth endpoints (JWT + RBAC boolean flags)
+│   │   └── ml_routes.py        ← ML proxy endpoints (inference server)
 │   ├── data/
-│   │   ├── database.py         ← Shared PostgreSQL connection pool
+│   │   ├── database.py         ← Shared PostgreSQL connection pool (Supabase)
 │   │   ├── commodity_data.py   ← Read PIHPS prices (filtered to 6 MVP komoditas)
 │   │   ├── auth_db.py          ← User management (bcrypt + CRUD + boolean flags)
 │   │   └── weather_data.py     ← Weather data layer for RCA engine
@@ -528,13 +635,18 @@ Code yang sudah ada dan statusnya:
 
 - **RCA Engine** (`src/engine/rca_engine.py`): ✅ 4-step sequential check. Labels updated ke Open-Meteo. 33 tests pass.
 - **HET Monitor** (`src/engine/het_monitor.py`): ✅ Compare harga vs HET reference → AMAN/WASPADA/KRITIS/MELAMPAUI.
-- **Weather Data** (`src/data/weather_data.py`): ✅ Query `raw.cuaca_harian` → `CuacaInfo` untuk RCA engine.
+- **Weather Data** (`src/data/weather_data.py`): ✅ Query `raw.cuaca_harian` → `CuacaInfo` untuk RCA engine. (Currently reads from Supabase — needs migration to BigQuery)
 - **Schemas** (`src/models/schemas.py`): ✅ Clean — BMKG models dihapus.
 - **API Routes** (`src/api/routes.py`): ✅ Real `/api/het/*`, `/api/cuaca/*`, `/api/predictions` endpoints. BMKG stubs dihapus.
+- **ML Routes** (`src/api/ml_routes.py`): ✅ ML proxy endpoints (forward to inference server).
 - **Auth** (`src/api/auth_routes.py`): ✅ JWT + RBAC boolean flags. is_active check. Default users: admin/admin123, analyst/analyst123.
 - **Auth DB** (`src/data/auth_db.py`): ✅ Boolean flags (is_admin/is_analyst/is_active). `_compute_role()` for backward compat.
-- **Commodity Data** (`src/data/commodity_data.py`): ✅ Filtered ke 6 MVP komoditas. Multi-province weather detection.
+- **Commodity Data** (`src/data/commodity_data.py`): ✅ Filtered ke 6 MVP komoditas. Multi-province weather detection. (Currently reads from Supabase — needs migration to BigQuery)
+- **Database** (`src/data/database.py`): ✅ Shared PostgreSQL connection pool to Supabase. (Needs BigQuery client addition)
 - **Weather Extractor** (`etl/extractors/openmeteo_extractor.py`): ✅ Open-Meteo API extractor.
+- **BigQuery Migration** (`etl/scripts/migrate_to_bigquery.py`): ✅ Batch migrate from Supabase → BigQuery (WRITE_TRUNCATE, free).
+- **dbt Models**: ✅ All 11 models converted to BigQuery SQL. 11/11 pass, 17/17 tests pass.
+- **Terraform IaC** (`infra/`): ✅ 3 datasets + 8 raw tables provisioned. deletion_protection enabled.
 - **Frontend Dashboard** (`frontend/index.html`): ✅ Alpine.js + neobrutalism. HET badge, weather panel, RCA widget.
 - **Frontend Login** (`frontend/login.html`): ✅ Neobrutalism style.
 - **Frontend Admin** (`frontend/admin.html`): ✅ Neobrutalism + boolean checkboxes (is_admin/is_analyst/is_active).
@@ -543,10 +655,41 @@ Code yang sudah ada dan statusnya:
 - **Tests**: ✅ 33 tests pass (14 HET + 7 weather + 12 RCA).
 
 ### Database Status
-- **Total**: 242 MB / 500 MB (258 MB free)
-- **raw.harga_pangan**: 619,430 rows (4 provinsi, 18 kota, 2020-2026)
+
+**BigQuery** (Data Warehouse):
+- **raw.harga_pangan**: 619,430 rows (4 provinsi, 18 kota, 2020-2026) — partitioned by tanggal
 - **raw.cuaca_harian**: 11,605 rows (5 lokasi, 2020-2026)
-- **marts (filtered)**: 174,290 rows (6 MVP komoditas only)
+- **raw.dim_provinsi**: 34 rows
+- **raw.dim_kota**: 18 rows
+- **raw.hari_besar**: 91 rows (2024-2027)
+- **raw.pipeline_log**: 28 rows
+- **Storage**: ~250 MB / 10 GB free tier (2.5% used)
+- **dbt models**: 11/11 pass, 17/17 tests pass
+
+**Supabase PostgreSQL** (App/Transactional):
+- **app.users**: 2 users (admin, analyst)
+- **app.het_reference**: HET dummy data
+- **app.ml_predictions**: ML teammate managed
+- **app.komoditas_config**: 6 MVP komoditas
+- **Storage**: ~242 MB / 500 MB (raw/staging/marts still present — pending cleanup)
+
+### BigQuery SQL Patterns (dbt)
+
+Ketika menulis dbt models, gunakan BigQuery SQL (BUKAN PostgreSQL):
+
+| PostgreSQL | BigQuery |
+|-----------|----------|
+| `column::INTEGER` | `CAST(column AS INT64)` |
+| `column::NUMERIC` | `CAST(column AS NUMERIC)` |
+| `EXTRACT(DOW FROM date)` | `EXTRACT(DAYOFWEEK FROM date)` (1=Sun, 7=Sat) |
+| `DATE_TRUNC('week', date)` | `DATE_TRUNC(date, WEEK)` |
+| `BOOL_OR(expr)` | `LOGICAL_OR(expr)` |
+| `column ILIKE '%x%'` | `LOWER(column) LIKE '%x%'` |
+| `date + INTERVAL '14 days'` | `DATE_ADD(date, INTERVAL 14 DAY)` |
+| `date - INTERVAL '14 days'` | `DATE_SUB(date, INTERVAL 14 DAY)` |
+| `STDDEV(x)` | `STDDEV_SAMP(x)` |
+| `VALUES (1, 'a'), (2, 'b')` | `SELECT 1 AS col1, 'a' AS col2 UNION ALL SELECT 2, 'b'` |
+| `LAG() OVER w ... WINDOW w AS (...)` | Inline: `LAG() OVER (PARTITION BY ... ORDER BY ...)` |
 
 ### Remaining Work
 1. ~~Re-run dbt~~ ✅ Done (DB optimized 363→242 MB)
@@ -556,6 +699,10 @@ Code yang sudah ada dan statusnya:
 5. ~~Build `/rca` page~~ ✅ Done (single column stacked, animated 4-step check, analyst+ guard)
 6. ~~Build `/prediksi` page~~ ✅ Done (summary cards, chart placeholder, prediction table, empty state)
 7. ~~ML predictions API endpoint~~ ✅ Done (`GET /api/predictions`)
-8. Add navigation between pages (header nav links di index.html, admin.html)
-9. Integrasi Chart.js/Plotly di halaman prediksi
-10. BigQuery migration (post-hackathon)
+8. ~~BigQuery infrastructure (Terraform)~~ ✅ Done (3 datasets, 8 tables)
+9. ~~Data migration Supabase → BigQuery~~ ✅ Done (631K+ rows, 6 tables)
+10. ~~dbt migration to BigQuery~~ ✅ Done (11/11 models, 17/17 tests)
+11. **FastAPI dual connection** — create BigQuery client, update commodity_data.py + weather_data.py
+12. **Cleanup Supabase** — drop raw/staging/marts, keep only app.*
+13. Navigation between pages (header nav links)
+14. Chart.js/Plotly integration in prediksi page
