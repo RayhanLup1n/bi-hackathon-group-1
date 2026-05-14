@@ -254,7 +254,7 @@
 
     <div class="login-logo">📡</div>
     <div class="login-title">R.A.D.A.R Pangan</div>
-    <div class="login-subtitle">root cause analysis engine &nbsp;·&nbsp; v0.4</div>
+    <div class="login-subtitle">root cause analysis engine &nbsp;·&nbsp; v0.5</div>
 
     <div class="error-alert" id="errorAlert">
       <span>⚠</span>
@@ -337,7 +337,7 @@
     document.getElementById('username').classList.remove('error');
     document.getElementById('password').classList.remove('error');
     btn.disabled = true;
-    content.innerHTML = '<div class="spinner"></div> Memeriksa...';
+    content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><div class="spinner"></div> Memeriksa...</div>';
 
     try {
       const res = await fetch('/api/auth/login', {
