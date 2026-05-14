@@ -299,7 +299,7 @@
       font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 600;
     }
 
-    .spinner { width: 18px; height: 18px; border: 3px solid rgba(99,102,241,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+    .spinner { width: 18px; height: 18px; border: 3px solid rgba(46,204,136,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; vertical-align: middle; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     [x-cloak] { display: none !important; }
@@ -416,17 +416,30 @@
       </div>
 
       <!-- ── Detail Root Cause ── -->
-      <template x-if="result.is_anomaly && result.root_cause">
+      <template x-if="result.root_cause">
         <div class="detail-card">
           <div class="detail-title">Detail Root Cause</div>
           <div class="detail-cause">
             <div class="detail-cause-label">Penyebab</div>
-            <div class="detail-cause-text" x-text="result.root_cause"></div>
+            <div class="detail-cause-text">
+              <strong x-text="result.root_cause"></strong>
+              <template x-if="result.description">
+                <div style="margin-top:6px;font-size:12px;color:#555;" x-text="result.description"></div>
+              </template>
+            </div>
           </div>
           <div class="detail-recommendation">
             <div class="detail-rec-label">Rekomendasi Kebijakan</div>
             <div class="detail-rec-text" x-text="result.recommendation || 'Lakukan monitoring intensif dan koordinasi dengan TPID setempat.'"></div>
           </div>
+          <template x-if="result.severity_level">
+            <div style="margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--muted);">
+              Severity: <strong x-text="result.severity_level"></strong>
+              <template x-if="result.yes_indicators.length">
+                <span> — <span x-text="result.yes_indicators.join(', ')"></span></span>
+              </template>
+            </div>
+          </template>
         </div>
       </template>
 
@@ -517,7 +530,7 @@
   <template x-if="loading && !result">
     <div class="card">
       <div class="empty-state" style="padding:60px 20px;">
-        <div class="spinner" style="margin:0 auto 16px;width:28px;height:28px;"></div>
+        <div class="spinner" style="margin:0 auto 16px;width:28px;height:28px;display:block;"></div>
         <div>Mengambil data dan menjalankan analisis...</div>
       </div>
     </div>
@@ -606,20 +619,33 @@ function rcaPage() {
         let comData = null;
         if (comRes.ok) comData = await comRes.json();
 
-        // Build result
+        // Build result — map API field names to frontend expectations
+        // Backend RCAResult uses: price_delta_pct, title, action, checks[]
+        // Backend CommodityData has: kota_list[] with naik flags
+        const kotaList = comData?.kota_list || [];
+        const kotaNaik = kotaList.filter(k => k.naik).length;
+
         this.result = {
           is_anomaly: rcaData.is_anomaly,
-          root_cause: rcaData.root_cause,
-          recommendation: rcaData.recommendation,
-          delta_pct: rcaData.delta_pct || 0,
+          root_cause: rcaData.title || '',          // RCAResult.title = diagnosis title
+          description: rcaData.description || '',    // RCAResult.description = detail
+          recommendation: rcaData.action || '',      // RCAResult.action = policy recommendation
+          delta_pct: rcaData.price_delta_pct || 0,   // RCAResult.price_delta_pct
           price_now: comData?.price_now || 0,
-          kota_naik: rcaData.kota_naik || 0,
-          total_kota: rcaData.total_kota || 0,
-          checks: rcaData.checks || [],
+          kota_naik: kotaNaik,                       // count from CommodityData.kota_list
+          total_kota: kotaList.length,                // total from CommodityData.kota_list
+          severity_level: rcaData.severity_level || 'L0',
+          yes_indicators: rcaData.yes_indicators || [],
+          checks: (rcaData.checks || []).map(c => ({
+            ...c,
+            // Map CheckResult fields: nama→name, status→result (TRIGGERED/CLEAR/SKIP)
+            name: c.nama || c.name || '',
+            result: (c.status || '').toUpperCase(),
+          })),
         };
 
-        // Animate checks sequentially
-        this.animatedChecks = (rcaData.checks || []).map(c => ({
+        // Animate checks sequentially (use already-mapped checks from result)
+        this.animatedChecks = this.result.checks.map(c => ({
           ...c,
           animState: 'pending',
         }));
@@ -631,16 +657,31 @@ function rcaPage() {
           await this._sleep(200);
         }
 
-        // Fetch weather data
-        if (comData?.cuaca) {
-          this.cuacaData = comData.cuaca;
-        } else {
-          // Try first province or selected province
-          const provId = this.selectedProvinsi || 12;
-          try {
-            const wRes = await fetch(`/api/cuaca/${provId}${dateParam}`, this._authOpts());
-            if (wRes.ok) this.cuacaData = await wRes.json();
-          } catch {}
+        // Fetch weather data — always use /api/cuaca for numeric details
+        // CommodityData.cuaca only has text description, not numeric values
+        const provId = this.selectedProvinsi || 12;  // default to Jawa Barat
+        try {
+          const wRes = await fetch(`/api/cuaca/${provId}${dateParam}`, this._authOpts());
+          if (wRes.ok) {
+            const wData = await wRes.json();
+            // Merge: use RCA cuaca flags + API weather daily numbers
+            const latestDay = (wData.harian && wData.harian.length > 0) ? wData.harian[0] : {};
+            this.cuacaData = {
+              ekstrem: comData?.cuaca?.ekstrem ?? wData.ekstrem ?? false,
+              desc: comData?.cuaca?.desc || wData.ringkasan || '',
+              daerah: comData?.cuaca?.daerah || wData.daerah || latestDay.lokasi_label || '',
+              detail: {
+                precipitation_sum: latestDay.precipitation_sum ?? null,
+                temperature_max: latestDay.temperature_max ?? null,
+                wind_speed_max: latestDay.wind_speed_max ?? null,
+              },
+            };
+          } else if (comData?.cuaca) {
+            // Fallback: use commodity cuaca (text only, no numeric)
+            this.cuacaData = comData.cuaca;
+          }
+        } catch {
+          if (comData?.cuaca) this.cuacaData = comData.cuaca;
         }
 
       } catch (err) {

@@ -526,6 +526,8 @@
       border-top-color: white;
       border-radius: 50%;
       animation: spin 0.6s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
     }
     @keyframes spin    { to { transform: rotate(360deg); } }
     @keyframes slide-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -886,7 +888,7 @@
 
     errEl.classList.remove('show');
     btn.disabled = true;
-    content.innerHTML = '<div class="spinner-sm"></div> Menyimpan...';
+    content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:6px;"><div class="spinner-sm"></div> Menyimpan...</div>';
 
     try {
       const r = await fetch('/api/auth/users', {
@@ -940,7 +942,7 @@
 
     errEl.classList.remove('show');
     btn.disabled = true;
-    content.innerHTML = '<div class="spinner-sm"></div> Menyimpan...';
+    content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:6px;"><div class="spinner-sm"></div> Menyimpan...</div>';
 
     try {
       const body = { is_admin, is_analyst, is_active };
@@ -979,7 +981,7 @@
     const content = document.getElementById('deleteSubmitContent');
 
     btn.disabled = true;
-    content.innerHTML = '<div class="spinner-sm"></div> Menghapus...';
+    content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:6px;"><div class="spinner-sm"></div> Menghapus...</div>';
 
     try {
       const r = await fetch(`/api/auth/users/${id}`, {

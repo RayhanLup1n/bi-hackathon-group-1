@@ -283,7 +283,7 @@
       font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 600;
     }
 
-    .spinner { width: 18px; height: 18px; border: 3px solid rgba(46,204,136,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+    .spinner { width: 18px; height: 18px; border: 3px solid rgba(46,204,136,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; vertical-align: middle; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* -- Info banner -- */
@@ -353,7 +353,9 @@
 
   <!-- -- Source Tabs -- -->
   <div class="source-tabs">
-    <div class="source-tab" :class="{ active: source === 'ml' }" @click="switchSource('ml')">
+    <div class="source-tab" :class="{ active: source === 'ml', disabled: mlStatus === 'offline' }"
+         @click="mlStatus !== 'offline' && switchSource('ml')"
+         :style="mlStatus === 'offline' ? 'opacity:0.5;cursor:not-allowed;' : ''">
       🤖 ML Inference (Real-time)
     </div>
     <div class="source-tab" :class="{ active: source === 'db' }" @click="switchSource('db')">
@@ -428,7 +430,7 @@
       <!-- Loading -->
       <template x-if="mlLoading">
         <div class="card" style="text-align:center;padding:40px;">
-          <div class="spinner" style="margin:0 auto 10px;"></div>
+          <div class="spinner" style="margin:0 auto 10px;display:block;"></div>
           <div style="font-family:var(--mono);font-size:12px;color:var(--muted);">Menjalankan analisis 3-layer ML...</div>
         </div>
       </template>
@@ -608,7 +610,7 @@
         </div>
         <canvas id="priceChart"></canvas>
         <div x-show="!chartReady && selectedKey" style="text-align:center;padding:20px;font-family:var(--mono);font-size:11px;color:var(--muted);">
-          <div class="spinner" style="margin:0 auto 8px;"></div>
+          <div class="spinner" style="margin:0 auto 8px;display:block;"></div>
           Memuat data historis...
         </div>
       </div>
@@ -662,7 +664,7 @@
         </template>
         <template x-if="dbLoading">
           <div class="empty-state" style="padding:30px;">
-            <div class="spinner" style="margin:0 auto 10px;"></div>
+            <div class="spinner" style="margin:0 auto 10px;display:block;"></div>
             <div>Memuat data prediksi...</div>
           </div>
         </template>
@@ -777,7 +779,7 @@ function prediksiPage() {
       } catch {
         this.mlStatus = 'offline';
         this.mlStatusText = 'ML Server Offline';
-        this.mlStatusDetail = 'Jalankan: uvicorn ml.serve.api:app --port 8001';
+        this.mlStatusDetail = 'Server prediksi ML belum aktif — menampilkan data dari database';
         // Auto-switch to DB source if ML is offline
         this.source = 'db';
         await this.loadDbPredictions();
