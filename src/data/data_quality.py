@@ -8,12 +8,16 @@ Provides validation functions to detect:
   - Coverage summary (date range, row counts per komoditas/kota)
 
 All queries target BigQuery raw.harga_pangan with required partition filter.
+Uses parameterized queries (ArrayQueryParameter) to prevent SQL injection.
 """
 from __future__ import annotations
 
 import logging
+import math
 from datetime import date
 from typing import Optional
+
+from google.cloud.bigquery import ArrayQueryParameter, ScalarQueryParameter
 
 from src.data.bigquery_client import bq_query
 
@@ -23,6 +27,11 @@ logger = logging.getLogger(__name__)
 _MVP_COMCAT = ("com_11", "com_12", "com_13", "com_14", "com_15", "com_16")
 
 
+def _comcat_params(comcat_ids: Optional[list[str]] = None) -> list[str]:
+    """Resolve comcat_ids to a list — defaults to MVP komoditas."""
+    return list(comcat_ids) if comcat_ids else list(_MVP_COMCAT)
+
+
 def get_data_coverage(
     comcat_ids: Optional[list[str]] = None,
 ) -> dict:
@@ -30,12 +39,9 @@ def get_data_coverage(
 
     Returns a dict with 'total_rows', 'date_range', 'per_komoditas' list.
     """
-    filter_clause = ""
-    if comcat_ids:
-        ids = ", ".join(f"'{c}'" for c in comcat_ids)
-        filter_clause = f"AND comcat_id IN ({ids})"
+    ids = _comcat_params(comcat_ids)
 
-    sql = f"""
+    sql = """
     SELECT
         comcat_id,
         MIN(tanggal) AS first_date,
@@ -45,11 +51,12 @@ def get_data_coverage(
         COUNT(DISTINCT tanggal) AS date_count
     FROM `raw.harga_pangan`
     WHERE tanggal >= '2020-01-01'
-    {filter_clause}
+        AND comcat_id IN UNNEST(@comcat_ids)
     GROUP BY comcat_id
     ORDER BY comcat_id
     """
-    rows = bq_query(sql)
+    params = [ArrayQueryParameter("comcat_ids", "STRING", ids)]
+    rows = bq_query(sql, params=params)
 
     total_rows = sum(r["row_count"] for r in rows)
     all_first = min((r["first_date"] for r in rows), default=None)
@@ -84,16 +91,16 @@ def check_missing_dates(
     Returns list of dicts with comcat_id, kota_id, expected_dates, actual_dates,
     missing_count, missing_pct.
     """
-    filter_clause = ""
-    if comcat_ids:
-        ids = ", ".join(f"'{c}'" for c in comcat_ids)
-        filter_clause = f"AND comcat_id IN ({ids})"
+    if not (1 <= last_n_days <= 730):
+        raise ValueError(f"last_n_days must be in [1, 730], got {last_n_days}")
 
-    sql = f"""
+    ids = _comcat_params(comcat_ids)
+
+    sql = """
     WITH date_range AS (
         SELECT
             MAX(tanggal) AS max_date,
-            DATE_SUB(MAX(tanggal), INTERVAL {last_n_days} DAY) AS min_date
+            DATE_SUB(MAX(tanggal), INTERVAL @n_days DAY) AS min_date
         FROM `raw.harga_pangan`
         WHERE tanggal >= '2020-01-01'
     ),
@@ -102,19 +109,21 @@ def check_missing_dates(
         SELECT d
         FROM date_range,
         UNNEST(GENERATE_DATE_ARRAY(min_date, max_date)) AS d
-        WHERE EXTRACT(DAYOFWEEK FROM d) NOT IN (1)  -- exclude Sunday (1=Sunday in BigQuery)
+        WHERE EXTRACT(DAYOFWEEK FROM d) NOT IN (1)  -- exclude Sunday (1=Sun in BQ)
+    ),
+    expected_count AS (
+        SELECT COUNT(*) AS cnt FROM expected
     ),
     actual AS (
         SELECT
             comcat_id,
             kota_id,
-            tanggal,
-            COUNT(*) AS n
+            tanggal
         FROM `raw.harga_pangan`, date_range
         WHERE tanggal >= date_range.min_date
             AND tanggal <= date_range.max_date
             AND tanggal >= '2020-01-01'
-            {filter_clause}
+            AND comcat_id IN UNNEST(@comcat_ids)
         GROUP BY comcat_id, kota_id, tanggal
     ),
     combos AS (
@@ -124,22 +133,27 @@ def check_missing_dates(
     SELECT
         c.comcat_id,
         c.kota_id,
-        (SELECT COUNT(*) FROM expected) AS expected_dates,
+        e.cnt AS expected_dates,
         COUNT(a.tanggal) AS actual_dates,
-        (SELECT COUNT(*) FROM expected) - COUNT(a.tanggal) AS missing_count,
+        e.cnt - COUNT(a.tanggal) AS missing_count,
         ROUND(
             (1.0 - CAST(COUNT(a.tanggal) AS FLOAT64) /
-            NULLIF((SELECT COUNT(*) FROM expected), 0)) * 100, 1
+            NULLIF(e.cnt, 0)) * 100, 1
         ) AS missing_pct
     FROM combos c
+    CROSS JOIN expected_count e
     LEFT JOIN actual a ON c.comcat_id = a.comcat_id
         AND c.kota_id = a.kota_id
-    GROUP BY c.comcat_id, c.kota_id
-    HAVING missing_count > 0
+    GROUP BY c.comcat_id, c.kota_id, e.cnt
+    HAVING e.cnt - COUNT(a.tanggal) > 0
     ORDER BY missing_count DESC
     LIMIT 50
     """
-    return bq_query(sql)
+    params = [
+        ArrayQueryParameter("comcat_ids", "STRING", ids),
+        ScalarQueryParameter("n_days", "INT64", last_n_days),
+    ]
+    return bq_query(sql, params=params)
 
 
 def check_outliers(
@@ -151,35 +165,43 @@ def check_outliers(
 
     Returns rows where |z-score| > threshold, sorted by abs(z_score) desc.
     """
-    filter_clause = ""
-    if comcat_ids:
-        ids = ", ".join(f"'{c}'" for c in comcat_ids)
-        filter_clause = f"AND comcat_id IN ({ids})"
+    # Guard against invalid float values (nan, inf)
+    if not math.isfinite(z_threshold) or not (0.5 <= z_threshold <= 20.0):
+        raise ValueError(
+            f"z_threshold must be a finite number in [0.5, 20.0], got {z_threshold}"
+        )
+    if not (1 <= last_n_days <= 730):
+        raise ValueError(f"last_n_days must be in [1, 730], got {last_n_days}")
 
-    sql = f"""
-    WITH recent AS (
+    ids = _comcat_params(comcat_ids)
+
+    sql = """
+    WITH latest AS (
+        SELECT MAX(tanggal) AS max_date
+        FROM `raw.harga_pangan`
+        WHERE tanggal >= '2020-01-01'
+    ),
+    recent AS (
         SELECT
-            comcat_id,
-            kota_id,
-            tanggal,
-            harga,
-            AVG(harga) OVER (
-                PARTITION BY comcat_id, kota_id
-                ORDER BY tanggal
+            h.comcat_id,
+            h.kota_id,
+            h.tanggal,
+            h.harga,
+            AVG(h.harga) OVER (
+                PARTITION BY h.comcat_id, h.kota_id
+                ORDER BY h.tanggal
                 ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
             ) AS rolling_avg,
-            STDDEV_SAMP(harga) OVER (
-                PARTITION BY comcat_id, kota_id
-                ORDER BY tanggal
+            STDDEV_SAMP(h.harga) OVER (
+                PARTITION BY h.comcat_id, h.kota_id
+                ORDER BY h.tanggal
                 ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
             ) AS rolling_std
-        FROM `raw.harga_pangan`
-        WHERE tanggal >= DATE_SUB(
-            (SELECT MAX(tanggal) FROM `raw.harga_pangan` WHERE tanggal >= '2020-01-01'),
-            INTERVAL {last_n_days} DAY
-        )
-            AND tanggal >= '2020-01-01'
-            {filter_clause}
+        FROM `raw.harga_pangan` h
+        CROSS JOIN latest
+        WHERE h.tanggal >= DATE_SUB(latest.max_date, INTERVAL @n_days DAY)
+            AND h.tanggal >= '2020-01-01'
+            AND h.comcat_id IN UNNEST(@comcat_ids)
     )
     SELECT
         comcat_id,
@@ -190,11 +212,16 @@ def check_outliers(
         ROUND((harga - rolling_avg) / NULLIF(rolling_std, 0), 2) AS z_score
     FROM recent
     WHERE rolling_std > 0
-        AND ABS((harga - rolling_avg) / rolling_std) > {z_threshold}
+        AND ABS((harga - rolling_avg) / rolling_std) > @z_threshold
     ORDER BY ABS((harga - rolling_avg) / NULLIF(rolling_std, 0)) DESC
     LIMIT 50
     """
-    rows = bq_query(sql)
+    params = [
+        ArrayQueryParameter("comcat_ids", "STRING", ids),
+        ScalarQueryParameter("n_days", "INT64", last_n_days),
+        ScalarQueryParameter("z_threshold", "FLOAT64", z_threshold),
+    ]
+    rows = bq_query(sql, params=params)
 
     # Convert date objects to strings for JSON serialization
     for row in rows:
@@ -211,12 +238,9 @@ def check_duplicates(
 
     Returns list of dicts with comcat_id, kota_id, tanggal, dup_count.
     """
-    filter_clause = ""
-    if comcat_ids:
-        ids = ", ".join(f"'{c}'" for c in comcat_ids)
-        filter_clause = f"AND comcat_id IN ({ids})"
+    ids = _comcat_params(comcat_ids)
 
-    sql = f"""
+    sql = """
     SELECT
         comcat_id,
         kota_id,
@@ -224,13 +248,14 @@ def check_duplicates(
         COUNT(*) AS dup_count
     FROM `raw.harga_pangan`
     WHERE tanggal >= '2020-01-01'
-    {filter_clause}
+        AND comcat_id IN UNNEST(@comcat_ids)
     GROUP BY comcat_id, kota_id, tanggal
     HAVING COUNT(*) > 1
     ORDER BY dup_count DESC
     LIMIT 50
     """
-    rows = bq_query(sql)
+    params = [ArrayQueryParameter("comcat_ids", "STRING", ids)]
+    rows = bq_query(sql, params=params)
 
     for row in rows:
         if isinstance(row.get("tanggal"), date):
@@ -246,7 +271,7 @@ def get_quality_summary(
 
     Returns dict with coverage, missing_dates, outliers, duplicates counts.
     """
-    ids = list(comcat_ids) if comcat_ids else list(_MVP_COMCAT)
+    ids = _comcat_params(comcat_ids)
 
     coverage = get_data_coverage(ids)
     missing = check_missing_dates(ids, last_n_days=30)

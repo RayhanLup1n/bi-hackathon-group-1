@@ -358,7 +358,11 @@ def get_quality_report() -> dict:
 )
 def get_coverage() -> dict:
     from src.data.data_quality import get_data_coverage
-    return get_data_coverage()
+
+    try:
+        return get_data_coverage()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Coverage check failed: {e}")
 
 
 @data_quality_router.get(
@@ -371,8 +375,11 @@ def get_outliers(
 ) -> dict:
     from src.data.data_quality import check_outliers
 
-    items = check_outliers(z_threshold=z_threshold, last_n_days=last_n_days)
-    return {"count": len(items), "z_threshold": z_threshold, "items": items}
+    try:
+        items = check_outliers(z_threshold=z_threshold, last_n_days=last_n_days)
+        return {"count": len(items), "z_threshold": z_threshold, "items": items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Outlier check failed: {e}")
 
 
 @data_quality_router.get(
@@ -384,8 +391,11 @@ def get_missing_dates(
 ) -> dict:
     from src.data.data_quality import check_missing_dates
 
-    items = check_missing_dates(last_n_days=last_n_days)
-    return {"count": len(items), "last_n_days": last_n_days, "items": items}
+    try:
+        items = check_missing_dates(last_n_days=last_n_days)
+        return {"count": len(items), "last_n_days": last_n_days, "items": items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Missing dates check failed: {e}")
 
 
 @data_quality_router.get(
@@ -395,6 +405,9 @@ def get_missing_dates(
 def get_duplicates() -> dict:
     from src.data.data_quality import check_duplicates
 
-    items = check_duplicates()
-    return {"count": len(items), "items": items}
+    try:
+        items = check_duplicates()
+        return {"count": len(items), "items": items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Duplicates check failed: {e}")
 
