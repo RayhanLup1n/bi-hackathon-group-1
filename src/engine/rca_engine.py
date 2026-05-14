@@ -14,7 +14,7 @@ import logging
 from datetime import date
 
 from config.settings import (
-    HARI_RAYA_CALENDAR, HARI_RAYA_WINDOW_DAYS, HARI_RAYA_POST_WINDOW_DAYS,
+    HARI_RAYA_WINDOW_DAYS, HARI_RAYA_POST_WINDOW_DAYS,
     STOK_MENIPIS_THRESHOLD,
 )
 from src.models.schemas import (
@@ -119,8 +119,9 @@ _hari_besar_cache: list[tuple[str, date]] | None = None
 def _get_hari_besar_calendar() -> list[tuple[str, date]]:
     """Get hari besar calendar from BigQuery, with in-memory cache.
 
-    Returns list of (nama, tanggal) tuples. Falls back to hardcoded
-    HARI_RAYA_CALENDAR from config/settings.py if BigQuery is unreachable.
+    Returns list of (nama, tanggal) tuples. Data source: BigQuery raw.hari_besar
+    (91 rows from python-holidays, covering 2024-2027).
+    Returns empty list if BigQuery is unreachable (hari raya check will be skipped).
     """
     global _hari_besar_cache
     if _hari_besar_cache is not None:
@@ -139,13 +140,10 @@ def _get_hari_besar_calendar() -> list[tuple[str, date]]:
         return _hari_besar_cache
     except Exception:
         logger.warning(
-            "BigQuery hari_besar unavailable, falling back to config calendar"
+            "BigQuery hari_besar unavailable — hari raya check will not trigger"
         )
-        # Fallback: convert hardcoded strings to date objects
-        return [
-            (nama, date.fromisoformat(tgl_str))
-            for nama, tgl_str in HARI_RAYA_CALENDAR
-        ]
+        # Return empty so hari raya check gracefully reports "clear"
+        return []
 
 
 def _check_hari_raya(data: CommodityData, today: date) -> CheckResult:
