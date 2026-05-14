@@ -19,11 +19,16 @@ import os
 from datetime import date
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-# ML server base URL — configurable via environment variable
-ML_SERVER_URL = os.environ.get("ML_SERVER_URL", "http://localhost:8001")
+from src.api.auth_routes import _current_user
+
+# ML server base URL — only localhost allowed to prevent SSRF
+_raw_url = os.environ.get("ML_SERVER_URL", "http://localhost:8001")
+if not _raw_url.startswith(("http://localhost", "http://127.0.0.1")):
+    raise ValueError(f"ML_SERVER_URL must point to localhost, got: {_raw_url}")
+ML_SERVER_URL = _raw_url.rstrip("/")
 
 ml_router = APIRouter(prefix="/api/ml", tags=["ML Predictions"])
 
@@ -59,9 +64,11 @@ async def _proxy_get(path: str, params: dict | None = None) -> Any:
             detail="ML server tidak tersedia. Pastikan ML inference server berjalan di port 8001.",
         )
     except httpx.HTTPStatusError as exc:
+        # Sanitize upstream error — don't leak internal stack traces
+        detail = f"ML server error: {exc.response.status_code}"
         raise HTTPException(
             status_code=exc.response.status_code,
-            detail=exc.response.text,
+            detail=detail,
         )
     except httpx.TimeoutException:
         raise HTTPException(
@@ -86,9 +93,11 @@ async def _proxy_post(path: str, json_body: dict) -> Any:
             detail="ML server tidak tersedia. Pastikan ML inference server berjalan di port 8001.",
         )
     except httpx.HTTPStatusError as exc:
+        # Sanitize upstream error — don't leak internal stack traces
+        detail = f"ML server error: {exc.response.status_code}"
         raise HTTPException(
             status_code=exc.response.status_code,
-            detail=exc.response.text,
+            detail=detail,
         )
     except httpx.TimeoutException:
         raise HTTPException(
@@ -106,7 +115,7 @@ async def ml_health() -> dict:
 
 
 @ml_router.post("/analyze", summary="Analisis ML tunggal")
-async def ml_analyze(req: MLAnalyzeRequest) -> dict:
+async def ml_analyze(req: MLAnalyzeRequest, user: dict = Depends(_current_user)) -> dict:
     """
     Jalankan full 3-layer ML analysis untuk satu (komoditas, kota, tanggal).
 
@@ -122,7 +131,7 @@ async def ml_analyze(req: MLAnalyzeRequest) -> dict:
 
 
 @ml_router.post("/batch", summary="Batch analisis ML")
-async def ml_batch(req: MLBatchRequest) -> list[dict]:
+async def ml_batch(req: MLBatchRequest, user: dict = Depends(_current_user)) -> list[dict]:
     """Batch analisis untuk multiple (komoditas, kota) sekaligus."""
     body = {
         "requests": [
@@ -146,6 +155,7 @@ async def ml_alerts(
         default="yellow", pattern="^(yellow|red)$",
         description="Minimum alert level",
     ),
+    user: dict = Depends(_current_user),
 ) -> dict:
     """Semua alert aktif pada tanggal tertentu, diurutkan priority."""
     params: dict[str, str] = {"min_alert_level": min_alert_level}
@@ -155,7 +165,7 @@ async def ml_alerts(
 
 
 @ml_router.get("/summary/{tanggal}", summary="Ringkasan harian ML")
-async def ml_summary(tanggal: date) -> dict:
+async def ml_summary(tanggal: date, user: dict = Depends(_current_user)) -> dict:
     """
     Ringkasan harian: jumlah red/yellow/green, komoditas paling berisiko.
     Berguna untuk tampilan homepage dashboard.
@@ -164,12 +174,12 @@ async def ml_summary(tanggal: date) -> dict:
 
 
 @ml_router.get("/komoditas", summary="Daftar komoditas ML")
-async def ml_komoditas() -> dict:
+async def ml_komoditas(user: dict = Depends(_current_user)) -> dict:
     """Daftar komoditas yang tersedia di ML pipeline."""
     return await _proxy_get("/api/v1/komoditas")
 
 
 @ml_router.get("/kota", summary="Daftar kota ML")
-async def ml_kota() -> dict:
+async def ml_kota(user: dict = Depends(_current_user)) -> dict:
     """Daftar kota yang tersedia di ML pipeline."""
     return await _proxy_get("/api/v1/kota")

@@ -702,7 +702,7 @@ function prediksiPage() {
         if (!r.ok) throw new Error();
         const me = await r.json();
         this.user = me;
-        if (!me.is_admin && !me.is_analyst && me.role === 'viewer') {
+        if (!me.is_admin && !me.is_analyst) {
           window.location.replace('/');
           return;
         }
