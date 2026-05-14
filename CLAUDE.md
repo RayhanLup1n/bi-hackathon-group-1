@@ -99,12 +99,16 @@ BigQuery (Google Cloud)
 ```
 PostgreSQL (Supabase Cloud)
 │
-└── app.                              ← Application-managed tables
+└── app.                              ← Application-managed tables (ONLY schema remaining)
     ├── users                         (auth: id, username, password_hash, is_admin, is_analyst, is_active, created_at)
     ├── het_reference                 (HET per komoditas per wilayah — dummy awal)
     ├── ml_predictions                (ML model output — managed by ML teammate)
-    └── komoditas_config              (mapping komoditas aktif di MVP)
+    ├── komoditas_config              (mapping komoditas aktif di MVP)
+    └── dashboard_harga_pangan        (pre-computed dashboard data — dbt generated)
 ```
+
+**NOTE**: raw, staging, marts schemas telah di-DROP dari Supabase (data sudah di BigQuery).
+Cleanup script: `etl/scripts/cleanup_supabase_schemas.py`
 
 **IMPORTANT BigQuery notes for dbt models**:
 - `harga_pangan` has `require_partition_filter=true` — ALL queries MUST include `WHERE tanggal >= '2020-01-01'`
@@ -524,16 +528,21 @@ BQ_LOCATION=asia-southeast2
 - [x] All 11 dbt models pass, 17/17 dbt tests pass on BigQuery
 - [x] Update `pyproject.toml` — add google-cloud-bigquery, pandas-gbq, dbt-bigquery
 
-### Checkpoint 11: FastAPI Dual Connection ⬜ IN PROGRESS
-- [ ] Create `src/data/bigquery_client.py` — BigQuery client wrapper for FastAPI
-- [ ] Update `src/data/commodity_data.py` — query BigQuery instead of Supabase for analytics
-- [ ] Update `src/data/weather_data.py` — query BigQuery instead of Supabase for weather
-- [ ] Keep Supabase connection for app.* tables (auth, HET, ML predictions)
-- [ ] End-to-end testing: all API endpoints still work with dual connection
+### Checkpoint 11: FastAPI Dual Connection ✅ DONE (May 14)
+- [x] Create `src/data/bigquery_client.py` — BigQuery client wrapper (thread-safe singleton, timeout, error handling)
+- [x] Update `src/data/commodity_data.py` — query BigQuery instead of Supabase for analytics
+- [x] Update `src/data/weather_data.py` — query BigQuery instead of Supabase for weather
+- [x] Keep Supabase connection for app.* tables (auth, HET, ML predictions)
+- [x] End-to-end testing: all API endpoints still work with dual connection
+- [x] Code review fixes: thread safety, error handling, type hints, drought multi-lokasi
+- [x] 34 tests pass (14 HET + 8 weather + 12 RCA)
 
-### Checkpoint 12: Cleanup + Polish ⬜ FUTURE
-- [ ] Cleanup Supabase — drop raw/staging/marts schemas (only keep app.*)
-- [ ] Update `.envs/.env.example` with GCP env vars
+### Checkpoint 12: Cleanup Supabase ✅ DONE (May 14)
+- [x] Cleanup Supabase — dropped raw/staging/marts schemas (only app.* remains)
+- [x] Update `.envs/.env.example` with GCP env vars (GCP_PROJECT, BQ_LOCATION, JWT_SECRET)
+- [x] Add cleanup script: `etl/scripts/cleanup_supabase_schemas.py`
+
+### Checkpoint 13: Polish + Demo Prep ⬜ FUTURE
 - [ ] Navigation between pages (header nav links)
 - [ ] Chart.js/Plotly integration in prediksi page
 - [ ] End-to-end testing all pages
@@ -588,7 +597,8 @@ bi-hackathon-group-1/
 │       ├── load_weather_historical.py ← Open-Meteo weather loader
 │       ├── seed_hari_besar.py      ← python-holidays seeder
 │       ├── seed_ml_reference_data.py ← ML dummy data (inflasi, musim panen)
-│       └── migrate_users_boolean_flags.py ← Role → boolean flags migration
+│       ├── migrate_users_boolean_flags.py ← Role → boolean flags migration
+│       └── cleanup_supabase_schemas.py ← Drop raw/staging/marts from Supabase
 ├── frontend/
 │   ├── index.html              ← Main dashboard (Alpine.js + neobrutalism)
 │   ├── login.html              ← Login page (neobrutalism)
@@ -602,10 +612,11 @@ bi-hackathon-group-1/
 │   │   ├── auth_routes.py      ← Auth endpoints (JWT + RBAC boolean flags)
 │   │   └── ml_routes.py        ← ML proxy endpoints (inference server)
 │   ├── data/
-│   │   ├── database.py         ← Shared PostgreSQL connection pool (Supabase)
-│   │   ├── commodity_data.py   ← Read PIHPS prices (filtered to 6 MVP komoditas)
+│   │   ├── database.py         ← Shared PostgreSQL connection pool (Supabase — app.* only)
+│   │   ├── bigquery_client.py  ← BigQuery client wrapper (thread-safe, timeout, error handling)
+│   │   ├── commodity_data.py   ← Read PIHPS prices from BigQuery (filtered to 6 MVP komoditas)
 │   │   ├── auth_db.py          ← User management (bcrypt + CRUD + boolean flags)
-│   │   └── weather_data.py     ← Weather data layer for RCA engine
+│   │   └── weather_data.py     ← Weather data from BigQuery for RCA engine
 │   ├── engine/
 │   │   ├── rca_engine.py       ← RCA decision tree (4-step sequential check)
 │   │   └── het_monitor.py      ← HET comparison engine
@@ -614,7 +625,7 @@ bi-hackathon-group-1/
 ├── tests/
 │   ├── test_rca_engine.py      ← RCA engine unit tests (12 tests)
 │   ├── test_het_monitor.py     ← HET monitor unit tests (14 tests)
-│   └── test_weather_data.py    ← Weather data unit tests (7 tests)
+│   └── test_weather_data.py    ← Weather data unit tests (8 tests)
 ├── docs/                       ← Session logs
 ├── main.py                     ← FastAPI entry point (v0.4.0)
 ├── pyproject.toml              ← Dependencies (app + dev + etl groups)
@@ -633,18 +644,20 @@ Dependencies dikelola di root `pyproject.toml`, Docker dikelola di root `docker-
 
 Code yang sudah ada dan statusnya:
 
-- **RCA Engine** (`src/engine/rca_engine.py`): ✅ 4-step sequential check. Labels updated ke Open-Meteo. 33 tests pass.
+- **RCA Engine** (`src/engine/rca_engine.py`): ✅ 4-step sequential check. Labels updated ke Open-Meteo. 34 tests pass.
 - **HET Monitor** (`src/engine/het_monitor.py`): ✅ Compare harga vs HET reference → AMAN/WASPADA/KRITIS/MELAMPAUI.
-- **Weather Data** (`src/data/weather_data.py`): ✅ Query `raw.cuaca_harian` → `CuacaInfo` untuk RCA engine. (Currently reads from Supabase — needs migration to BigQuery)
+- **Weather Data** (`src/data/weather_data.py`): ✅ Query BigQuery `raw.cuaca_harian` → `CuacaInfo` untuk RCA engine. Aggregates per-date for multi-location handling.
 - **Schemas** (`src/models/schemas.py`): ✅ Clean — BMKG models dihapus.
 - **API Routes** (`src/api/routes.py`): ✅ Real `/api/het/*`, `/api/cuaca/*`, `/api/predictions` endpoints. BMKG stubs dihapus.
 - **ML Routes** (`src/api/ml_routes.py`): ✅ ML proxy endpoints (forward to inference server).
 - **Auth** (`src/api/auth_routes.py`): ✅ JWT + RBAC boolean flags. is_active check. Default users: admin/admin123, analyst/analyst123.
 - **Auth DB** (`src/data/auth_db.py`): ✅ Boolean flags (is_admin/is_analyst/is_active). `_compute_role()` for backward compat.
-- **Commodity Data** (`src/data/commodity_data.py`): ✅ Filtered ke 6 MVP komoditas. Multi-province weather detection. (Currently reads from Supabase — needs migration to BigQuery)
-- **Database** (`src/data/database.py`): ✅ Shared PostgreSQL connection pool to Supabase. (Needs BigQuery client addition)
+- **BigQuery Client** (`src/data/bigquery_client.py`): ✅ Thread-safe singleton, 60s timeout, GoogleAPIError handling, lazy env vars.
+- **Commodity Data** (`src/data/commodity_data.py`): ✅ Reads from BigQuery. Filtered ke 6 MVP komoditas. Multi-province weather detection.
+- **Database** (`src/data/database.py`): ✅ Shared PostgreSQL connection pool to Supabase (app.* tables only).
 - **Weather Extractor** (`etl/extractors/openmeteo_extractor.py`): ✅ Open-Meteo API extractor.
 - **BigQuery Migration** (`etl/scripts/migrate_to_bigquery.py`): ✅ Batch migrate from Supabase → BigQuery (WRITE_TRUNCATE, free).
+- **Supabase Cleanup** (`etl/scripts/cleanup_supabase_schemas.py`): ✅ Drop raw/staging/marts from Supabase.
 - **dbt Models**: ✅ All 11 models converted to BigQuery SQL. 11/11 pass, 17/17 tests pass.
 - **Terraform IaC** (`infra/`): ✅ 3 datasets + 8 raw tables provisioned. deletion_protection enabled.
 - **Frontend Dashboard** (`frontend/index.html`): ✅ Alpine.js + neobrutalism. HET badge, weather panel, RCA widget.
@@ -652,7 +665,7 @@ Code yang sudah ada dan statusnya:
 - **Frontend Admin** (`frontend/admin.html`): ✅ Neobrutalism + boolean checkboxes (is_admin/is_analyst/is_active).
 - **Frontend RCA** (`frontend/rca.html`): ✅ Alpine.js + neobrutalism. Animated 4-step RCA, filter, detail, cuaca + hari besar context.
 - **Frontend Prediksi** (`frontend/prediksi.html`): ✅ Alpine.js + neobrutalism. Summary cards, chart placeholder, prediction table, empty state.
-- **Tests**: ✅ 33 tests pass (14 HET + 7 weather + 12 RCA).
+- **Tests**: ✅ 34 tests pass (14 HET + 8 weather + 12 RCA).
 
 ### Database Status
 
@@ -663,15 +676,18 @@ Code yang sudah ada dan statusnya:
 - **raw.dim_kota**: 18 rows
 - **raw.hari_besar**: 91 rows (2024-2027)
 - **raw.pipeline_log**: 28 rows
+- **raw.inflasi_bulanan**: ~174 rows (dummy, untuk ML)
+- **raw.musim_panen**: 18 rows (dummy, kalender panen)
 - **Storage**: ~250 MB / 10 GB free tier (2.5% used)
 - **dbt models**: 11/11 pass, 17/17 tests pass
 
-**Supabase PostgreSQL** (App/Transactional):
+**Supabase PostgreSQL** (App/Transactional — cleaned up):
 - **app.users**: 2 users (admin, analyst)
 - **app.het_reference**: HET dummy data
 - **app.ml_predictions**: ML teammate managed
 - **app.komoditas_config**: 6 MVP komoditas
-- **Storage**: ~242 MB / 500 MB (raw/staging/marts still present — pending cleanup)
+- **app.dashboard_harga_pangan**: pre-computed dashboard data (dbt)
+- **Storage**: significantly reduced (raw/staging/marts DROPPED)
 
 ### BigQuery SQL Patterns (dbt)
 
@@ -702,7 +718,7 @@ Ketika menulis dbt models, gunakan BigQuery SQL (BUKAN PostgreSQL):
 8. ~~BigQuery infrastructure (Terraform)~~ ✅ Done (3 datasets, 8 tables)
 9. ~~Data migration Supabase → BigQuery~~ ✅ Done (631K+ rows, 6 tables)
 10. ~~dbt migration to BigQuery~~ ✅ Done (11/11 models, 17/17 tests)
-11. **FastAPI dual connection** — create BigQuery client, update commodity_data.py + weather_data.py
-12. **Cleanup Supabase** — drop raw/staging/marts, keep only app.*
+11. ~~FastAPI dual connection~~ ✅ Done (BigQuery for analytics, Supabase for app.*)
+12. ~~Cleanup Supabase~~ ✅ Done (raw/staging/marts dropped, only app.* remains)
 13. Navigation between pages (header nav links)
 14. Chart.js/Plotly integration in prediksi page
