@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse, Response
 
 from src.api.routes import router, het_router, cuaca_router, stok_router, predictions_router
 from src.api.auth_routes import auth_router
+from src.api.ml_routes import ml_router
 
 import os
 
@@ -64,6 +65,7 @@ app.include_router(cuaca_router)
 app.include_router(stok_router)
 app.include_router(predictions_router)
 app.include_router(auth_router)
+app.include_router(ml_router)
 
 
 @app.get("/favicon.ico", include_in_schema=False)
