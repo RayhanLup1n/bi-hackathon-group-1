@@ -50,3 +50,7 @@ if os.path.exists(frontend_dir):
     @app.get("/admin", include_in_schema=False)
     def serve_admin():
         return FileResponse(os.path.join(frontend_dir, "admin.html"))
+
+    @app.get("/guide", include_in_schema=False)
+    def serve_guide():
+        return FileResponse(os.path.join(frontend_dir, "guide.html"))

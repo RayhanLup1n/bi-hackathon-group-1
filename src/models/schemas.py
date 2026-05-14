@@ -7,6 +7,7 @@ class DiagnosisType(str, Enum):
     DEMAND = "demand"
     SUPPLY = "supply"
     DISTRIBUSI = "distribusi"
+    EKSPEKTASI = "ekspektasi"
     UNKNOWN = "unknown"
 
 
@@ -58,6 +59,8 @@ class RCAResult(BaseModel):
     checks: list[CheckResult]
     price_delta_pct: float
     is_anomaly: bool
+    severity_level: str = "L0"        # L0 (aman) – L4 (darurat), dari 5 indikator tersedia
+    yes_indicators: list[str] = []    # nama-nama indikator yang bernilai YES
 
 
 # ── BMKG Response Models ──────────────────────────────────────────────────────

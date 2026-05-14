@@ -443,6 +443,9 @@
     .result-distribusi { background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.05)); border-color: rgba(99,102,241,0.3); box-shadow: 0 6px 30px rgba(99,102,241,0.12); }
     .result-distribusi::before { background: #6366f1; }
     .result-distribusi::after { background: #ec4899; }
+    .result-ekspektasi { background: linear-gradient(135deg, rgba(6,182,212,0.09), rgba(99,102,241,0.05)); border-color: rgba(6,182,212,0.35); box-shadow: 0 6px 30px rgba(6,182,212,0.12); }
+    .result-ekspektasi::before { background: #06b6d4; }
+    .result-ekspektasi::after { background: #6366f1; }
     .result-unknown { background: linear-gradient(135deg, rgba(148,163,184,0.08), rgba(100,116,139,0.05)); border-color: rgba(148,163,184,0.3); }
 
     .result-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
@@ -452,6 +455,7 @@
     .result-demand .result-title { color: #059669; }
     .result-supply .result-title { color: #d97706; }
     .result-distribusi .result-title { color: #4f46e5; }
+    .result-ekspektasi .result-title { color: #0891b2; }
     .result-unknown .result-title { color: var(--muted); }
     .result-type-badge {
       font-family: var(--mono);
@@ -467,6 +471,7 @@
     .result-demand .result-type-badge { background: rgba(16,185,129,0.12); color: #059669; border-color: rgba(16,185,129,0.3); }
     .result-supply .result-type-badge { background: rgba(245,158,11,0.12); color: #d97706; border-color: rgba(245,158,11,0.3); }
     .result-distribusi .result-type-badge { background: rgba(99,102,241,0.12); color: #4f46e5; border-color: rgba(99,102,241,0.3); }
+    .result-ekspektasi .result-type-badge { background: rgba(6,182,212,0.12); color: #0891b2; border-color: rgba(6,182,212,0.3); }
     .result-unknown .result-type-badge { background: rgba(148,163,184,0.12); color: var(--muted); border-color: rgba(148,163,184,0.3); }
 
     .result-desc { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 14px; }
@@ -684,6 +689,51 @@
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
+
+    /* ── Severity scoring ── */
+    .severity-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.55);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .severity-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .severity-badge {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .sev-l0 { background: rgba(16,185,129,0.12); color: #059669; border: 1.5px solid rgba(16,185,129,0.3); }
+    .sev-l1 { background: rgba(6,182,212,0.12); color: #0891b2; border: 1.5px solid rgba(6,182,212,0.3); }
+    .sev-l2 { background: rgba(245,158,11,0.14); color: #d97706; border: 1.5px solid rgba(245,158,11,0.35); }
+    .sev-l3 { background: rgba(239,68,68,0.12); color: #dc2626; border: 1.5px solid rgba(239,68,68,0.3); }
+    .sev-l4 { background: rgba(127,29,29,0.14); color: #991b1b; border: 1.5px solid rgba(153,27,27,0.4); }
+    .indicator-chips { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
+    .indicator-chip {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 5px;
+      background: rgba(99,102,241,0.07);
+      border: 1px solid rgba(99,102,241,0.15);
+      color: var(--text2);
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -712,14 +762,22 @@
         transition:background 0.2s;
       " onmouseover="this.style.background='rgba(99,102,241,0.13)'"
          onmouseout="this.style.background='rgba(99,102,241,0.06)'">👥 Users</a>
-      <a href="/static/debug.html" style="
+      <a href="/guide" style="
+        font-family:var(--mono); font-size:11px; font-weight:600;
+        color:var(--text2); text-decoration:none;
+        border:1.5px solid var(--border); border-radius:var(--radius-sm);
+        padding:6px 12px; background:var(--surface2);
+        transition:background 0.2s, color 0.2s;
+      " onmouseover="this.style.background='rgba(99,102,241,0.07)';this.style.color='var(--accent)'"
+         onmouseout="this.style.background='var(--surface2)';this.style.color='var(--text2)'">📖 Panduan</a>
+      <a id="dbDebugLink" href="/static/debug.html" style="
         font-family:var(--mono); font-size:11px; font-weight:600;
         color:var(--accent); text-decoration:none;
         border:1.5px solid var(--border2); border-radius:var(--radius-sm);
         padding:6px 12px; background:rgba(99,102,241,0.06);
         transition:background 0.2s, border-color 0.2s;
       " onmouseover="this.style.background='rgba(99,102,241,0.13)'"
-         onmouseout="this.style.background='rgba(99,102,241,0.06)'">DB Debug</a>
+         onmouseout="this.style.background='rgba(99,102,241,0.06)'">Pantau Database</a>
       <button onclick="logout()" style="
         font-family:var(--mono); font-size:11px; font-weight:600;
         color:#dc2626; cursor:pointer;
@@ -789,7 +847,7 @@
       </div>
 
       <!-- Simulation date -->
-      <div class="card">
+      <div class="card" id="simCard">
         <div class="card-label">Simulasi Tanggal</div>
         <div class="sim-row">
           <input type="date" class="sim-date-input" id="simDate" oninput="onSimDateChange()">
@@ -869,6 +927,24 @@
             <div class="check-badge badge-skip" id="b4">SKIP</div>
           </div>
 
+          <div class="check-item skip" id="c5">
+            <div class="check-num" id="n5">5</div>
+            <div class="check-content">
+              <div class="check-name">Cek Tren Inflasi Bulanan (BPS)</div>
+              <div class="check-detail" id="d5">Menunggu hasil cek sebelumnya...</div>
+            </div>
+            <div class="check-badge badge-skip" id="b5">SKIP</div>
+          </div>
+
+          <div class="check-item skip" id="c6">
+            <div class="check-num" id="n6">6</div>
+            <div class="check-content">
+              <div class="check-name">Cek Korelasi Komoditas Terkait</div>
+              <div class="check-detail" id="d6">Menunggu hasil cek sebelumnya...</div>
+            </div>
+            <div class="check-badge badge-skip" id="b6">SKIP</div>
+          </div>
+
         </div>
       </div>
 
@@ -904,8 +980,13 @@ let currentData = null;
     const me = await r.json();
     const badge = document.getElementById('userBadge');
     badge.innerHTML = `<strong style="color:var(--accent)">${me.username}</strong> · ${me.role}`;
+
     if (me.role === 'admin') {
       document.getElementById('adminLink').style.display = '';
+    }
+
+    if (me.role === 'viewer') {
+      document.getElementById('simCard').style.display = 'none';
     }
   } catch {
     localStorage.removeItem('rca_token');
@@ -1087,7 +1168,7 @@ function resetChecks() {
   document.getElementById("rcaBadge").textContent = "belum dijalankan";
   document.getElementById("progressFill").style.width = "0%";
 
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 6; i++) {
     const ci = document.getElementById("c" + i);
     ci.className = "check-item" + (i > 1 ? " skip" : "");
     document.getElementById("n" + i).textContent = i;
@@ -1177,14 +1258,26 @@ function showResult(result) {
     demand: "result-demand",
     supply: "result-supply",
     distribusi: "result-distribusi",
+    ekspektasi: "result-ekspektasi",
     unknown: "result-unknown"
   };
   const typeLabel = {
     demand: "Demand",
     supply: "Supply",
     distribusi: "Distribusi",
+    ekspektasi: "Ekspektasi",
     unknown: "Unknown"
   };
+  const severityLabel = {
+    L0: "Aman", L1: "Waspada", L2: "Awas", L3: "Kritis", L4: "Darurat"
+  };
+  const sevLevel = result.severity_level || "L0";
+  const sevClass = "sev-" + sevLevel.toLowerCase();
+  const chips = (result.yes_indicators || [])
+    .map(i => `<span class="indicator-chip">${i}</span>`)
+    .join("");
+  const noChips = `<span style="font-family:var(--mono);font-size:10px;color:var(--muted)">tidak ada indikator aktif</span>`;
+
   const box = document.getElementById("resultBox");
   box.className = "result-card animate-in " + (clsMap[result.diagnosis] || "result-unknown");
   box.innerHTML = `
@@ -1194,6 +1287,11 @@ function showResult(result) {
         <div class="result-title">${result.title}</div>
       </div>
       <div class="result-type-badge">${typeLabel[result.diagnosis] || result.diagnosis}</div>
+    </div>
+    <div class="severity-row">
+      <span class="severity-label">Keparahan</span>
+      <span class="severity-badge ${sevClass}">${sevLevel} — ${severityLabel[sevLevel] || sevLevel}</span>
+      <div class="indicator-chips">${chips || noChips}</div>
     </div>
     <div class="result-desc">${result.description}</div>
     <div class="action-box">
