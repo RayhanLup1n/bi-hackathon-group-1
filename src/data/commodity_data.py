@@ -16,7 +16,9 @@ from typing import Optional
 
 from google.cloud.bigquery import ScalarQueryParameter
 
+from config.settings import DEFAULT_PRICE_THRESHOLD_PCT
 from src.data.bigquery_client import bq_query
+from src.data.weather_data import get_weather_for_rca
 from src.models.schemas import CommodityData, CuacaInfo, StokInfo, KotaInfo
 
 
@@ -33,7 +35,12 @@ MVP_KOMODITAS_FILTER: set[str] = {
 
 # Mapping comcat_id -> key yang user-friendly (untuk URL)
 # Populated at startup from DB, filtered to MVP komoditas
-KOMODITAS_MAP: dict[str, str] = {}  # populated at startup from DB
+KOMODITAS_MAP: dict[str, dict[str, str]] = {}
+
+
+def _valid_price(val: object) -> bool:
+    """Check if a price value is valid (not None, not NaN, positive)."""
+    return val is not None and not math.isnan(val) and val > 0
 
 
 def _load_komoditas_map() -> None:
@@ -155,10 +162,6 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     if not rows_today:
         return None
 
-    # Filter out NaN/None values from prices
-    def _valid_price(val) -> bool:
-        return val is not None and not math.isnan(val) and val > 0
-
     prices_today = [r["harga"] for r in rows_today if _valid_price(r["harga"])]
     prices_prev = [r["harga"] for r in rows_prev if _valid_price(r["harga"])]
 
@@ -178,12 +181,10 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
         ))
 
     # Price threshold for anomaly detection (default 10%)
-    from config.settings import DEFAULT_PRICE_THRESHOLD_PCT
     threshold = DEFAULT_PRICE_THRESHOLD_PCT
 
     # Cuaca — check ALL provinces in the data, pick the most extreme
     # This ensures we detect extreme weather regardless of which kota comes first
-    from src.data.weather_data import get_weather_for_rca
     provinsi_ids = list({r["provinsi_id"] for r in rows_today if r.get("provinsi_id")})
     cuaca = CuacaInfo(
         ekstrem=False,
@@ -257,7 +258,7 @@ def get_price_summary(comcat_id: str, target_date: Optional[date] = None) -> dic
     if not rows:
         return {}
 
-    prices = [r["harga"] for r in rows if r["harga"]]
+    prices = [r["harga"] for r in rows if _valid_price(r["harga"])]
     return {
         "tanggal": str(rows[0]["tanggal"]),
         "rata_rata": round(sum(prices) / len(prices), 2) if prices else 0,

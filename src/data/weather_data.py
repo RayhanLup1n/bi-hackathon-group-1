@@ -60,13 +60,16 @@ def get_weather_for_rca(
         """
         SELECT
             tanggal,
-            lokasi_label,
-            precipitation_sum,
-            temperature_max,
-            wind_speed_max
+            -- Pick any lokasi_label for display (all in same provinsi)
+            ANY_VALUE(lokasi_label) AS lokasi_label,
+            -- Aggregate across locations: use MAX to catch worst-case extremes
+            MAX(precipitation_sum) AS precipitation_sum,
+            MAX(temperature_max) AS temperature_max,
+            MAX(wind_speed_max) AS wind_speed_max
         FROM `raw.cuaca_harian`
         WHERE provinsi_id = @provinsi_id
           AND tanggal BETWEEN @start_date AND @end_date
+        GROUP BY tanggal
         ORDER BY tanggal DESC
         """,
         params=[

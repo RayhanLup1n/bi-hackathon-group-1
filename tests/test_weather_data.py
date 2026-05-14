@@ -126,3 +126,24 @@ def test_rain_priority_over_heat(mock_bq):
     assert result.ekstrem is True
     # Rain should be detected first (higher priority)
     assert "150" in result.desc or "hujan" in result.desc.lower()
+
+
+@patch("src.data.weather_data.bq_query")
+def test_drought_with_aggregated_rows(mock_bq):
+    """Drought detection works correctly when SQL aggregates multi-location data.
+
+    The SQL query now uses GROUP BY tanggal with MAX(), so each row
+    represents one date even if there are multiple weather stations.
+    This test verifies the drought counter works with aggregated data.
+    """
+    # Simulate aggregated rows: one row per date, 15 dry days
+    mock_bq.return_value = _make_weather_rows([
+        {"precipitation_sum": 0.5, "tanggal": date(2026, 5, i),
+         "temperature_max": 32.0, "wind_speed_max": 12.0}
+        for i in range(15, 0, -1)
+    ])
+
+    result = get_weather_for_rca(12, tanggal=date(2026, 5, 15), lookback_days=20)
+
+    assert result.ekstrem is True
+    assert "kekeringan" in result.desc.lower() or "Kekeringan" in result.desc
