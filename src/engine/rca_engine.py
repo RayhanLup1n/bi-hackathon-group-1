@@ -10,6 +10,7 @@ Urutan pemeriksaan (sequential, early exit):
 Severity L0-L4 dihitung terpisah dari seluruh indikator yang tersedia.
 """
 
+import logging
 from datetime import date
 
 from config.settings import (
@@ -19,6 +20,8 @@ from config.settings import (
 from src.models.schemas import (
     CommodityData, RCAResult, CheckResult, DiagnosisType
 )
+
+logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────
 # DIAGNOSIS TEMPLATES
@@ -108,12 +111,56 @@ SEVERITY_LABELS: dict[str, str] = {
 # Tambah fungsi _check_*() baru di sini untuk extend rule tree
 # ──────────────────────────────────────────────
 
-def _check_hari_raya(data: CommodityData, today: date) -> CheckResult:
-    """Check 1: Apakah hari ini masuk window hari raya? (H-14 s/d H+3)
-    Kalender dibaca dari config/settings.py — tidak bergantung pada field per-komoditas.
+# ── Hari Besar cache (loaded from BigQuery raw.hari_besar, 91 rows) ──────
+# Format: list of (nama: str, tanggal: date)
+_hari_besar_cache: list[tuple[str, date]] | None = None
+
+
+def _get_hari_besar_calendar() -> list[tuple[str, date]]:
+    """Get hari besar calendar from BigQuery, with in-memory cache.
+
+    Returns list of (nama, tanggal) tuples. Falls back to hardcoded
+    HARI_RAYA_CALENDAR from config/settings.py if BigQuery is unreachable.
     """
-    for nama, tgl_str in HARI_RAYA_CALENDAR:
-        tgl = date.fromisoformat(tgl_str)
+    global _hari_besar_cache
+    if _hari_besar_cache is not None:
+        return _hari_besar_cache
+
+    try:
+        from src.data.bigquery_client import bq_query
+
+        rows = bq_query(
+            "SELECT nama, tanggal FROM `raw.hari_besar` ORDER BY tanggal"
+        )
+        _hari_besar_cache = [(r["nama"], r["tanggal"]) for r in rows]
+        logger.info(
+            "Loaded %d hari besar from BigQuery", len(_hari_besar_cache)
+        )
+        return _hari_besar_cache
+    except Exception:
+        logger.warning(
+            "BigQuery hari_besar unavailable, falling back to config calendar"
+        )
+        # Fallback: convert hardcoded strings to date objects
+        return [
+            (nama, date.fromisoformat(tgl_str))
+            for nama, tgl_str in HARI_RAYA_CALENDAR
+        ]
+
+
+def _check_hari_raya(data: CommodityData, today: date) -> CheckResult:
+    """Check 1: Apakah hari ini masuk window hari besar? (H-14 s/d H+3)
+
+    Reads from BigQuery raw.hari_besar (91 rows, all national holidays +
+    cuti bersama from python-holidays). Falls back to hardcoded calendar
+    in config/settings.py if BigQuery is unavailable.
+    """
+    calendar = _get_hari_besar_calendar()
+
+    for nama, tgl in calendar:
+        # tgl bisa berupa date object (dari BigQuery) atau str (dari fallback)
+        if isinstance(tgl, str):
+            tgl = date.fromisoformat(tgl)
         delta = (tgl - today).days   # positif = hari raya belum tiba
         if -HARI_RAYA_POST_WINDOW_DAYS <= delta <= HARI_RAYA_WINDOW_DAYS:
             if delta > 0:
