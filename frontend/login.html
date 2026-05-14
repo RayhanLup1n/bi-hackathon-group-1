@@ -78,15 +78,18 @@
     .login-logo {
       width: 56px;
       height: 56px;
-      background: var(--accent);
       border: var(--bw) solid var(--border);
       border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 26px;
       box-shadow: 3px 3px 0 var(--border);
       margin: 0 auto 18px;
+      overflow: hidden;
+      padding: 0;
+    }
+    .login-logo img {
+      width: 100%; height: 100%; object-fit: cover;
     }
 
     .login-title {
@@ -252,7 +255,7 @@
 <div class="login-wrap">
   <div class="login-card">
 
-    <div class="login-logo">📡</div>
+    <div class="login-logo"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
     <div class="login-title">R.A.D.A.R Pangan</div>
     <div class="login-subtitle">root cause analysis engine &nbsp;·&nbsp; v0.5</div>
 

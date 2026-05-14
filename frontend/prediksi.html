@@ -58,11 +58,13 @@
     }
     .header-left { display: flex; align-items: center; gap: 14px; }
     .logo-icon {
-      width: 46px; height: 46px; background: var(--accent);
+      width: 46px; height: 46px;
       border: var(--bw) solid var(--border); border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px; box-shadow: 3px 3px 0 var(--border);
+      box-shadow: 3px 3px 0 var(--border);
+      overflow: hidden; padding: 0;
     }
+    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
     .header-title { font-size: 18px; font-weight: 900; letter-spacing: -0.5px; }
     .header-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; font-weight: 600; }
     .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -320,7 +322,7 @@
   <!-- -- Header -- -->
   <header class="header">
     <div class="header-left">
-      <div class="logo-icon">📡</div>
+      <div class="logo-icon"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
         <div class="header-sub">prediksi harga &nbsp;·&nbsp; machine learning &nbsp;·&nbsp; v0.5</div>
