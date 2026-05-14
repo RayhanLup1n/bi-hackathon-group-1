@@ -10,12 +10,12 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #F3EEFF;
+      --bg:        #EEF7F1;
       --surface:   #FFFFFF;
-      --surface2:  #FFFBEB;
+      --surface2:  #F0FBF4;
       --border:    #1a1a1a;
-      --accent:    #818CF8;
-      --accent2:   #6366f1;
+      --accent:    #2ECC88;
+      --accent2:   #1D7A56;
       --warn:      #FBBF24;
       --danger:    #F87171;
       --success:   #34D399;
@@ -44,8 +44,8 @@
       position: fixed;
       inset: 0;
       background-image:
-        radial-gradient(circle at 20% 50%, rgba(129,140,248,0.12) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(249,168,212,0.10) 0%, transparent 50%),
+        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
         radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
       pointer-events: none;
       z-index: 0;
@@ -114,12 +114,25 @@
       background: var(--surface);
       color: var(--accent2);
     }
-    .btn-ghost:hover { background: #EDE9FE; }
+    .btn-ghost:hover { background: #E0F5EA; }
     .btn-danger-outline {
       background: #FEE2E2;
       color: #DC2626;
     }
     .btn-danger-outline:hover { background: #FECACA; }
+
+    .nav-link {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
+      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
+    }
+    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .nav-link-default { background: var(--surface); color: var(--accent2); }
+    .nav-link-default:hover { background: #E0F5EA; }
+    .nav-link-active { background: var(--accent); color: #fff; }
+    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
+    .nav-link-danger:hover { background: #FECACA; }
 
     .user-badge {
       font-family: var(--mono);
@@ -158,7 +171,7 @@
       font-size: 10px;
       font-weight: 700;
       color: var(--accent2);
-      background: #EDE9FE;
+      background: #E0F5EA;
       border: 1.5px solid var(--border);
       padding: 2px 9px;
       border-radius: 6px;
@@ -236,7 +249,7 @@
       font-weight: 700;
       border: 1.5px solid var(--border);
     }
-    .role-admin    { background: #EDE9FE; color: #4f46e5; }
+    .role-admin    { background: #E0F5EA; color: #1D7A56; }
     .role-analyst  { background: #CFFAFE; color: #0891b2; }
     .role-viewer   { background: #F1F5F9; color: #64748b; }
 
@@ -270,7 +283,7 @@
       transform: translate(2px, 2px);
       box-shadow: 0 0 0 var(--border);
     }
-    .edit-btn   { background: #EDE9FE; color: var(--accent2); }
+    .edit-btn   { background: #E0F5EA; color: var(--accent2); }
     .edit-btn:hover   { background: #DDD6FE; }
     .delete-btn { background: #FEE2E2; color: #DC2626; }
     .delete-btn:hover { background: #FECACA; }
@@ -417,7 +430,7 @@
       transform: translate(2px, 2px);
       box-shadow: 0 0 0 var(--border);
     }
-    .checkbox-item.checked { background: #EDE9FE; }
+    .checkbox-item.checked { background: #E0F5EA; }
     .checkbox-item input[type="checkbox"] {
       width: 18px; height: 18px;
       accent-color: var(--accent2);
@@ -549,13 +562,16 @@
       <div class="logo-icon">📡</div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">manajemen pengguna &nbsp;·&nbsp; admin panel</div>
+        <div class="header-sub">manajemen pengguna &nbsp;·&nbsp; admin panel &nbsp;·&nbsp; v0.5</div>
       </div>
     </div>
     <div class="header-right">
       <span class="user-badge" id="userBadge">—</span>
-      <a href="/" class="btn-sm btn-ghost">← Dashboard</a>
-      <button class="btn-sm btn-danger-outline" onclick="logout()">Keluar</button>
+      <a href="/" class="nav-link nav-link-default">Dashboard</a>
+      <a href="/rca" class="nav-link nav-link-default">RCA</a>
+      <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
+      <a href="/admin" class="nav-link nav-link-active">Admin</a>
+      <button class="nav-link nav-link-danger" onclick="logout()">Keluar</button>
     </div>
   </header>
 

@@ -7,16 +7,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #F3EEFF;
+      --bg:        #EEF7F1;
       --surface:   #FFFFFF;
-      --surface2:  #FFFBEB;
+      --surface2:  #F0FBF4;
       --border:    #1a1a1a;
-      --accent:    #818CF8;
-      --accent2:   #6366f1;
+      --accent:    #2ECC88;
+      --accent2:   #1D7A56;
       --warn:      #FBBF24;
       --danger:    #F87171;
       --success:   #34D399;
@@ -39,8 +41,8 @@
     body::before {
       content: ''; position: fixed; inset: 0;
       background-image:
-        radial-gradient(circle at 20% 50%, rgba(129,140,248,0.12) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(249,168,212,0.10) 0%, transparent 50%),
+        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
         radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
       pointer-events: none; z-index: 0;
     }
@@ -73,7 +75,7 @@
     }
     .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
     .nav-link-default { background: var(--surface); color: var(--accent2); }
-    .nav-link-default:hover { background: #EDE9FE; }
+    .nav-link-default:hover { background: #E0F5EA; }
     .nav-link-active { background: var(--accent); color: #fff; }
     .nav-link-danger { background: #FEE2E2; color: #DC2626; }
     .nav-link-danger:hover { background: #FECACA; }
@@ -241,7 +243,7 @@
     .pred-count {
       font-family: var(--mono); font-size: 10px; font-weight: 700;
       padding: 3px 10px; border-radius: 6px;
-      background: #EDE9FE; color: var(--accent2);
+      background: #E0F5EA; color: var(--accent2);
       border: 1.5px solid var(--border);
     }
 
@@ -259,8 +261,16 @@
       padding: 12px 16px; border-bottom: 1px solid #e5e5e5;
       font-family: var(--mono); font-size: 11px; font-weight: 600;
     }
-    .pred-table tbody tr:hover { background: #F5F3FF; }
+    .pred-table tbody tr:hover { background: #E0F5EA; }
     .pred-table tbody tr:last-child td { border-bottom: none; }
+
+    /* -- Chart card -- */
+    .chart-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 22px; margin-bottom: 20px;
+    }
+    .chart-card canvas { max-height: 320px; }
 
     .trend-up { color: #DC2626; font-weight: 800; }
     .trend-down { color: #059669; font-weight: 800; }
@@ -271,7 +281,7 @@
       font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 600;
     }
 
-    .spinner { width: 18px; height: 18px; border: 3px solid rgba(99,102,241,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+    .spinner { width: 18px; height: 18px; border: 3px solid rgba(46,204,136,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* -- Info banner -- */
@@ -299,7 +309,7 @@
     .source-tab:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; border-left: none; }
     .source-tab.active { background: var(--accent); color: #fff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
     .source-tab:not(.active) { background: var(--surface); color: var(--text); }
-    .source-tab:not(.active):hover { background: #EDE9FE; }
+    .source-tab:not(.active):hover { background: #E0F5EA; }
 
     [x-cloak] { display: none !important; }
   </style>
@@ -313,17 +323,18 @@
       <div class="logo-icon">📡</div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">prediksi harga &nbsp;·&nbsp; machine learning &nbsp;·&nbsp; v0.4</div>
+        <div class="header-sub">prediksi harga &nbsp;·&nbsp; machine learning &nbsp;·&nbsp; v0.5</div>
       </div>
     </div>
     <div class="header-right">
       <span class="user-badge">
         <strong x-text="user?.username || '—'"></strong> · <span x-text="user?.role || ''"></span>
       </span>
-      <a href="/" class="nav-link nav-link-default">&larr; Dashboard</a>
-      <a href="/rca" class="nav-link nav-link-default">🔍 RCA</a>
+      <a href="/" class="nav-link nav-link-default">Dashboard</a>
+      <a href="/rca" class="nav-link nav-link-default">RCA</a>
+      <a href="/prediksi" class="nav-link nav-link-active">Prediksi</a>
       <template x-if="user?.is_admin || user?.role === 'admin'">
-        <a href="/admin" class="nav-link nav-link-default">👥 Admin</a>
+        <a href="/admin" class="nav-link nav-link-default">Admin</a>
       </template>
       <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
     </div>
@@ -587,6 +598,19 @@
         </div>
       </div>
 
+      <!-- Price Chart: Historical + Predicted -->
+      <div class="chart-card" x-show="selectedKey">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:14px;display:flex;align-items:center;gap:6px;">
+          <span style="display:inline-block;width:4px;height:12px;background:var(--accent);border-radius:2px;border:1px solid var(--border);"></span>
+          Grafik Harga &amp; Prediksi
+        </div>
+        <canvas id="priceChart"></canvas>
+        <div x-show="!chartReady && selectedKey" style="text-align:center;padding:20px;font-family:var(--mono);font-size:11px;color:var(--muted);">
+          <div class="spinner" style="margin:0 auto 8px;"></div>
+          Memuat data historis...
+        </div>
+      </div>
+
       <!-- Prediction Table -->
       <div class="pred-table-card">
         <div class="pred-table-header">
@@ -693,6 +717,8 @@ function prediksiPage() {
     nextPrediction: null,
     modelInfo: null,
     dbLoading: false,
+    chartReady: false,
+    priceChart: null,  // Chart.js instance
 
     async init() {
       // Auth guard - analyst+ only
@@ -867,6 +893,207 @@ function prediksiPage() {
       }
 
       this.dbLoading = false;
+
+      // Build chart if we have a selected komoditas
+      if (this.selectedKey) {
+        await this.buildPriceChart();
+      }
+    },
+
+    // ── Chart.js Price Chart ─────────────────────────────────────────
+
+    async buildPriceChart() {
+      this.chartReady = false;
+
+      // Resolve comcat_id for the selected commodity
+      const comcatId = this.selectedKey;
+      if (!comcatId) return;
+
+      // Fetch historical prices
+      let historyData = [];
+      try {
+        const r = await fetch(
+          `/api/prices/${comcatId}/history?n_days=30`,
+          this._authOpts()
+        );
+        if (r.ok) historyData = await r.json();
+      } catch (e) {
+        console.error('Failed to fetch price history:', e);
+      }
+
+      // Prepare labels and data
+      const histLabels = historyData.map(d => d.tanggal);
+      const histPrices = historyData.map(d => d.avg_harga);
+
+      // Prediction data (from DB predictions, sorted by target_date)
+      const predSorted = [...this.dbPredictions]
+        .sort((a, b) => a.target_date.localeCompare(b.target_date));
+      const predLabels = predSorted.map(p => p.target_date);
+      const predPrices = predSorted.map(p => p.predicted_price);
+      const predLower = predSorted.map(p => p.confidence_lower || p.predicted_price * 0.9);
+      const predUpper = predSorted.map(p => p.confidence_upper || p.predicted_price * 1.1);
+
+      // Merge labels: historical + future predictions (no overlap)
+      const allLabels = [...histLabels];
+      for (const l of predLabels) {
+        if (!allLabels.includes(l)) allLabels.push(l);
+      }
+      allLabels.sort();
+
+      // Build datasets: historical prices (full line), prediction (dashed)
+      const histDataset = allLabels.map(l => {
+        const idx = histLabels.indexOf(l);
+        return idx >= 0 ? histPrices[idx] : null;
+      });
+
+      const predDataset = allLabels.map(l => {
+        const idx = predLabels.indexOf(l);
+        // Connect prediction line to last historical point
+        if (idx >= 0) return predPrices[idx];
+        // Bridge: last historical date also gets prediction start
+        if (histLabels.length > 0 && l === histLabels[histLabels.length - 1] && predPrices.length > 0) {
+          return histPrices[histPrices.length - 1];
+        }
+        return null;
+      });
+
+      const upperDataset = allLabels.map(l => {
+        const idx = predLabels.indexOf(l);
+        return idx >= 0 ? predUpper[idx] : null;
+      });
+      const lowerDataset = allLabels.map(l => {
+        const idx = predLabels.indexOf(l);
+        return idx >= 0 ? predLower[idx] : null;
+      });
+
+      // Wait for next tick so canvas is rendered
+      await this.$nextTick();
+      const canvas = document.getElementById('priceChart');
+      if (!canvas) return;
+
+      // Destroy existing chart
+      if (this.priceChart) {
+        this.priceChart.destroy();
+        this.priceChart = null;
+      }
+
+      // Format labels to short date (DD/MM)
+      const shortLabels = allLabels.map(l => {
+        const parts = l.split('-');
+        return parts[2] + '/' + parts[1];
+      });
+
+      this.priceChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: shortLabels,
+          datasets: [
+            {
+              label: 'Harga Aktual',
+              data: histDataset,
+              borderColor: '#1D7A56',
+              backgroundColor: 'rgba(46,204,136,0.1)',
+              borderWidth: 2.5,
+              pointRadius: 2,
+              pointHoverRadius: 5,
+              tension: 0.3,
+              fill: false,
+              spanGaps: false,
+            },
+            {
+              label: 'Prediksi',
+              data: predDataset,
+              borderColor: '#2ECC88',
+              borderWidth: 2.5,
+              borderDash: [6, 4],
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              pointBackgroundColor: '#2ECC88',
+              tension: 0.3,
+              fill: false,
+              spanGaps: false,
+            },
+            {
+              label: 'Batas Atas (CI)',
+              data: upperDataset,
+              borderColor: 'rgba(46,204,136,0.3)',
+              borderWidth: 1,
+              borderDash: [3, 3],
+              pointRadius: 0,
+              fill: '+1',
+              backgroundColor: 'rgba(46,204,136,0.08)',
+              tension: 0.3,
+              spanGaps: false,
+            },
+            {
+              label: 'Batas Bawah (CI)',
+              data: lowerDataset,
+              borderColor: 'rgba(46,204,136,0.3)',
+              borderWidth: 1,
+              borderDash: [3, 3],
+              pointRadius: 0,
+              fill: false,
+              tension: 0.3,
+              spanGaps: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index',
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                font: { family: "'JetBrains Mono', monospace", size: 10, weight: '600' },
+                boxWidth: 14,
+                padding: 16,
+                // Hide CI lower from legend
+                filter: (item) => item.text !== 'Batas Bawah (CI)',
+              },
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: "'JetBrains Mono', monospace", size: 11 },
+              bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                label: function(ctx) {
+                  if (ctx.dataset.label.includes('Batas')) return null;
+                  const val = ctx.parsed.y;
+                  if (val == null) return null;
+                  return ctx.dataset.label + ': Rp ' + Math.round(val).toLocaleString('id-ID');
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                font: { family: "'JetBrains Mono', monospace", size: 9 },
+                maxTicksLimit: 12,
+              },
+            },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.06)' },
+              ticks: {
+                font: { family: "'JetBrains Mono', monospace", size: 10 },
+                callback: function(val) {
+                  return 'Rp ' + (val / 1000).toFixed(0) + 'k';
+                },
+              },
+            },
+          },
+        },
+      });
+
+      this.chartReady = true;
     },
 
     // ── Source Toggle ──────────────────────────────────────────────────
