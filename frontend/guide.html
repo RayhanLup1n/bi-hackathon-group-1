@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panduan Analis — RCA RadarPangan</title>
+  <title>Panduan Analis — R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
@@ -287,10 +287,10 @@
   <!-- Hero -->
   <div class="page-hero">
     <div class="page-hero-badge">📖 Panduan Analisis</div>
-    <div class="page-hero-title">Panduan Analis RCA RadarPangan</div>
+    <div class="page-hero-title">Panduan Analis R.A.D.A.R Pangan</div>
     <div class="page-hero-desc">
       Cara membaca sinyal, menjalankan analisis, memahami hasil diagnosis,
-      dan menafsirkan tingkat keparahan harga pangan.
+      dan menafsirkan tingkat keparahan harga pangan di 4 provinsi pantauan.
     </div>
   </div>
 
@@ -336,13 +336,31 @@
         <div class="signal-row">
           <div class="signal-icon">🌦️</div>
           <div class="signal-info">
-            <div class="signal-name">Cuaca BMKG</div>
+            <div class="signal-name">Cuaca Open-Meteo</div>
             <div class="signal-desc">
-              Status cuaca di wilayah produksi utama komoditas tersebut.
-              Jika ada peringatan aktif (Waspada / Siaga / Awas), sinyal ini berwarna kuning
-              dan menampilkan nama wilayah yang terdampak.
+              Kondisi cuaca historis di wilayah produksi komoditas, diambil dari Open-Meteo Archive API.
+              Sistem memeriksa 4 parameter cuaca dalam 7 hari terakhir:
             </div>
-            <span class="signal-warn">⚠ Waspada / Siaga / Awas = indikasi gangguan panen</span>
+            <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
+              <div style="font-family:var(--mono);font-size:11px;">
+                <span style="color:#dc2626;font-weight:700;">Hujan Ekstrem</span>
+                <span style="color:var(--muted)"> — curah hujan > 100 mm/hari</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:11px;">
+                <span style="color:#dc2626;font-weight:700;">Kekeringan</span>
+                <span style="color:var(--muted)"> — hujan < 1 mm selama > 14 hari berturut</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:11px;">
+                <span style="color:#dc2626;font-weight:700;">Suhu Ekstrem</span>
+                <span style="color:var(--muted)"> — suhu maksimum > 38 derajat C</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:11px;">
+                <span style="color:#dc2626;font-weight:700;">Angin Kencang</span>
+                <span style="color:var(--muted)"> — kecepatan angin > 60 km/jam</span>
+              </div>
+            </div>
+            <span class="signal-warn">Jika salah satu threshold terlampaui = indikasi gangguan panen</span>
+            <span class="signal-source">Sumber: Open-Meteo Historical Archive API</span>
           </div>
         </div>
         <div class="signal-row">
@@ -385,8 +403,8 @@
 
       <div class="info-box">
         <span class="info-icon">📍</span>
-        <span>Daerah produksi utama tiap komoditas juga ditampilkan di panel kiri sebagai chips berlabel
-        prioritas (P1, P2, P3). Ini adalah wilayah yang datanya dipakai untuk membaca kondisi cuaca.</span>
+        <span>Wilayah pantauan mencakup 4 provinsi: Banten, Jawa Barat, DKI Jakarta, dan Sulawesi Selatan.
+        Data cuaca diambil dari 5 lokasi (Tangerang, Bandung, Cirebon, Jakarta, Makassar) via Open-Meteo.</span>
       </div>
     </div>
   </section>
@@ -405,9 +423,10 @@
         <div class="step-content">
           <div class="step-title">Pilih komoditas</div>
           <div class="step-desc">
-            Gunakan dropdown di panel kiri untuk memilih komoditas yang ingin dianalisis:
-            Cabai, Bawang, Beras, atau Ayam. Data harga, sinyal, dan daerah produksi
-            akan langsung dimuat secara otomatis.
+            Gunakan dropdown untuk memilih komoditas yang ingin dianalisis.
+            MVP memantau 6 komoditas: Bawang Merah, Bawang Putih, Cabai Merah Besar,
+            Cabai Merah Keriting, Cabai Rawit Hijau, dan Cabai Rawit Merah.
+            Data harga dan sinyal akan langsung dimuat secara otomatis.
           </div>
         </div>
       </div>
@@ -429,11 +448,16 @@
       <div class="step-item">
         <div class="step-num">3</div>
         <div class="step-content">
-          <div class="step-title">Klik "▶ Jalankan RCA"</div>
+          <div class="step-title">Klik "Jalankan RCA"</div>
           <div class="step-desc">
-            Sistem akan menjalankan 6 pemeriksaan secara berurutan dengan animasi langkah
+            Sistem akan menjalankan <strong>4 pemeriksaan</strong> secara berurutan dengan animasi langkah
             demi langkah. Tiap check menampilkan status <strong>TRIGGERED</strong> (kondisi terpenuhi)
             atau <strong>CLEAR</strong> (kondisi tidak terpenuhi).
+          </div>
+          <div class="step-tip">
+            <strong>Early exit:</strong> Jika suatu check TRIGGERED, check berikutnya akan di-SKIP.
+            Misalnya, jika Check 1 (Hari Raya) terpicu, Check 2-4 tidak perlu diperiksa
+            karena penyebab utama sudah ditemukan.
           </div>
         </div>
       </div>
@@ -462,9 +486,9 @@
     <div class="card" style="margin-bottom:10px;">
       <div class="sub-label">Bagaimana diagnosis ditentukan?</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;">
-        Sistem menjalankan 6 check secara berurutan — semua selalu dijalankan, tidak ada yang dilewati.
-        Diagnosis diambil dari <strong>check pertama yang TRIGGERED</strong>. Jika semua CLEAR,
-        diagnosisnya adalah Bottleneck Distribusi.
+        Sistem menjalankan <strong>4 check secara berurutan dengan early exit</strong>.
+        Diagnosis diambil dari <strong>check pertama yang TRIGGERED</strong> — check setelahnya
+        akan di-SKIP. Jika semua CLEAR, diagnosisnya adalah Bottleneck Distribusi.
       </p>
     </div>
 
@@ -472,10 +496,10 @@
 
       <div class="diag-card dc-demand">
         <div class="diag-type">Check 1 — Demand</div>
-        <div class="diag-name">Demand Spike</div>
+        <div class="diag-name">Demand Spike Hari Raya</div>
         <div class="diag-trigger">
-          Dipicu ketika: hari ini masuk window <strong>H-14 s/d H+3</strong> dari hari raya
-          (Idul Fitri atau Idul Adha).
+          Dipicu ketika: hari analisis masuk window <strong>H-14 s/d H+3</strong> dari hari raya
+          nasional (libur nasional + cuti bersama, 91 tanggal dari 2024-2027).
         </div>
         <div class="diag-action">
           <strong>Rekomendasi:</strong> Pantau saja — ini pola musiman yang koreksi sendiri.
@@ -484,11 +508,11 @@
       </div>
 
       <div class="diag-card dc-supply">
-        <div class="diag-type">Check 2 atau 3 — Supply</div>
-        <div class="diag-name">Gangguan Supply</div>
+        <div class="diag-type">Check 2 — Supply (Cuaca)</div>
+        <div class="diag-name">Gangguan Supply Cuaca</div>
         <div class="diag-trigger">
-          Dipicu ketika: ada cuaca ekstrem di daerah produksi <em>atau</em>
-          ≥60% kota mengalami kenaikan serempak.
+          Dipicu ketika: ada cuaca ekstrem di wilayah pantauan dalam 7 hari terakhir
+          (hujan >100mm, kekeringan >14 hari, suhu >38 derajat C, angin >60 km/jam).
         </div>
         <div class="diag-action">
           <strong>Rekomendasi:</strong> Koordinasi ke Bulog/Kementan untuk cek stok buffer.
@@ -496,30 +520,29 @@
         </div>
       </div>
 
+      <div class="diag-card dc-supply">
+        <div class="diag-type">Check 3 — Supply (Persebaran)</div>
+        <div class="diag-name">Kenaikan Serempak Nasional</div>
+        <div class="diag-trigger">
+          Dipicu ketika: <strong>60% atau lebih</strong> kota pantauan mengalami kenaikan harga
+          secara bersamaan — menandakan tekanan supply berskala nasional.
+        </div>
+        <div class="diag-action">
+          <strong>Rekomendasi:</strong> Kenaikan luas menandakan gangguan supply nasional.
+          Cek kondisi panen, jalur distribusi utama, dan ketersediaan stok cadangan.
+        </div>
+      </div>
+
       <div class="diag-card dc-unknown">
         <div class="diag-type">Check 4 — Unknown</div>
         <div class="diag-name">Penyebab Belum Teridentifikasi</div>
         <div class="diag-trigger">
-          Dipicu ketika: check 1–3 CLEAR, tapi stok pedagang <strong>Menipis atau Kritis</strong>
+          Dipicu ketika: check 1-3 CLEAR, tapi stok pedagang <strong>Menipis atau Kritis</strong>
           tanpa penyebab jelas dari sisi demand maupun cuaca.
         </div>
         <div class="diag-action">
           <strong>Rekomendasi:</strong> Tingkatkan frekuensi monitoring. Lakukan survei lapangan
           sebelum mengambil keputusan intervensi.
-        </div>
-      </div>
-
-      <div class="diag-card" style="background:rgba(6,182,212,0.06);border-color:rgba(6,182,212,0.25);">
-        <div style="content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#06b6d4,#2ECC88);border-radius:10px 10px 0 0;"></div>
-        <div class="diag-type" style="color:#0891b2;">Check 5 — Ekspektasi</div>
-        <div class="diag-name">Tekanan Inflasi Ekspektatif</div>
-        <div class="diag-trigger">
-          Dipicu ketika: semua check fundamental CLEAR, tapi inflasi M-to-M <strong>positif
-          3 bulan berturut-turut</strong> di kota pantauan (data BPS).
-        </div>
-        <div class="diag-action">
-          <strong>Rekomendasi:</strong> Prioritaskan komunikasi publik dan transparansi harga.
-          Cek apakah pedagang menaikkan harga secara preventif — jika ya, koordinasi Satgas Pangan.
         </div>
       </div>
 
@@ -529,8 +552,8 @@
       <div class="diag-type">Semua Check CLEAR — Distribusi</div>
       <div class="diag-name">Bottleneck Distribusi Lokal</div>
       <div class="diag-trigger">
-        Dipicu ketika: tidak ada satupun dari 5 check di atas yang TRIGGERED.
-        Stok normal, cuaca aman, bukan window hari raya, inflasi tidak konsisten naik
+        Dipicu ketika: tidak ada satupun dari 4 check di atas yang TRIGGERED.
+        Stok normal, cuaca aman, bukan window hari raya
         — tapi harga di satu atau beberapa kota tetap naik.
       </div>
       <div class="diag-action">
@@ -541,8 +564,8 @@
 
     <div class="info-box" style="margin-top:14px;">
       <span class="info-icon">💡</span>
-      <span>Check 6 (Korelasi Komoditas) tidak mempengaruhi diagnosis, tapi masuk ke perhitungan
-      keparahan. Jika komoditas terkait juga ikut naik anomali, itu sinyal gangguan lebih sistemik.</span>
+      <span>Karena menggunakan <strong>early exit</strong>, jika Check 1 sudah TRIGGERED maka Check 2-4
+      akan di-SKIP. Ini memastikan diagnosis fokus pada akar masalah paling dominan.</span>
     </div>
   </section>
 
@@ -581,22 +604,22 @@
         <div class="sev-pill sp-l3">
           <span class="lv">L3</span>
           <span class="nm">Kritis</span>
-          <span class="sc">3–4 indikator</span>
+          <span class="sc">3 indikator</span>
         </div>
         <div class="sev-pill sp-l4">
           <span class="lv">L4</span>
           <span class="nm">Darurat</span>
-          <span class="sc">5–7 indikator</span>
+          <span class="sc">4-5 indikator</span>
         </div>
       </div>
 
-      <div class="sub-label" style="margin-top:4px;">7 Indikator yang Diperiksa</div>
+      <div class="sub-label" style="margin-top:4px;">5 Indikator yang Diperiksa</div>
       <div class="ind-list">
         <div class="ind-item">
           <span class="ind-code">G1</span>
           <div class="ind-info">
             <div class="ind-name">Anomali Harga</div>
-            <div class="ind-cond">Kenaikan harga melampaui threshold normal komoditas.
+            <div class="ind-cond">Kenaikan harga melampaui threshold normal komoditas (default 10%).
             Threshold berbeda tiap komoditas tergantung volatilitas historisnya.</div>
           </div>
         </div>
@@ -604,15 +627,17 @@
           <span class="ind-code">D1</span>
           <div class="ind-info">
             <div class="ind-name">Window Hari Raya Aktif</div>
-            <div class="ind-cond">Hari ini masuk rentang H-14 s/d H+3 dari Idul Fitri atau Idul Adha.</div>
+            <div class="ind-cond">Tanggal analisis masuk rentang H-14 s/d H+3 dari hari raya nasional
+            (libur nasional + cuti bersama, data dari python-holidays 2024-2027).</div>
           </div>
         </div>
         <div class="ind-item">
           <span class="ind-code">S1</span>
           <div class="ind-info">
-            <div class="ind-name">Cuaca Ekstrem di Daerah Produksi</div>
-            <div class="ind-cond">Ada peringatan aktif BMKG (Waspada/Siaga/Awas) di salah satu
-            wilayah produksi utama komoditas tersebut.</div>
+            <div class="ind-name">Cuaca Ekstrem di Wilayah Pantauan</div>
+            <div class="ind-cond">Salah satu threshold cuaca terlampaui dalam 7 hari terakhir di wilayah pantauan:
+            hujan >100 mm/hari, kekeringan >14 hari, suhu >38 derajat C, atau angin >60 km/jam.
+            Data dari Open-Meteo Historical Archive API.</div>
           </div>
         </div>
         <div class="ind-item">
@@ -620,7 +645,8 @@
           <div class="ind-info">
             <div class="ind-name">Stok Menipis atau Kritis</div>
             <div class="ind-cond">Rata-rata stok pedagang di bawah 60% dari kapasitas normal.
-            Stok menipis memperkuat potensi kenaikan harga lebih lanjut.</div>
+            Stok menipis memperkuat potensi kenaikan harga lebih lanjut.
+            Kritis jika di bawah 35%.</div>
           </div>
         </div>
         <div class="ind-item">
@@ -628,24 +654,7 @@
           <div class="ind-info">
             <div class="ind-name">Kenaikan Serempak Antar Kota</div>
             <div class="ind-cond">60% atau lebih kota pantauan mengalami kenaikan harga pada
-            periode yang sama — menandakan tekanan bersifat nasional.</div>
-          </div>
-        </div>
-        <div class="ind-item">
-          <span class="ind-code">E1</span>
-          <div class="ind-info">
-            <div class="ind-name">Tren Inflasi 3 Bulan Berturut</div>
-            <div class="ind-cond">Inflasi M-to-M positif selama 3 bulan berturut-turut di kota
-            pantauan (data BPS). Mengindikasikan tekanan harga yang menetap, bukan lonjakan sesaat.</div>
-          </div>
-        </div>
-        <div class="ind-item">
-          <span class="ind-code">C1</span>
-          <div class="ind-info">
-            <div class="ind-name">Korelasi Komoditas Terkait</div>
-            <div class="ind-cond">Komoditas yang berkorelasi supply chain (contoh: cabai–bawang,
-            beras–ayam) juga mengalami anomali harga — mengindikasikan gangguan lebih sistemik,
-            bukan hanya satu komoditas.</div>
+            periode yang sama — menandakan tekanan bersifat nasional, bukan lokal.</div>
           </div>
         </div>
       </div>
@@ -731,27 +740,26 @@
         <div class="source-icon">💰</div>
         <div class="source-body">
           <div class="source-name">Harga Komoditas & Data Kota</div>
-          <div class="source-from">PIHPS — Panel Harga Pangan Indonesia</div>
+          <div class="source-from">PIHPS — Panel Harga Pangan Indonesia (bi.go.id/hargapangan)</div>
           <div class="source-desc">
-            Harga saat ini, harga periode sebelumnya, dan status kenaikan harga per kota
-            bersumber dari PIHPS yang dikelola Badan Pangan Nasional.
-            Mencakup data harga retail di pasar tradisional kota-kota pantauan.
+            Harga harian retail di pasar tradisional, mencakup 6 komoditas (Bawang Merah, Bawang Putih,
+            Cabai Merah Besar, Cabai Merah Keriting, Cabai Rawit Hijau, Cabai Rawit Merah) dari
+            4 provinsi pantauan. Total <strong>619.430 rows</strong> data historis (2020-2026).
           </div>
-          <div class="source-note">⚠ Saat ini menggunakan data simulasi (dummy)</div>
         </div>
       </div>
 
       <div class="source-item">
         <div class="source-icon">🌦️</div>
         <div class="source-body">
-          <div class="source-name">Cuaca & Peringatan Ekstrem</div>
-          <div class="source-from">BMKG — Badan Meteorologi, Klimatologi, dan Geofisika</div>
+          <div class="source-name">Cuaca Historis</div>
+          <div class="source-from">Open-Meteo Historical Archive API (open-meteo.com)</div>
           <div class="source-desc">
-            Data cuaca harian dan peringatan ekstrem (Waspada / Siaga / Awas) per wilayah
-            produksi komoditas. Sistem memprioritaskan peringatan aktif — jika ada peringatan
-            Awas, kondisi dinyatakan ekstrem meskipun cuaca harian terlihat normal.
+            Data cuaca harian (curah hujan, suhu, kecepatan angin) dari 5 lokasi pantauan:
+            Tangerang (Banten), Bandung & Cirebon (Jawa Barat), Jakarta (DKI Jakarta),
+            dan Makassar (Sulawesi Selatan). Total <strong>11.605 rows</strong> data (2020-2026).
+            Lookback 7 hari untuk deteksi cuaca ekstrem.
           </div>
-          <div class="source-note">⚠ Saat ini menggunakan simulasi BMKG (H-45 s/d H+7)</div>
         </div>
       </div>
 
@@ -759,13 +767,12 @@
         <div class="source-icon">📦</div>
         <div class="source-body">
           <div class="source-name">Stok Pedagang</div>
-          <div class="source-from">Badan Pangan Nasional / Bulog</div>
+          <div class="source-from">Badan Pangan Nasional / Bulog (placeholder)</div>
           <div class="source-desc">
-            Data stok per komoditas per kota, dibandingkan terhadap baseline kapasitas normal
-            masing-masing kota. Stok diupdate harian dan mencerminkan kondisi di tingkat
-            pedagang/distributor, bukan di gudang produsen.
+            Data stok per komoditas per kota, dibandingkan terhadap baseline kapasitas normal.
+            Tiga status: Normal (stok 60%+), Menipis (35-60%), Kritis (di bawah 35%).
           </div>
-          <div class="source-note">⚠ Saat ini menggunakan data simulasi stok harian</div>
+          <div class="source-note">Placeholder untuk MVP — data real belum tersedia</div>
         </div>
       </div>
 
@@ -773,100 +780,93 @@
         <div class="source-icon">📅</div>
         <div class="source-body">
           <div class="source-name">Kalender Hari Raya</div>
-          <div class="source-from">Data statis — diperbarui manual tiap tahun</div>
+          <div class="source-from">python-holidays package (offline, data 2024-2027)</div>
           <div class="source-desc">
-            Daftar tanggal Idul Fitri dan Idul Adha yang sudah dikonfigurasi untuk tahun
-            2025–2026. Window demand spike aktif mulai H-14 sebelum hari raya hingga H+3
-            setelah hari raya berlangsung.
+            91 tanggal hari libur nasional dan cuti bersama Indonesia (2024-2027),
+            di-generate otomatis dari package python-holidays.
+            Window demand spike aktif mulai H-14 sebelum hari raya hingga H+3 setelahnya.
           </div>
         </div>
       </div>
 
       <div class="source-item">
-        <div class="source-icon">📊</div>
+        <div class="source-icon">💹</div>
         <div class="source-body">
-          <div class="source-name">Inflasi Bulanan (M-to-M)</div>
-          <div class="source-from">BPS — Badan Pusat Statistik</div>
+          <div class="source-name">HET (Harga Eceran Tertinggi)</div>
+          <div class="source-from">Badan Pangan Nasional / Bapanas</div>
           <div class="source-desc">
-            Data inflasi month-to-month per kota dari publikasi IHK BPS. Digunakan untuk
-            mendeteksi tren inflasi 3 bulan berturut-turut (indikator E1). Sistem membaca data
-            kota pantauan; jika tidak ada, fallback ke data Indonesia nasional.
-            Lag publikasi ~1 bulan — data bulan M tersedia di awal bulan M+1.
+            Referensi HET untuk 6 komoditas MVP. Digunakan untuk membandingkan harga aktual
+            dan menentukan status: AMAN, WASPADA (80-100% HET), KRITIS (100-120% HET),
+            atau MELAMPAUI (>120% HET).
           </div>
-          <div class="source-note">⚠ File CSV diperbarui oleh tim ETL</div>
+          <div class="source-note">Menggunakan nilai dummy — akan diperbarui dengan data Bapanas resmi</div>
         </div>
       </div>
 
       <div class="source-item">
         <div class="source-icon">🗺️</div>
         <div class="source-body">
-          <div class="source-name">Kota Konsumsi Pantauan</div>
-          <div class="source-from">PIHPS (Bank Indonesia) &amp; BPS IHK — 82 kota nasional</div>
+          <div class="source-name">Wilayah Pantauan MVP</div>
+          <div class="source-from">PIHPS — 4 provinsi, 18 kota</div>
           <div class="source-desc">
-            6 kota Jawa yang dipakai dipilih dari daftar 82 kota pantauan PIHPS/BPS IHK,
-            mewakili pusat konsumsi dan distribusi pangan utama di Pulau Jawa:
+            Wilayah pantauan mencakup 4 provinsi yang mewakili pusat konsumsi dan distribusi utama:
           </div>
-          <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px;">
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Jakarta</span>
-              <span style="font-size:12px;color:var(--text2);">DKI Jakarta — pusat konsumsi terbesar, pasar acuan nasional</span>
+          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">BANTEN</div>
+              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
+                Tangerang, Cilegon, Serang<br>
+                <span style="color:var(--muted)">104K rows data harga</span>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Surabaya</span>
-              <span style="font-size:12px;color:var(--text2);">Jawa Timur — kota terbesar kedua, hub distribusi Indonesia Timur</span>
+            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">JAWA BARAT</div>
+              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
+                Bandung, Bogor, Depok, Bekasi, Cirebon, dll<br>
+                <span style="color:var(--muted)">312K rows data harga</span>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Bandung</span>
-              <span style="font-size:12px;color:var(--text2);">Jawa Barat — pusat konsumsi Jabar, dekat dengan sentra produksi</span>
+            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">DKI JAKARTA</div>
+              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
+                Jakarta Pusat<br>
+                <span style="color:var(--muted)">34K rows data harga</span>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Semarang</span>
-              <span style="font-size:12px;color:var(--text2);">Jawa Tengah — hub distribusi regional Jateng</span>
-            </div>
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Yogyakarta</span>
-              <span style="font-size:12px;color:var(--text2);">DI Yogyakarta — representasi pasar kota menengah Jawa</span>
-            </div>
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Malang</span>
-              <span style="font-size:12px;color:var(--text2);">Jawa Timur — kota terbesar kedua Jatim, pasar konsumsi aktif</span>
+            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">SULAWESI SELATAN</div>
+              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
+                Makassar, Pare-Pare, dll<br>
+                <span style="color:var(--muted)">167K rows data harga</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="source-item">
-        <div class="source-icon">🌾</div>
+        <div class="source-icon">🧅</div>
         <div class="source-body">
-          <div class="source-name">Wilayah Produksi Komoditas</div>
-          <div class="source-from">BPS &amp; Kementan — data produksi hortikultura &amp; pangan</div>
+          <div class="source-name">Komoditas MVP</div>
+          <div class="source-from">6 komoditas bawang & cabai</div>
           <div class="source-desc">
-            12 wilayah produksi Jawa dipilih berdasarkan data top 3 produsen per komoditas
-            dari BPS dan Kementan:
+            Komoditas fokus dipilih berdasarkan volatilitas harga dan relevansi inflasi:
           </div>
           <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">🌶 CABAI</div>
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">BAWANG</div>
               <div style="font-size:11px;color:var(--text2);line-height:1.7;">
-                P1 Garut, Jawa Barat<br>P2 Boyolali, Jawa Tengah<br>P3 Kediri, Jawa Timur
+                Bawang Merah <span style="color:var(--muted)">(com_11)</span><br>
+                Bawang Putih <span style="color:var(--muted)">(com_12)</span>
               </div>
             </div>
             <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">🧅 BAWANG MERAH</div>
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">CABAI</div>
               <div style="font-size:11px;color:var(--text2);line-height:1.7;">
-                P1 Brebes, Jawa Tengah <span style="color:var(--muted)">(#1 nasional)</span><br>P2 Probolinggo, Jawa Timur<br>P3 Nganjuk, Jawa Timur <span style="color:var(--muted)">(#2 nasional)</span>
-              </div>
-            </div>
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">🌾 BERAS</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
-                P1 Indramayu, Jawa Barat <span style="color:var(--muted)">(#1 nasional)</span><br>P2 Karawang, Jawa Barat <span style="color:var(--muted)">(#2 nasional)</span><br>P3 Subang, Jawa Barat <span style="color:var(--muted)">(#3 nasional)</span>
-              </div>
-            </div>
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">🍗 AYAM BROILER</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
-                P1 Bogor, Jawa Barat <span style="color:var(--muted)">(#1 Jabar)</span><br>P2 Blitar, Jawa Timur<br>P3 Majalengka, Jawa Barat
+                Cabai Merah Besar <span style="color:var(--muted)">(com_13)</span><br>
+                Cabai Merah Keriting <span style="color:var(--muted)">(com_14)</span><br>
+                Cabai Rawit Hijau <span style="color:var(--muted)">(com_15)</span><br>
+                Cabai Rawit Merah <span style="color:var(--muted)">(com_16)</span>
               </div>
             </div>
           </div>
@@ -883,7 +883,7 @@
     <span class="footer-sep">|</span>
     <a href="/docs" target="_blank">API Docs</a>
     <span class="footer-sep">|</span>
-    <span>RCA RadarPangan &copy; 2025</span>
+    <span>R.A.D.A.R Pangan &copy; 2026</span>
   </footer>
 
 </div>
