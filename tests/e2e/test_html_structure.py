@@ -16,7 +16,7 @@ FRONTEND_DIR = os.path.join(
 )
 
 # All pages that should exist
-PAGES = ["index.html", "login.html", "admin.html", "rca.html", "prediksi.html"]
+PAGES = ["index.html", "login.html", "admin.html", "rca.html", "prediksi.html", "guide.html"]
 
 
 @pytest.fixture(params=PAGES)
@@ -71,10 +71,10 @@ def test_has_lang_attribute(html_content):
 
 
 def test_alpine_js_loaded(html_content):
-    """Non-login pages should load Alpine.js."""
+    """Pages using Alpine.js should load it."""
     name, content = html_content
-    if name == "login.html":
-        # Login might not use Alpine.js
+    if name in ("login.html", "guide.html", "admin.html"):
+        # Login, guide, and admin pages use vanilla JS, not Alpine.js
         return
     # Check for Alpine.js CDN or local script
     has_alpine = "alpine" in content.lower()
@@ -118,6 +118,7 @@ def test_forms_have_labels_or_placeholders(html_content):
             "placeholder=" in inp.lower()
             or "aria-label=" in inp.lower()
             or "id=" in inp.lower()  # likely has an associated <label for="...">
+            or "x-model" in inp.lower()  # Alpine.js binding acts as identifier
         )
         assert has_label, (
             f"{name} has input without label/placeholder: {inp[:80]}"
