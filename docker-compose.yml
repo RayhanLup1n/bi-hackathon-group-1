@@ -1,0 +1,175 @@
+# ============================================================
+# Docker Compose — R.A.D.A.R Pangan (All Services)
+# DB: Supabase PostgreSQL (cloud, external)
+# ============================================================
+
+services:
+  # ─────────────────────────────────────────
+  # FastAPI App (Backend + Frontend)
+  # ─────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: radar-pangan-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .envs/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./.envs:/app/.envs:ro
+      - ./frontend:/app/frontend:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ─────────────────────────────────────────
+  # Airflow PostgreSQL (metadata only, bukan data)
+  # ─────────────────────────────────────────
+  airflow-postgres:
+    image: postgres:16-alpine
+    container_name: radar-airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-postgres-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    profiles:
+      - etl
+
+  # ─────────────────────────────────────────
+  # Airflow Init
+  # ─────────────────────────────────────────
+  airflow-init:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    container_name: radar-airflow-init
+    env_file:
+      - etl/.env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      PYTHONPATH: /opt/airflow
+      PATH: /home/airflow/.local/bin:/usr/local/bin:/usr/bin:/bin
+      SUPABASE_HOST: ${SUPABASE_HOST:-localhost}
+      SUPABASE_PORT: ${SUPABASE_PORT:-5432}
+      SUPABASE_DB: ${SUPABASE_DB:-postgres}
+      SUPABASE_USER: ${SUPABASE_USER:-postgres}
+      SUPABASE_PASSWORD: ${SUPABASE_PASSWORD:-}
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -e
+        airflow db migrate
+        airflow users create \
+          --username admin --firstname Admin --lastname PIHPS \
+          --role Admin --email admin@pihps.local --password admin || true
+        echo "Airflow initialized."
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    restart: "no"
+    profiles:
+      - etl
+
+  # ─────────────────────────────────────────
+  # Airflow Webserver
+  # ─────────────────────────────────────────
+  airflow-webserver:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    container_name: radar-airflow-webserver
+    env_file:
+      - etl/.env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+      PYTHONPATH: /opt/airflow
+      PATH: /home/airflow/.local/bin:/usr/local/bin:/usr/bin:/bin
+      SUPABASE_HOST: ${SUPABASE_HOST:-localhost}
+      SUPABASE_PORT: ${SUPABASE_PORT:-5432}
+      SUPABASE_DB: ${SUPABASE_DB:-postgres}
+      SUPABASE_USER: ${SUPABASE_USER:-postgres}
+      SUPABASE_PASSWORD: ${SUPABASE_PASSWORD:-}
+    command: webserver
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./etl/dags:/opt/airflow/dags
+      - ./etl/extractors:/opt/airflow/extractors
+      - ./etl/loaders:/opt/airflow/loaders
+      - ./etl/dbt_project:/opt/airflow/dbt_project
+      - ./etl/config:/opt/airflow/config
+      - airflow-logs:/opt/airflow/logs
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    profiles:
+      - etl
+
+  # ─────────────────────────────────────────
+  # Airflow Scheduler
+  # ─────────────────────────────────────────
+  airflow-scheduler:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    container_name: radar-airflow-scheduler
+    env_file:
+      - etl/.env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+      PYTHONPATH: /opt/airflow
+      PATH: /home/airflow/.local/bin:/usr/local/bin:/usr/bin:/bin
+      SUPABASE_HOST: ${SUPABASE_HOST:-localhost}
+      SUPABASE_PORT: ${SUPABASE_PORT:-5432}
+      SUPABASE_DB: ${SUPABASE_DB:-postgres}
+      SUPABASE_USER: ${SUPABASE_USER:-postgres}
+      SUPABASE_PASSWORD: ${SUPABASE_PASSWORD:-}
+    command: scheduler
+    volumes:
+      - ./etl/dags:/opt/airflow/dags
+      - ./etl/extractors:/opt/airflow/extractors
+      - ./etl/loaders:/opt/airflow/loaders
+      - ./etl/dbt_project:/opt/airflow/dbt_project
+      - ./etl/config:/opt/airflow/config
+      - airflow-logs:/opt/airflow/logs
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    profiles:
+      - etl
+
+volumes:
+  airflow-postgres-db:
+    driver: local
+  airflow-logs:
+    driver: local

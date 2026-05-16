@@ -4,8 +4,28 @@ Jalankan dengan: pytest tests/
 """
 import pytest
 from datetime import date
+from unittest.mock import patch
 from src.models.schemas import CommodityData, CuacaInfo, KotaInfo, StokInfo, DiagnosisType
 from src.engine.rca_engine import run_rca
+
+
+# Patch hari besar cache so tests don't need BigQuery
+_TEST_HARI_BESAR = [
+    ("Idul Fitri", date(2025, 3, 30)),
+    ("Idul Adha", date(2025, 6, 6)),
+    ("Hari Kemerdekaan RI", date(2025, 8, 17)),
+    ("Idul Fitri", date(2026, 3, 20)),
+    ("Idul Adha", date(2026, 5, 27)),
+]
+
+
+@pytest.fixture(autouse=True)
+def _mock_hari_besar_cache():
+    """Inject test calendar into RCA engine so BigQuery is not needed."""
+    with patch(
+        "src.engine.rca_engine._hari_besar_cache", _TEST_HARI_BESAR
+    ):
+        yield
 
 
 def make_commodity(**overrides) -> CommodityData:
@@ -54,6 +74,24 @@ def test_demand_spike_hari_raya():
     assert result.diagnosis == DiagnosisType.DEMAND
     assert result.checks[0].status == "triggered"
     assert all(c.status == "skip" for c in result.checks[1:])
+
+
+def test_demand_spike_hari_kemerdekaan():
+    """17 Agustus 2025 terdeteksi dari tanggal 11 Aug (6 hari sebelumnya, < H-14)."""
+    data = make_commodity()
+    result = run_rca(data, today=date(2025, 8, 11))
+
+    assert result.diagnosis == DiagnosisType.DEMAND
+    assert result.checks[0].status == "triggered"
+    assert "Kemerdekaan" in result.checks[0].detail
+
+
+def test_no_demand_spike_outside_window():
+    """Tanggal jauh dari hari besar manapun → tidak trigger demand spike."""
+    data = make_commodity()
+    result = run_rca(data, today=DATE_NORMAL)
+
+    assert result.checks[0].status == "clear"
 
 
 # ── SUPPLY ──────────────────────────────────────────────────────────────────

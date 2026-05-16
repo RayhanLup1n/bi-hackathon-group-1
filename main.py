@@ -1,56 +1,124 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from src.api.routes import router, bmkg_router, stok_router
+from fastapi.responses import FileResponse, Response
+
+from src.api.routes import router, het_router, cuaca_router, stok_router, predictions_router, data_quality_router
 from src.api.auth_routes import auth_router
+from src.api.ml_routes import ml_router
+
 import os
+
+
+def _load_env() -> None:
+    """Load environment variables from .envs/.env file."""
+    env_path = os.path.join(os.path.dirname(__file__), ".envs", ".env")
+    if os.path.exists(env_path):
+        with open(env_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, _, value = line.partition("=")
+                    os.environ.setdefault(key.strip(), value.strip())
+
+
+# Load env before anything else
+_load_env()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Inisialisasi semua DB simulasi saat startup (idempoten)."""
-    from src.data.bmkg_db import init_db
-    from src.data.stok_db import init_db_stok
+    """Initialize database connections and seed data at startup."""
+    from src.data.database import init_pool, close_pool
+    from src.data.commodity_data import init_commodity_data
     from src.data.auth_db import init_db_auth
-    init_db()
-    init_db_stok()
+
+    # Initialize connection pool to Supabase PostgreSQL (Gold layer -- all app data)
+    init_pool()
+
+    # Load commodity mapping from Supabase PostgreSQL (app.harga_pangan)
+    init_commodity_data()
+
+    # Seed default users if empty (Supabase)
     init_db_auth()
+
+    # BigQuery client is NOT initialized here -- only used by ETL scripts
+    # and admin-only data quality endpoints (lazy init in data_quality.py)
+
     yield
+
+    # Cleanup on shutdown
+    close_pool()
 
 
 app = FastAPI(
-    title="RCA RadarPangan",
+    title="R.A.D.A.R Pangan",
     description=(
-        "Root Cause Analysis engine untuk anomali harga pangan Indonesia. "
-        "Dilengkapi simulasi database BMKG untuk data cuaca & peringatan ekstrem."
+        "Real-time Anti-inflation Detection, Analysis & Response. "
+        "Platform pemantauan inflasi pangan berbasis data PIHPS."
     ),
-    version="0.2.0",
     lifespan=lifespan,
 )
 
 app.include_router(router)
-app.include_router(bmkg_router)
+app.include_router(het_router)
+app.include_router(cuaca_router)
 app.include_router(stok_router)
+app.include_router(predictions_router)
 app.include_router(auth_router)
+app.include_router(ml_router)
+app.include_router(data_quality_router)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """Return empty favicon to suppress 404 errors."""
+    return Response(content=b"", media_type="image/x-icon")
 
 # Serve frontend static files
 frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
 if os.path.exists(frontend_dir):
+    # Serve /assets/ directory (logo, images)
+    assets_dir = os.path.join(frontend_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
     app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
+    # Serve CSS directory
+    css_dir = os.path.join(frontend_dir, "css")
+    if os.path.exists(css_dir):
+        app.mount("/css", StaticFiles(directory=css_dir), name="css")
+
+    def _html(filename: str) -> FileResponse:
+        """Serve HTML file with no-cache headers to prevent stale content."""
+        resp = FileResponse(os.path.join(frontend_dir, filename))
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
 
     @app.get("/", include_in_schema=False)
     def serve_frontend():
-        return FileResponse(os.path.join(frontend_dir, "index.html"))
+        return _html("index.html")
 
     @app.get("/login", include_in_schema=False)
     def serve_login():
-        return FileResponse(os.path.join(frontend_dir, "login.html"))
+        return _html("login.html")
 
     @app.get("/admin", include_in_schema=False)
     def serve_admin():
-        return FileResponse(os.path.join(frontend_dir, "admin.html"))
+        return _html("admin.html")
+
+    @app.get("/rca", include_in_schema=False)
+    def serve_rca():
+        return _html("rca.html")
+
+    @app.get("/prediksi", include_in_schema=False)
+    def serve_prediksi():
+        return _html("prediksi.html")
 
     @app.get("/guide", include_in_schema=False)
     def serve_guide():
-        return FileResponse(os.path.join(frontend_dir, "guide.html"))
+        return _html("guide.html")

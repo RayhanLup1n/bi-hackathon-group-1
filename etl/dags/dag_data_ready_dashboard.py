@@ -13,7 +13,7 @@ Flow:
   init_schema
     → check_source_availability
     → extract_harga_harian
-    → load_to_duckdb_raw
+    → load_to_postgres_raw
     → dbt_run_staging
     → dbt_run_mart_dashboard
     → dbt_test
@@ -39,18 +39,18 @@ DEFAULT_ARGS = {
 
 PIPELINE_NAME = "data_ready_dashboard"
 
-# Provinsi target — sama dengan modelling
-TARGET_PROVINCE_IDS = [12, 13]  # Jawa Barat, DKI Jakarta
+# Import dari centralized config
+from config.constants import TARGET_PROVINCE_IDS
 
 
 # ── Task functions ────────────────────────────────────────────────────────────
 
 def task_init_schema(**ctx):
-    """Inisialisasi schema DuckDB jika belum ada."""
-    from loaders.duckdb_loader import DuckDBLoader
-    with DuckDBLoader() as loader:
+    """Inisialisasi schema PostgreSQL (Supabase) jika belum ada."""
+    from loaders.postgres_loader import PostgresLoader
+    with PostgresLoader() as loader:
         loader.init_schema()
-    print("Schema DuckDB siap.")
+    print("Schema PostgreSQL siap.")
 
 
 def task_check_source(**ctx):
@@ -77,7 +77,7 @@ def task_extract_harga_harian(**ctx):
     Kita tarik data untuk tanggal kemarin agar lebih reliable.
     """
     from extractors.pihps_extractor import PihpsExtractor
-    from loaders.duckdb_loader import DuckDBLoader
+    from loaders.postgres_loader import PostgresLoader
 
     run_id = ctx["run_id"]
 
@@ -88,7 +88,7 @@ def task_extract_harga_harian(**ctx):
     print(f"Extraction target: {tanggal_target}")
     print(f"Provinsi target: {TARGET_PROVINCE_IDS}")
 
-    with DuckDBLoader() as loader:
+    with PostgresLoader() as loader:
         loader.log_run_start(
             run_id=run_id,
             pipeline_name=PIPELINE_NAME,
@@ -98,7 +98,7 @@ def task_extract_harga_harian(**ctx):
 
     records_inserted = 0
     try:
-        with PihpsExtractor() as extractor, DuckDBLoader() as loader:
+        with PihpsExtractor() as extractor, PostgresLoader() as loader:
             df = extractor.extract_harga_per_wilayah(
                 tanggal_mulai=tanggal_target,
                 tanggal_selesai=tanggal_target,
@@ -118,7 +118,7 @@ def task_extract_harga_harian(**ctx):
             )
 
     except Exception as exc:
-        from loaders.duckdb_loader import DuckDBLoader as _L
+        from loaders.postgres_loader import PostgresLoader as _L
         with _L() as loader:
             loader.log_run_finish(
                 run_id=run_id,
@@ -208,7 +208,7 @@ def task_dbt_test_dashboard(**ctx):
 
 def task_log_summary(**ctx):
     """Log ringkasan hasil pipeline harian."""
-    from loaders.duckdb_loader import DuckDBLoader
+    from loaders.postgres_loader import PostgresLoader
 
     records_inserted = ctx["ti"].xcom_pull(
         task_ids="extract_harga_harian",
@@ -219,14 +219,12 @@ def task_log_summary(**ctx):
         key="tanggal_target",
     )
 
-    with DuckDBLoader() as loader:
+    with PostgresLoader() as loader:
         dashboard_count = loader.table_row_count_safe(
             "marts.mart_dashboard_harga_pangan",
-            "main_marts.mart_dashboard_harga_pangan",
         )
         nasional_count = loader.table_row_count_safe(
             "marts.mart_dashboard_ringkasan_nasional",
-            "main_marts.mart_dashboard_ringkasan_nasional",
         )
 
     print("=" * 60)

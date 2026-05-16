@@ -3,123 +3,126 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panduan Analis — RCA RadarPangan</title>
+  <title>Panduan Analis — R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
   <style>
+    /* -- Reset + Design tokens (inline fallback) -- */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg:       #f0f4ff;
-      --surface:  #ffffff;
-      --surface2: #f5f7ff;
-      --border:   #dde3f7;
-      --border2:  #c7d2fe;
-      --accent:   #6366f1;
-      --accent2:  #4f46e5;
-      --warn:     #f59e0b;
-      --danger:   #ef4444;
-      --success:  #10b981;
-      --info:     #06b6d4;
-      --text:     #1e293b;
-      --text2:    #475569;
-      --muted:    #94a3b8;
+      --bg: #EEF7F1; --bg2: #F0FBF4;
+      --surface: #FFFFFF; --surface2: #F0FBF4;
+      --border: #1a1a1a; --border2: #1a1a1a;
+      --accent: #2ECC88; --accent2: #1D7A56;
+      --warn: #FBBF24; --danger: #F87171; --success: #34D399;
+      --highlight: #A7F3D0; --info: #67E8F9;
+      --text: #1a1a1a; --text2: #3f3f46; --muted: #71717a;
       --mono: 'JetBrains Mono', monospace;
-      --sans: 'Inter', sans-serif;
-      --radius: 14px;
-      --radius-sm: 10px;
+      --sans: 'Inter', system-ui, sans-serif;
+      --radius: 16px; --radius-sm: 12px;
+      --shadow: 4px 4px 0px #1a1a1a; --shadow-lg: 6px 6px 0px #1a1a1a;
+      --bw: 2.5px;
     }
-
     html { scroll-behavior: smooth; }
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      min-height: 100vh;
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
     }
     body::before {
-      content: '';
-      position: fixed; inset: 0;
+      content: ''; position: fixed; inset: 0;
       background-image:
-        radial-gradient(ellipse at 10% 10%, rgba(99,102,241,0.16) 0%, transparent 50%),
-        radial-gradient(ellipse at 90% 15%, rgba(236,72,153,0.10) 0%, transparent 45%),
-        radial-gradient(ellipse at 80% 85%, rgba(6,182,212,0.12) 0%, transparent 50%),
-        radial-gradient(ellipse at 20% 90%, rgba(16,185,129,0.10) 0%, transparent 45%);
+        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
       pointer-events: none; z-index: 0;
     }
 
-    .app {
-      position: relative; z-index: 1;
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 24px 20px 72px;
-    }
-
-    /* Header */
+    /* -- Header (inline to guarantee rendering) -- */
     .header {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 32px; padding: 16px 20px;
-      background: rgba(255,255,255,0.75);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.9);
-      border-radius: var(--radius);
-      box-shadow: 0 2px 16px rgba(99,102,241,0.08);
+      margin-bottom: 28px; padding: 14px 20px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
     }
     .header-left { display: flex; align-items: center; gap: 14px; }
     .logo-icon {
-      width: 42px; height: 42px;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      border-radius: 12px; display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
-      box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+      width: 44px; height: 44px;
+      border: var(--bw) solid var(--border); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
+      overflow: hidden; padding: 0;
     }
+    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
     .header-title {
-      font-size: 17px; font-weight: 800; letter-spacing: -0.3px;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
     }
-    .header-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
-    .header-right { display: flex; align-items: center; gap: 8px; }
+    .header-sub {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 2px; letter-spacing: 0.5px;
+    }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .nav-link {
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
-      color: var(--text2); text-decoration: none;
-      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-      padding: 6px 12px; background: var(--surface2);
-      transition: background 0.2s, color 0.2s;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
+      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
     }
-    .nav-link:hover { background: var(--border); color: var(--accent); }
+    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .nav-link-default { background: var(--surface); color: var(--accent2); }
+    .nav-link-default:hover { background: #E0F5EA; }
+    .nav-link-active { background: var(--accent); color: #fff; }
+    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
+    .nav-link-danger:hover { background: #FECACA; }
+    .user-badge {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; background: var(--surface2);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .user-badge strong { color: var(--accent2); }
+    .nav-role-link { display: none; }
+
+    /* -- Guide page-specific styles -- */
+    .app {
+      position: relative; z-index: 1;
+      max-width: 820px; margin: 0 auto;
+      padding: 24px 20px 72px;
+    }
 
     /* Hero */
     .page-hero { text-align: center; margin-bottom: 36px; }
     .page-hero-badge {
       display: inline-block; font-family: var(--mono); font-size: 11px;
-      color: var(--accent); background: rgba(99,102,241,0.1);
-      border: 1px solid rgba(99,102,241,0.2); border-radius: 20px;
+      color: var(--accent2); background: var(--highlight);
+      border: var(--bw) solid var(--border); border-radius: 20px;
       padding: 4px 14px; margin-bottom: 14px; letter-spacing: 0.5px;
+      box-shadow: 2px 2px 0 var(--border); font-weight: 700;
     }
     .page-hero-title {
       font-size: 30px; font-weight: 900; letter-spacing: -0.8px; line-height: 1.2;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      margin-bottom: 12px;
+      color: var(--text); margin-bottom: 12px;
     }
-    .page-hero-desc { font-size: 14px; color: var(--text2); line-height: 1.7; max-width: 520px; margin: 0 auto; }
+    .page-hero-desc {
+      font-size: 14px; color: var(--text2); line-height: 1.7;
+      max-width: 520px; margin: 0 auto;
+    }
 
     /* TOC */
     .toc {
-      background: rgba(255,255,255,0.7); backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.95); border-radius: var(--radius);
-      padding: 18px 22px; margin-bottom: 32px;
-      box-shadow: 0 2px 16px rgba(99,102,241,0.06);
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 18px 22px; margin-bottom: 32px;
+      box-shadow: var(--shadow);
     }
     .toc-label {
-      font-family: var(--mono); font-size: 10px; color: var(--accent);
-      text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;
+      font-family: var(--mono); font-size: 10px; color: var(--text);
+      text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800;
       margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
     }
     .toc-label::before {
-      content: ''; display: inline-block; width: 3px; height: 10px;
-      background: linear-gradient(180deg, #6366f1, #ec4899); border-radius: 2px;
+      content: ''; display: inline-block; width: 4px; height: 12px;
+      background: var(--accent); border-radius: 2px;
+      border: 1px solid var(--border);
     }
     .toc-items { display: flex; flex-direction: column; gap: 2px; }
     .toc-items a {
@@ -128,11 +131,12 @@
       padding: 6px 10px; border-radius: var(--radius-sm);
       transition: background 0.15s, color 0.15s;
     }
-    .toc-items a:hover { background: rgba(99,102,241,0.07); color: var(--accent); }
+    .toc-items a:hover { background: var(--surface2); color: var(--accent2); }
     .toc-n {
       font-family: var(--mono); font-size: 10px; font-weight: 700;
-      color: var(--accent); background: rgba(99,102,241,0.1);
-      border-radius: 4px; padding: 1px 7px; flex-shrink: 0;
+      color: var(--accent2); background: var(--highlight);
+      border: 1.5px solid var(--border); border-radius: 4px;
+      padding: 1px 7px; flex-shrink: 0;
     }
 
     /* Section */
@@ -140,36 +144,36 @@
     .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
     .section-num {
       width: 34px; height: 34px;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
+      background: var(--accent); border: var(--bw) solid var(--border);
       border-radius: 10px; display: flex; align-items: center; justify-content: center;
       font-family: var(--mono); font-size: 13px; font-weight: 700; color: white;
-      flex-shrink: 0; box-shadow: 0 3px 10px rgba(99,102,241,0.35);
+      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
     }
     .section-title { font-size: 19px; font-weight: 800; letter-spacing: -0.3px; }
 
-    /* Card */
+    /* Card override: ensure neobrutalism tokens */
     .card {
-      background: rgba(255,255,255,0.82); backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.95); border-radius: var(--radius);
-      padding: 20px 22px; box-shadow: 0 4px 24px rgba(99,102,241,0.07);
-      position: relative; overflow: hidden;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 20px 22px;
+      box-shadow: var(--shadow); position: relative; overflow: hidden;
     }
     .card::after {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: linear-gradient(90deg, #6366f1, #ec4899, #06b6d4);
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+      background: var(--accent);
       border-radius: var(--radius) var(--radius) 0 0;
     }
     .card + .card { margin-top: 10px; }
 
     /* Sub-label inside card */
     .sub-label {
-      font-family: var(--mono); font-size: 10px; color: var(--accent);
-      text-transform: uppercase; letter-spacing: 1.3px; font-weight: 600;
+      font-family: var(--mono); font-size: 10px; color: var(--text);
+      text-transform: uppercase; letter-spacing: 1.3px; font-weight: 800;
       margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
     }
     .sub-label::before {
-      content: ''; display: inline-block; width: 3px; height: 10px;
-      background: linear-gradient(180deg, #6366f1, #ec4899); border-radius: 2px;
+      content: ''; display: inline-block; width: 4px; height: 12px;
+      background: var(--accent); border-radius: 2px;
+      border: 1px solid var(--border);
     }
 
     /* Step list */
@@ -177,34 +181,36 @@
     .step-item {
       display: flex; gap: 14px;
       padding: 14px 16px;
-      background: rgba(255,255,255,0.8); backdrop-filter: blur(8px);
-      border: 1.5px solid rgba(255,255,255,0.95); border-radius: var(--radius-sm);
-      box-shadow: 0 2px 10px rgba(99,102,241,0.06);
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 3px 3px 0 var(--border);
     }
     .step-num {
       width: 30px; height: 30px; border-radius: 50%;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
+      background: var(--accent); border: var(--bw) solid var(--border);
       display: flex; align-items: center; justify-content: center;
       font-family: var(--mono); font-size: 12px; font-weight: 700; color: white;
-      flex-shrink: 0; box-shadow: 0 2px 8px rgba(99,102,241,0.35);
+      flex-shrink: 0; box-shadow: 2px 2px 0 var(--border);
     }
     .step-content { flex: 1; }
     .step-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
     .step-desc  { font-size: 13px; color: var(--text2); line-height: 1.7; }
     .step-tip {
       margin-top: 8px; padding: 8px 12px;
-      background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.15);
+      background: var(--surface2); border: var(--bw) solid var(--border);
       border-radius: 7px; font-size: 12px; color: var(--text2); line-height: 1.6;
+      box-shadow: 2px 2px 0 var(--border);
     }
-    .step-tip strong { color: var(--accent); }
+    .step-tip strong { color: var(--accent2); }
 
     /* Signal explain */
     .signal-rows { display: flex; flex-direction: column; gap: 10px; }
     .signal-row {
       display: flex; gap: 14px; align-items: flex-start;
       padding: 13px 15px;
-      background: var(--surface2); border: 1.5px solid var(--border);
+      background: var(--surface2); border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
     }
     .signal-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
     .signal-info { flex: 1; }
@@ -213,14 +219,15 @@
     .signal-warn {
       display: inline-block; margin-top: 5px;
       font-family: var(--mono); font-size: 10px; font-weight: 600;
-      color: #d97706; background: rgba(245,158,11,0.1);
-      border: 1px solid rgba(245,158,11,0.25); border-radius: 5px; padding: 2px 8px;
+      color: #92400e; background: #FEF3C7;
+      border: var(--bw) solid var(--border); border-radius: 5px; padding: 2px 8px;
+      box-shadow: 1px 1px 0 var(--border);
     }
     .signal-source {
       display: inline-block; margin-top: 5px; margin-left: 5px;
       font-family: var(--mono); font-size: 10px; font-weight: 600;
-      color: var(--muted); background: rgba(148,163,184,0.1);
-      border: 1px solid rgba(148,163,184,0.2); border-radius: 5px; padding: 2px 8px;
+      color: var(--muted); background: var(--surface);
+      border: 1.5px solid var(--border); border-radius: 5px; padding: 2px 8px;
     }
 
     /* Diagnosis cards */
@@ -228,27 +235,28 @@
     @media (max-width: 580px) { .diag-grid { grid-template-columns: 1fr; } }
     .diag-card {
       border-radius: var(--radius-sm); padding: 16px 18px;
-      border: 1.5px solid; position: relative; overflow: hidden;
+      border: var(--bw) solid var(--border); position: relative; overflow: hidden;
+      box-shadow: 3px 3px 0 var(--border);
     }
     .diag-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
       border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     }
-    .dc-demand   { background: rgba(16,185,129,0.06);  border-color: rgba(16,185,129,0.25); }
-    .dc-supply   { background: rgba(245,158,11,0.06);  border-color: rgba(245,158,11,0.25); }
-    .dc-dist     { background: rgba(99,102,241,0.06);  border-color: rgba(99,102,241,0.25); }
-    .dc-unknown  { background: rgba(148,163,184,0.06); border-color: rgba(148,163,184,0.2); }
-    .dc-demand::before  { background: linear-gradient(90deg, #10b981, #06b6d4); }
-    .dc-supply::before  { background: linear-gradient(90deg, #f59e0b, #ef4444); }
-    .dc-dist::before    { background: linear-gradient(90deg, #6366f1, #ec4899); }
-    .dc-unknown::before { background: linear-gradient(90deg, #94a3b8, #64748b); }
+    .dc-demand   { background: #ECFDF5; }
+    .dc-supply   { background: #FFFBEB; }
+    .dc-dist     { background: var(--surface2); }
+    .dc-unknown  { background: #F8FAFC; }
+    .dc-demand::before  { background: var(--success); }
+    .dc-supply::before  { background: var(--warn); }
+    .dc-dist::before    { background: var(--accent); }
+    .dc-unknown::before { background: var(--muted); }
     .diag-type {
       font-family: var(--mono); font-size: 10px; font-weight: 700;
       text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;
     }
     .dc-demand .diag-type  { color: #059669; }
-    .dc-supply .diag-type  { color: #d97706; }
-    .dc-dist .diag-type    { color: var(--accent); }
+    .dc-supply .diag-type  { color: #92400e; }
+    .dc-dist .diag-type    { color: var(--accent2); }
     .dc-unknown .diag-type { color: var(--muted); }
     .diag-name { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 7px; }
     .diag-trigger {
@@ -256,7 +264,7 @@
     }
     .diag-action {
       font-size: 12px; color: var(--text2); line-height: 1.65;
-      padding-top: 8px; border-top: 1px solid rgba(148,163,184,0.2);
+      padding-top: 8px; border-top: var(--bw) solid var(--border);
     }
     .diag-action strong { color: var(--text); }
 
@@ -264,20 +272,22 @@
     .sev-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
     .sev-pill {
       display: flex; flex-direction: column; align-items: center;
-      padding: 12px 16px; border-radius: var(--radius-sm); border: 1.5px solid;
+      padding: 12px 16px; border-radius: var(--radius-sm);
+      border: var(--bw) solid var(--border);
       min-width: 80px; flex: 1;
+      box-shadow: 3px 3px 0 var(--border);
     }
     .sev-pill .lv { font-family: var(--mono); font-size: 18px; font-weight: 800; }
     .sev-pill .nm { font-size: 11px; font-weight: 700; margin-top: 3px; }
     .sev-pill .sc { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
-    .sp-l0 { background: rgba(16,185,129,0.08);  border-color: rgba(16,185,129,0.25); }
-    .sp-l1 { background: rgba(6,182,212,0.08);   border-color: rgba(6,182,212,0.25); }
-    .sp-l2 { background: rgba(245,158,11,0.08);  border-color: rgba(245,158,11,0.25); }
-    .sp-l3 { background: rgba(239,68,68,0.08);   border-color: rgba(239,68,68,0.25); }
-    .sp-l4 { background: rgba(127,29,29,0.09);   border-color: rgba(153,27,27,0.3); }
+    .sp-l0 { background: #ECFDF5; }
+    .sp-l1 { background: #ECFEFF; }
+    .sp-l2 { background: #FFFBEB; }
+    .sp-l3 { background: #FEF2F2; }
+    .sp-l4 { background: #FFF1F2; }
     .sp-l0 .lv, .sp-l0 .nm { color: #059669; }
     .sp-l1 .lv, .sp-l1 .nm { color: #0891b2; }
-    .sp-l2 .lv, .sp-l2 .nm { color: #d97706; }
+    .sp-l2 .lv, .sp-l2 .nm { color: #92400e; }
     .sp-l3 .lv, .sp-l3 .nm { color: #dc2626; }
     .sp-l4 .lv, .sp-l4 .nm { color: #991b1b; }
 
@@ -285,13 +295,15 @@
     .ind-item {
       display: flex; gap: 12px; align-items: flex-start;
       padding: 10px 13px; background: var(--surface2);
-      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
     }
     .ind-code {
       font-family: var(--mono); font-size: 11px; font-weight: 700;
-      color: var(--accent); background: rgba(99,102,241,0.1);
-      border: 1px solid rgba(99,102,241,0.2); border-radius: 5px;
+      color: var(--accent2); background: var(--highlight);
+      border: var(--bw) solid var(--border); border-radius: 5px;
       padding: 2px 8px; flex-shrink: 0; align-self: flex-start; margin-top: 1px;
+      box-shadow: 1px 1px 0 var(--border);
     }
     .ind-info { flex: 1; }
     .ind-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
@@ -302,51 +314,72 @@
     .source-item {
       display: flex; gap: 14px; align-items: flex-start;
       padding: 14px 16px;
-      background: rgba(255,255,255,0.8);
-      border: 1.5px solid rgba(255,255,255,0.95); border-radius: var(--radius-sm);
-      box-shadow: 0 2px 10px rgba(99,102,241,0.05);
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 3px 3px 0 var(--border);
     }
     .source-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
     .source-body { flex: 1; }
     .source-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
     .source-from {
       display: inline-block;
-      font-family: var(--mono); font-size: 10px; font-weight: 600;
-      color: var(--accent); background: rgba(99,102,241,0.09);
-      border: 1px solid rgba(99,102,241,0.2); border-radius: 5px; padding: 2px 8px;
-      margin-bottom: 6px;
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      color: var(--accent2); background: var(--highlight);
+      border: var(--bw) solid var(--border); border-radius: 5px; padding: 2px 8px;
+      margin-bottom: 6px; box-shadow: 1px 1px 0 var(--border);
     }
     .source-desc { font-size: 12px; color: var(--text2); line-height: 1.65; }
     .source-note {
       margin-top: 6px; font-family: var(--mono); font-size: 11px;
-      color: #d97706; background: rgba(245,158,11,0.07);
-      border: 1px solid rgba(245,158,11,0.2); border-radius: 5px;
+      color: #92400e; background: #FEF3C7;
+      border: var(--bw) solid var(--border); border-radius: 5px;
       padding: 4px 10px; display: inline-block;
+      box-shadow: 1px 1px 0 var(--border);
     }
 
     /* Info / tip box */
     .info-box {
-      background: rgba(99,102,241,0.05); border: 1px solid rgba(99,102,241,0.2);
+      background: var(--surface2); border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm); padding: 12px 15px;
       display: flex; gap: 10px; font-size: 13px; color: var(--text2);
       line-height: 1.65; margin-top: 14px;
+      box-shadow: 2px 2px 0 var(--border);
     }
     .info-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
 
     /* Footer */
     .footer {
       text-align: center; margin-top: 48px; padding-top: 20px;
-      border-top: 1px solid var(--border);
+      border-top: var(--bw) solid var(--border);
       font-family: var(--mono); font-size: 10px; color: var(--muted);
     }
-    .footer a { color: var(--accent); text-decoration: none; }
-    .footer-sep { margin: 0 10px; color: var(--border2); }
+    .footer a { color: var(--accent2); text-decoration: none; font-weight: 700; }
+    .footer-sep { margin: 0 10px; color: var(--border); }
+
+    /* Region/commodity grid items */
+    .region-cell {
+      padding: 10px 12px; background: var(--surface2);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .region-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      color: var(--accent2); margin-bottom: 6px;
+    }
+    .region-desc {
+      font-size: 11px; color: var(--text2); line-height: 1.7;
+    }
 
     @keyframes slide-up {
-      from { opacity: 0; transform: translateY(14px); }
+      from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
     .animate-in { animation: slide-up 0.45s ease both; }
+
+    @media (max-width: 640px) {
+      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .header-right { width: 100%; justify-content: flex-start; }
+    }
   </style>
 </head>
 <body>
@@ -355,28 +388,30 @@
   <!-- Header -->
   <header class="header">
     <div class="header-left">
-      <div class="logo-icon">📡</div>
+      <div class="logo-icon"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
       <div>
-        <div class="header-title">RCA RadarPangan</div>
-        <div class="header-sub">panduan analisis &nbsp;·&nbsp; v0.2</div>
+        <div class="header-title">R.A.D.A.R Pangan</div>
+        <div class="header-sub">panduan analisis</div>
       </div>
     </div>
     <div class="header-right">
-      <span id="userBadge" style="
-        font-family:var(--mono);font-size:11px;color:var(--text2);
-        padding:6px 12px;background:var(--surface2);
-        border:1px solid var(--border);border-radius:var(--radius-sm);">—</span>
-      <a href="/" class="nav-link">← Dashboard</a>
+      <span class="user-badge" id="userBadge">-</span>
+      <a href="/" class="nav-link nav-link-default">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-active">Panduan</a>
+      <a href="/rca" class="nav-link nav-link-default nav-role-link" id="navRca">RCA</a>
+      <a href="/prediksi" class="nav-link nav-link-default nav-role-link" id="navPrediksi">Prediksi</a>
+      <a href="/admin" class="nav-link nav-link-default nav-role-link" id="navAdmin">Admin</a>
+      <button class="nav-link nav-link-danger" id="navLogout" style="display:none" onclick="guideLogout()">Keluar</button>
     </div>
   </header>
 
   <!-- Hero -->
   <div class="page-hero">
-    <div class="page-hero-badge">📖 Panduan Analisis</div>
-    <div class="page-hero-title">Panduan Analis RCA RadarPangan</div>
+    <div class="page-hero-badge">Panduan Analisis</div>
+    <div class="page-hero-title">Panduan Analis R.A.D.A.R Pangan</div>
     <div class="page-hero-desc">
       Cara membaca sinyal, menjalankan analisis, memahami hasil diagnosis,
-      dan menafsirkan tingkat keparahan harga pangan.
+      dan menafsirkan tingkat keparahan harga pangan di 4 provinsi pantauan.
     </div>
   </div>
 
@@ -387,9 +422,9 @@
       <a href="#s1"><span class="toc-n">1</span> Membaca Panel Sinyal Input</a>
       <a href="#s2"><span class="toc-n">2</span> Cara Menjalankan Analisis</a>
       <a href="#s3"><span class="toc-n">3</span> Memahami Hasil Diagnosis</a>
-      <a href="#s4"><span class="toc-n">4</span> Tingkat Keparahan (L0–L4)</a>
+      <a href="#s4"><span class="toc-n">4</span> Tingkat Keparahan (L0-L4)</a>
       <a href="#s5"><span class="toc-n">5</span> Fitur Simulasi Tanggal</a>
-      <a href="#s6"><span class="toc-n">6</span> Sumber Data & Referensi</a>
+      <a href="#s6"><span class="toc-n">6</span> Sumber Data &amp; Referensi</a>
     </div>
   </div>
 
@@ -405,7 +440,7 @@
       <div class="sub-label">Apa itu sinyal input?</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
         Sebelum menjalankan RCA, panel kiri menampilkan 4 sinyal kondisi saat ini untuk
-        komoditas yang dipilih. Sinyal berwarna <strong style="color:#d97706">kuning</strong>
+        komoditas yang dipilih. Sinyal berwarna <strong style="color:#92400e">kuning</strong>
         berarti ada indikasi masalah yang perlu diperhatikan.
       </p>
       <div class="signal-rows">
@@ -422,13 +457,31 @@
         <div class="signal-row">
           <div class="signal-icon">🌦️</div>
           <div class="signal-info">
-            <div class="signal-name">Cuaca BMKG</div>
+            <div class="signal-name">Cuaca Open-Meteo</div>
             <div class="signal-desc">
-              Status cuaca di wilayah produksi utama komoditas tersebut.
-              Jika ada peringatan aktif (Waspada / Siaga / Awas), sinyal ini berwarna kuning
-              dan menampilkan nama wilayah yang terdampak.
+              Kondisi cuaca historis di wilayah produksi komoditas, diambil dari Open-Meteo Archive API.
+              Sistem memeriksa 4 parameter cuaca dalam 7 hari terakhir:
             </div>
-            <span class="signal-warn">⚠ Waspada / Siaga / Awas = indikasi gangguan panen</span>
+            <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
+              <div style="font-family:var(--mono);font-size:11px;">
+                <span style="color:#dc2626;font-weight:700;">Hujan Ekstrem</span>
+                <span style="color:var(--muted)"> — curah hujan > 100 mm/hari</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:11px;">
+                <span style="color:#dc2626;font-weight:700;">Kekeringan</span>
+                <span style="color:var(--muted)"> — hujan < 1 mm selama > 14 hari berturut</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:11px;">
+                <span style="color:#dc2626;font-weight:700;">Suhu Ekstrem</span>
+                <span style="color:var(--muted)"> — suhu maksimum > 38 derajat C</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:11px;">
+                <span style="color:#dc2626;font-weight:700;">Angin Kencang</span>
+                <span style="color:var(--muted)"> — kecepatan angin > 60 km/jam</span>
+              </div>
+            </div>
+            <span class="signal-warn">Jika salah satu threshold terlampaui = indikasi gangguan panen</span>
+            <span class="signal-source">Sumber: Open-Meteo Historical Archive API</span>
           </div>
         </div>
         <div class="signal-row">
@@ -437,10 +490,10 @@
             <div class="signal-name">Kota Naik</div>
             <div class="signal-desc">
               Jumlah kota yang mengalami kenaikan harga dibanding periode sebelumnya,
-              dari total kota pantauan. Jika ≥60% kota naik sekaligus, sinyal berwarna kuning
+              dari total kota pantauan. Jika >=60% kota naik sekaligus, sinyal berwarna kuning
               — menunjukkan kenaikan bersifat nasional, bukan lokal.
             </div>
-            <span class="signal-warn">⚠ ≥ 60% kota = kenaikan serempak nasional</span>
+            <span class="signal-warn">>=60% kota = kenaikan serempak nasional</span>
           </div>
         </div>
         <div class="signal-row">
@@ -454,11 +507,11 @@
             <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
               <div style="font-family:var(--mono);font-size:11px;">
                 <span style="color:#059669;font-weight:700;">Normal</span>
-                <span style="color:var(--muted)"> — stok ≥ 60% kapasitas</span>
+                <span style="color:var(--muted)"> — stok >=60% kapasitas</span>
               </div>
               <div style="font-family:var(--mono);font-size:11px;">
-                <span style="color:#d97706;font-weight:700;">Menipis</span>
-                <span style="color:var(--muted)"> — stok 35%–60% kapasitas</span>
+                <span style="color:#92400e;font-weight:700;">Menipis</span>
+                <span style="color:var(--muted)"> — stok 35%-60% kapasitas</span>
               </div>
               <div style="font-family:var(--mono);font-size:11px;">
                 <span style="color:#dc2626;font-weight:700;">Kritis</span>
@@ -471,8 +524,8 @@
 
       <div class="info-box">
         <span class="info-icon">📍</span>
-        <span>Daerah produksi utama tiap komoditas juga ditampilkan di panel kiri sebagai chips berlabel
-        prioritas (P1, P2, P3). Ini adalah wilayah yang datanya dipakai untuk membaca kondisi cuaca.</span>
+        <span>Wilayah pantauan mencakup 4 provinsi: Banten, Jawa Barat, DKI Jakarta, dan Sulawesi Selatan.
+        Data cuaca diambil dari 5 lokasi (Tangerang, Bandung, Cirebon, Jakarta, Makassar) via Open-Meteo.</span>
       </div>
     </div>
   </section>
@@ -491,9 +544,10 @@
         <div class="step-content">
           <div class="step-title">Pilih komoditas</div>
           <div class="step-desc">
-            Gunakan dropdown di panel kiri untuk memilih komoditas yang ingin dianalisis:
-            Cabai, Bawang, Beras, atau Ayam. Data harga, sinyal, dan daerah produksi
-            akan langsung dimuat secara otomatis.
+            Gunakan dropdown untuk memilih komoditas yang ingin dianalisis.
+            MVP memantau 6 komoditas: Bawang Merah, Bawang Putih, Cabai Merah Besar,
+            Cabai Merah Keriting, Cabai Rawit Hijau, dan Cabai Rawit Merah.
+            Data harga dan sinyal akan langsung dimuat secara otomatis.
           </div>
         </div>
       </div>
@@ -515,11 +569,16 @@
       <div class="step-item">
         <div class="step-num">3</div>
         <div class="step-content">
-          <div class="step-title">Klik "▶ Jalankan RCA"</div>
+          <div class="step-title">Klik "Jalankan RCA"</div>
           <div class="step-desc">
-            Sistem akan menjalankan 6 pemeriksaan secara berurutan dengan animasi langkah
+            Sistem akan menjalankan <strong>4 pemeriksaan</strong> secara berurutan dengan animasi langkah
             demi langkah. Tiap check menampilkan status <strong>TRIGGERED</strong> (kondisi terpenuhi)
             atau <strong>CLEAR</strong> (kondisi tidak terpenuhi).
+          </div>
+          <div class="step-tip">
+            <strong>Early exit:</strong> Jika suatu check TRIGGERED, check berikutnya akan di-SKIP.
+            Misalnya, jika Check 1 (Hari Raya) terpicu, Check 2-4 tidak perlu diperiksa
+            karena penyebab utama sudah ditemukan.
           </div>
         </div>
       </div>
@@ -548,9 +607,9 @@
     <div class="card" style="margin-bottom:10px;">
       <div class="sub-label">Bagaimana diagnosis ditentukan?</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;">
-        Sistem menjalankan 6 check secara berurutan — semua selalu dijalankan, tidak ada yang dilewati.
-        Diagnosis diambil dari <strong>check pertama yang TRIGGERED</strong>. Jika semua CLEAR,
-        diagnosisnya adalah Bottleneck Distribusi.
+        Sistem menjalankan <strong>4 check secara berurutan dengan early exit</strong>.
+        Diagnosis diambil dari <strong>check pertama yang TRIGGERED</strong> — check setelahnya
+        akan di-SKIP. Jika semua CLEAR, diagnosisnya adalah Bottleneck Distribusi.
       </p>
     </div>
 
@@ -558,10 +617,10 @@
 
       <div class="diag-card dc-demand">
         <div class="diag-type">Check 1 — Demand</div>
-        <div class="diag-name">Demand Spike</div>
+        <div class="diag-name">Demand Spike Hari Raya</div>
         <div class="diag-trigger">
-          Dipicu ketika: hari ini masuk window <strong>H-14 s/d H+3</strong> dari hari raya
-          (Idul Fitri atau Idul Adha).
+          Dipicu ketika: hari analisis masuk window <strong>H-14 s/d H+3</strong> dari hari raya
+          nasional (libur nasional + cuti bersama, 91 tanggal dari 2024-2027).
         </div>
         <div class="diag-action">
           <strong>Rekomendasi:</strong> Pantau saja — ini pola musiman yang koreksi sendiri.
@@ -570,11 +629,11 @@
       </div>
 
       <div class="diag-card dc-supply">
-        <div class="diag-type">Check 2 atau 3 — Supply</div>
-        <div class="diag-name">Gangguan Supply</div>
+        <div class="diag-type">Check 2 — Supply (Cuaca)</div>
+        <div class="diag-name">Gangguan Supply Cuaca</div>
         <div class="diag-trigger">
-          Dipicu ketika: ada cuaca ekstrem di daerah produksi <em>atau</em>
-          ≥60% kota mengalami kenaikan serempak.
+          Dipicu ketika: ada cuaca ekstrem di wilayah pantauan dalam 7 hari terakhir
+          (hujan >100mm, kekeringan >14 hari, suhu >38 derajat C, angin >60 km/jam).
         </div>
         <div class="diag-action">
           <strong>Rekomendasi:</strong> Koordinasi ke Bulog/Kementan untuk cek stok buffer.
@@ -582,30 +641,29 @@
         </div>
       </div>
 
+      <div class="diag-card dc-supply">
+        <div class="diag-type">Check 3 — Supply (Persebaran)</div>
+        <div class="diag-name">Kenaikan Serempak Nasional</div>
+        <div class="diag-trigger">
+          Dipicu ketika: <strong>60% atau lebih</strong> kota pantauan mengalami kenaikan harga
+          secara bersamaan — menandakan tekanan supply berskala nasional.
+        </div>
+        <div class="diag-action">
+          <strong>Rekomendasi:</strong> Kenaikan luas menandakan gangguan supply nasional.
+          Cek kondisi panen, jalur distribusi utama, dan ketersediaan stok cadangan.
+        </div>
+      </div>
+
       <div class="diag-card dc-unknown">
         <div class="diag-type">Check 4 — Unknown</div>
         <div class="diag-name">Penyebab Belum Teridentifikasi</div>
         <div class="diag-trigger">
-          Dipicu ketika: check 1–3 CLEAR, tapi stok pedagang <strong>Menipis atau Kritis</strong>
+          Dipicu ketika: check 1-3 CLEAR, tapi stok pedagang <strong>Menipis atau Kritis</strong>
           tanpa penyebab jelas dari sisi demand maupun cuaca.
         </div>
         <div class="diag-action">
           <strong>Rekomendasi:</strong> Tingkatkan frekuensi monitoring. Lakukan survei lapangan
           sebelum mengambil keputusan intervensi.
-        </div>
-      </div>
-
-      <div class="diag-card" style="background:rgba(6,182,212,0.06);border-color:rgba(6,182,212,0.25);">
-        <div style="content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#06b6d4,#6366f1);border-radius:10px 10px 0 0;"></div>
-        <div class="diag-type" style="color:#0891b2;">Check 5 — Ekspektasi</div>
-        <div class="diag-name">Tekanan Inflasi Ekspektatif</div>
-        <div class="diag-trigger">
-          Dipicu ketika: semua check fundamental CLEAR, tapi inflasi M-to-M <strong>positif
-          3 bulan berturut-turut</strong> di kota pantauan (data BPS).
-        </div>
-        <div class="diag-action">
-          <strong>Rekomendasi:</strong> Prioritaskan komunikasi publik dan transparansi harga.
-          Cek apakah pedagang menaikkan harga secara preventif — jika ya, koordinasi Satgas Pangan.
         </div>
       </div>
 
@@ -615,8 +673,8 @@
       <div class="diag-type">Semua Check CLEAR — Distribusi</div>
       <div class="diag-name">Bottleneck Distribusi Lokal</div>
       <div class="diag-trigger">
-        Dipicu ketika: tidak ada satupun dari 5 check di atas yang TRIGGERED.
-        Stok normal, cuaca aman, bukan window hari raya, inflasi tidak konsisten naik
+        Dipicu ketika: tidak ada satupun dari 4 check di atas yang TRIGGERED.
+        Stok normal, cuaca aman, bukan window hari raya
         — tapi harga di satu atau beberapa kota tetap naik.
       </div>
       <div class="diag-action">
@@ -627,8 +685,8 @@
 
     <div class="info-box" style="margin-top:14px;">
       <span class="info-icon">💡</span>
-      <span>Check 6 (Korelasi Komoditas) tidak mempengaruhi diagnosis, tapi masuk ke perhitungan
-      keparahan. Jika komoditas terkait juga ikut naik anomali, itu sinyal gangguan lebih sistemik.</span>
+      <span>Karena menggunakan <strong>early exit</strong>, jika Check 1 sudah TRIGGERED maka Check 2-4
+      akan di-SKIP. Ini memastikan diagnosis fokus pada akar masalah paling dominan.</span>
     </div>
   </section>
 
@@ -637,7 +695,7 @@
   <section class="section" id="s4">
     <div class="section-header">
       <div class="section-num">4</div>
-      <div class="section-title">Tingkat Keparahan (L0–L4)</div>
+      <div class="section-title">Tingkat Keparahan (L0-L4)</div>
     </div>
 
     <div class="card">
@@ -667,22 +725,22 @@
         <div class="sev-pill sp-l3">
           <span class="lv">L3</span>
           <span class="nm">Kritis</span>
-          <span class="sc">3–4 indikator</span>
+          <span class="sc">3 indikator</span>
         </div>
         <div class="sev-pill sp-l4">
           <span class="lv">L4</span>
           <span class="nm">Darurat</span>
-          <span class="sc">5–7 indikator</span>
+          <span class="sc">4-5 indikator</span>
         </div>
       </div>
 
-      <div class="sub-label" style="margin-top:4px;">7 Indikator yang Diperiksa</div>
+      <div class="sub-label" style="margin-top:4px;">5 Indikator yang Diperiksa</div>
       <div class="ind-list">
         <div class="ind-item">
           <span class="ind-code">G1</span>
           <div class="ind-info">
             <div class="ind-name">Anomali Harga</div>
-            <div class="ind-cond">Kenaikan harga melampaui threshold normal komoditas.
+            <div class="ind-cond">Kenaikan harga melampaui threshold normal komoditas (default 10%).
             Threshold berbeda tiap komoditas tergantung volatilitas historisnya.</div>
           </div>
         </div>
@@ -690,15 +748,17 @@
           <span class="ind-code">D1</span>
           <div class="ind-info">
             <div class="ind-name">Window Hari Raya Aktif</div>
-            <div class="ind-cond">Hari ini masuk rentang H-14 s/d H+3 dari Idul Fitri atau Idul Adha.</div>
+            <div class="ind-cond">Tanggal analisis masuk rentang H-14 s/d H+3 dari hari raya nasional
+            (libur nasional + cuti bersama, data dari python-holidays 2024-2027).</div>
           </div>
         </div>
         <div class="ind-item">
           <span class="ind-code">S1</span>
           <div class="ind-info">
-            <div class="ind-name">Cuaca Ekstrem di Daerah Produksi</div>
-            <div class="ind-cond">Ada peringatan aktif BMKG (Waspada/Siaga/Awas) di salah satu
-            wilayah produksi utama komoditas tersebut.</div>
+            <div class="ind-name">Cuaca Ekstrem di Wilayah Pantauan</div>
+            <div class="ind-cond">Salah satu threshold cuaca terlampaui dalam 7 hari terakhir di wilayah pantauan:
+            hujan >100 mm/hari, kekeringan >14 hari, suhu >38 derajat C, atau angin >60 km/jam.
+            Data dari Open-Meteo Historical Archive API.</div>
           </div>
         </div>
         <div class="ind-item">
@@ -706,7 +766,8 @@
           <div class="ind-info">
             <div class="ind-name">Stok Menipis atau Kritis</div>
             <div class="ind-cond">Rata-rata stok pedagang di bawah 60% dari kapasitas normal.
-            Stok menipis memperkuat potensi kenaikan harga lebih lanjut.</div>
+            Stok menipis memperkuat potensi kenaikan harga lebih lanjut.
+            Kritis jika di bawah 35%.</div>
           </div>
         </div>
         <div class="ind-item">
@@ -714,24 +775,7 @@
           <div class="ind-info">
             <div class="ind-name">Kenaikan Serempak Antar Kota</div>
             <div class="ind-cond">60% atau lebih kota pantauan mengalami kenaikan harga pada
-            periode yang sama — menandakan tekanan bersifat nasional.</div>
-          </div>
-        </div>
-        <div class="ind-item">
-          <span class="ind-code">E1</span>
-          <div class="ind-info">
-            <div class="ind-name">Tren Inflasi 3 Bulan Berturut</div>
-            <div class="ind-cond">Inflasi M-to-M positif selama 3 bulan berturut-turut di kota
-            pantauan (data BPS). Mengindikasikan tekanan harga yang menetap, bukan lonjakan sesaat.</div>
-          </div>
-        </div>
-        <div class="ind-item">
-          <span class="ind-code">C1</span>
-          <div class="ind-info">
-            <div class="ind-name">Korelasi Komoditas Terkait</div>
-            <div class="ind-cond">Komoditas yang berkorelasi supply chain (contoh: cabai–bawang,
-            beras–ayam) juga mengalami anomali harga — mengindikasikan gangguan lebih sistemik,
-            bukan hanya satu komoditas.</div>
+            periode yang sama — menandakan tekanan bersifat nasional, bukan lokal.</div>
           </div>
         </div>
       </div>
@@ -763,7 +807,7 @@
 
       <div class="step-list">
         <div class="step-item">
-          <div class="step-num" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">↔</div>
+          <div class="step-num" style="background:#FBBF24;">&#x2194;</div>
           <div class="step-content">
             <div class="step-title">Simulasi ke tanggal hari raya</div>
             <div class="step-desc">
@@ -773,7 +817,7 @@
           </div>
         </div>
         <div class="step-item">
-          <div class="step-num" style="background:linear-gradient(135deg,#06b6d4,#6366f1);">↩</div>
+          <div class="step-num" style="background:var(--info);">&#x21A9;</div>
           <div class="step-content">
             <div class="step-title">Analisis kejadian masa lalu</div>
             <div class="step-desc">
@@ -783,11 +827,11 @@
           </div>
         </div>
         <div class="step-item">
-          <div class="step-num" style="background:linear-gradient(135deg,#10b981,#06b6d4);">↺</div>
+          <div class="step-num" style="background:var(--success);">&#x21BA;</div>
           <div class="step-content">
             <div class="step-title">Kembali ke hari ini</div>
             <div class="step-desc">
-              Klik tombol <strong>↺ Hari ini</strong> untuk menghapus simulasi dan kembali
+              Klik tombol <strong>Hari ini</strong> untuk menghapus simulasi dan kembali
               menggunakan tanggal hari ini. Input tanggal yang berwarna kuning menandakan
               mode simulasi sedang aktif.
             </div>
@@ -816,28 +860,27 @@
       <div class="source-item">
         <div class="source-icon">💰</div>
         <div class="source-body">
-          <div class="source-name">Harga Komoditas & Data Kota</div>
-          <div class="source-from">PIHPS — Panel Harga Pangan Indonesia</div>
+          <div class="source-name">Harga Komoditas &amp; Data Kota</div>
+          <div class="source-from">PIHPS — Panel Harga Pangan Indonesia (bi.go.id/hargapangan)</div>
           <div class="source-desc">
-            Harga saat ini, harga periode sebelumnya, dan status kenaikan harga per kota
-            bersumber dari PIHPS yang dikelola Badan Pangan Nasional.
-            Mencakup data harga retail di pasar tradisional kota-kota pantauan.
+            Harga harian retail di pasar tradisional, mencakup 6 komoditas (Bawang Merah, Bawang Putih,
+            Cabai Merah Besar, Cabai Merah Keriting, Cabai Rawit Hijau, Cabai Rawit Merah) dari
+            4 provinsi pantauan. Total <strong>619.430 rows</strong> data historis (2020-2026).
           </div>
-          <div class="source-note">⚠ Saat ini menggunakan data simulasi (dummy)</div>
         </div>
       </div>
 
       <div class="source-item">
         <div class="source-icon">🌦️</div>
         <div class="source-body">
-          <div class="source-name">Cuaca & Peringatan Ekstrem</div>
-          <div class="source-from">BMKG — Badan Meteorologi, Klimatologi, dan Geofisika</div>
+          <div class="source-name">Cuaca Historis</div>
+          <div class="source-from">Open-Meteo Historical Archive API (open-meteo.com)</div>
           <div class="source-desc">
-            Data cuaca harian dan peringatan ekstrem (Waspada / Siaga / Awas) per wilayah
-            produksi komoditas. Sistem memprioritaskan peringatan aktif — jika ada peringatan
-            Awas, kondisi dinyatakan ekstrem meskipun cuaca harian terlihat normal.
+            Data cuaca harian (curah hujan, suhu, kecepatan angin) dari 5 lokasi pantauan:
+            Tangerang (Banten), Bandung &amp; Cirebon (Jawa Barat), Jakarta (DKI Jakarta),
+            dan Makassar (Sulawesi Selatan). Total <strong>11.605 rows</strong> data (2020-2026).
+            Lookback 7 hari untuk deteksi cuaca ekstrem.
           </div>
-          <div class="source-note">⚠ Saat ini menggunakan simulasi BMKG (H-45 s/d H+7)</div>
         </div>
       </div>
 
@@ -845,13 +888,12 @@
         <div class="source-icon">📦</div>
         <div class="source-body">
           <div class="source-name">Stok Pedagang</div>
-          <div class="source-from">Badan Pangan Nasional / Bulog</div>
+          <div class="source-from">Badan Pangan Nasional / Bulog (placeholder)</div>
           <div class="source-desc">
-            Data stok per komoditas per kota, dibandingkan terhadap baseline kapasitas normal
-            masing-masing kota. Stok diupdate harian dan mencerminkan kondisi di tingkat
-            pedagang/distributor, bukan di gudang produsen.
+            Data stok per komoditas per kota, dibandingkan terhadap baseline kapasitas normal.
+            Tiga status: Normal (stok 60%+), Menipis (35-60%), Kritis (di bawah 35%).
           </div>
-          <div class="source-note">⚠ Saat ini menggunakan data simulasi stok harian</div>
+          <div class="source-note">Placeholder untuk MVP — data real belum tersedia</div>
         </div>
       </div>
 
@@ -859,100 +901,93 @@
         <div class="source-icon">📅</div>
         <div class="source-body">
           <div class="source-name">Kalender Hari Raya</div>
-          <div class="source-from">Data statis — diperbarui manual tiap tahun</div>
+          <div class="source-from">python-holidays package (offline, data 2024-2027)</div>
           <div class="source-desc">
-            Daftar tanggal Idul Fitri dan Idul Adha yang sudah dikonfigurasi untuk tahun
-            2025–2026. Window demand spike aktif mulai H-14 sebelum hari raya hingga H+3
-            setelah hari raya berlangsung.
+            91 tanggal hari libur nasional dan cuti bersama Indonesia (2024-2027),
+            di-generate otomatis dari package python-holidays.
+            Window demand spike aktif mulai H-14 sebelum hari raya hingga H+3 setelahnya.
           </div>
         </div>
       </div>
 
       <div class="source-item">
-        <div class="source-icon">📊</div>
+        <div class="source-icon">💹</div>
         <div class="source-body">
-          <div class="source-name">Inflasi Bulanan (M-to-M)</div>
-          <div class="source-from">BPS — Badan Pusat Statistik</div>
+          <div class="source-name">HET (Harga Eceran Tertinggi)</div>
+          <div class="source-from">Badan Pangan Nasional / Bapanas</div>
           <div class="source-desc">
-            Data inflasi month-to-month per kota dari publikasi IHK BPS. Digunakan untuk
-            mendeteksi tren inflasi 3 bulan berturut-turut (indikator E1). Sistem membaca data
-            kota pantauan; jika tidak ada, fallback ke data Indonesia nasional.
-            Lag publikasi ~1 bulan — data bulan M tersedia di awal bulan M+1.
+            Referensi HET untuk 6 komoditas MVP. Digunakan untuk membandingkan harga aktual
+            dan menentukan status: AMAN, WASPADA (80-100% HET), KRITIS (100-120% HET),
+            atau MELAMPAUI (>120% HET).
           </div>
-          <div class="source-note">⚠ File CSV diperbarui oleh tim ETL</div>
+          <div class="source-note">Menggunakan nilai dummy — akan diperbarui dengan data Bapanas resmi</div>
         </div>
       </div>
 
       <div class="source-item">
         <div class="source-icon">🗺️</div>
         <div class="source-body">
-          <div class="source-name">Kota Konsumsi Pantauan</div>
-          <div class="source-from">PIHPS (Bank Indonesia) &amp; BPS IHK — 82 kota nasional</div>
+          <div class="source-name">Wilayah Pantauan MVP</div>
+          <div class="source-from">PIHPS — 4 provinsi, 18 kota</div>
           <div class="source-desc">
-            6 kota Jawa yang dipakai dipilih dari daftar 82 kota pantauan PIHPS/BPS IHK,
-            mewakili pusat konsumsi dan distribusi pangan utama di Pulau Jawa:
+            Wilayah pantauan mencakup 4 provinsi yang mewakili pusat konsumsi dan distribusi utama:
           </div>
-          <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px;">
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Jakarta</span>
-              <span style="font-size:12px;color:var(--text2);">DKI Jakarta — pusat konsumsi terbesar, pasar acuan nasional</span>
+          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="region-cell">
+              <div class="region-label">BANTEN</div>
+              <div class="region-desc">
+                Tangerang, Cilegon, Serang<br>
+                <span style="color:var(--muted)">104K rows data harga</span>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Surabaya</span>
-              <span style="font-size:12px;color:var(--text2);">Jawa Timur — kota terbesar kedua, hub distribusi Indonesia Timur</span>
+            <div class="region-cell">
+              <div class="region-label">JAWA BARAT</div>
+              <div class="region-desc">
+                Bandung, Bogor, Depok, Bekasi, Cirebon, dll<br>
+                <span style="color:var(--muted)">312K rows data harga</span>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Bandung</span>
-              <span style="font-size:12px;color:var(--text2);">Jawa Barat — pusat konsumsi Jabar, dekat dengan sentra produksi</span>
+            <div class="region-cell">
+              <div class="region-label">DKI JAKARTA</div>
+              <div class="region-desc">
+                Jakarta Pusat<br>
+                <span style="color:var(--muted)">34K rows data harga</span>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Semarang</span>
-              <span style="font-size:12px;color:var(--text2);">Jawa Tengah — hub distribusi regional Jateng</span>
-            </div>
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Yogyakarta</span>
-              <span style="font-size:12px;color:var(--text2);">DI Yogyakarta — representasi pasar kota menengah Jawa</span>
-            </div>
-            <div style="display:flex;gap:8px;align-items:baseline;">
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 7px;flex-shrink:0;">Malang</span>
-              <span style="font-size:12px;color:var(--text2);">Jawa Timur — kota terbesar kedua Jatim, pasar konsumsi aktif</span>
+            <div class="region-cell">
+              <div class="region-label">SULAWESI SELATAN</div>
+              <div class="region-desc">
+                Makassar, Pare-Pare, dll<br>
+                <span style="color:var(--muted)">167K rows data harga</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="source-item">
-        <div class="source-icon">🌾</div>
+        <div class="source-icon">🧅</div>
         <div class="source-body">
-          <div class="source-name">Wilayah Produksi Komoditas</div>
-          <div class="source-from">BPS &amp; Kementan — data produksi hortikultura &amp; pangan</div>
+          <div class="source-name">Komoditas MVP</div>
+          <div class="source-from">6 komoditas bawang &amp; cabai</div>
           <div class="source-desc">
-            12 wilayah produksi Jawa dipilih berdasarkan data top 3 produsen per komoditas
-            dari BPS dan Kementan:
+            Komoditas fokus dipilih berdasarkan volatilitas harga dan relevansi inflasi:
           </div>
           <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">🌶 CABAI</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
-                P1 Garut, Jawa Barat<br>P2 Boyolali, Jawa Tengah<br>P3 Kediri, Jawa Timur
+            <div class="region-cell">
+              <div class="region-label">BAWANG</div>
+              <div class="region-desc">
+                Bawang Merah <span style="color:var(--muted)">(com_11)</span><br>
+                Bawang Putih <span style="color:var(--muted)">(com_12)</span>
               </div>
             </div>
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">🧅 BAWANG MERAH</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
-                P1 Brebes, Jawa Tengah <span style="color:var(--muted)">(#1 nasional)</span><br>P2 Probolinggo, Jawa Timur<br>P3 Nganjuk, Jawa Timur <span style="color:var(--muted)">(#2 nasional)</span>
-              </div>
-            </div>
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">🌾 BERAS</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
-                P1 Indramayu, Jawa Barat <span style="color:var(--muted)">(#1 nasional)</span><br>P2 Karawang, Jawa Barat <span style="color:var(--muted)">(#2 nasional)</span><br>P3 Subang, Jawa Barat <span style="color:var(--muted)">(#3 nasional)</span>
-              </div>
-            </div>
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">🍗 AYAM BROILER</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
-                P1 Bogor, Jawa Barat <span style="color:var(--muted)">(#1 Jabar)</span><br>P2 Blitar, Jawa Timur<br>P3 Majalengka, Jawa Barat
+            <div class="region-cell">
+              <div class="region-label">CABAI</div>
+              <div class="region-desc">
+                Cabai Merah Besar <span style="color:var(--muted)">(com_13)</span><br>
+                Cabai Merah Keriting <span style="color:var(--muted)">(com_14)</span><br>
+                Cabai Rawit Hijau <span style="color:var(--muted)">(com_15)</span><br>
+                Cabai Rawit Merah <span style="color:var(--muted)">(com_16)</span>
               </div>
             </div>
           </div>
@@ -965,24 +1000,43 @@
 
   <!-- Footer -->
   <footer class="footer">
-    <a href="/">← Kembali ke Dashboard</a>
+    <a href="/">Kembali ke Dashboard</a>
     <span class="footer-sep">|</span>
     <a href="/docs" target="_blank">API Docs</a>
     <span class="footer-sep">|</span>
-    <span>RCA RadarPangan &copy; 2025</span>
+    <span>R.A.D.A.R Pangan &copy; 2026</span>
   </footer>
 
 </div>
 <script>
+  function guideLogout() {
+    localStorage.removeItem('rca_token');
+    localStorage.removeItem('rca_user');
+    window.location.replace('/login');
+  }
+
   (function() {
     const token = localStorage.getItem('rca_token');
     if (!token) return;
+
+    // Show logout button when logged in
+    document.getElementById('navLogout').style.display = '';
+
     fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } })
       .then(r => r.ok ? r.json() : null)
       .then(me => {
         if (!me) return;
         document.getElementById('userBadge').innerHTML =
-          `<strong style="color:var(--accent)">${me.username}</strong> · ${me.role}`;
+          '<strong>' + me.username + '</strong> ' + me.role;
+
+        // Show nav links based on role
+        if (me.is_analyst || me.is_admin || me.role === 'analyst' || me.role === 'admin') {
+          document.getElementById('navRca').style.display = '';
+          document.getElementById('navPrediksi').style.display = '';
+        }
+        if (me.is_admin || me.role === 'admin') {
+          document.getElementById('navAdmin').style.display = '';
+        }
       })
       .catch(() => {});
   })();

@@ -1,18 +1,76 @@
-.env
-*.duckdb
+# ================================
+# Python
+# ================================
 __pycache__/
 *.pyc
 *.pyo
-.venv/
 *.egg-info/
 dist/
+.venv/
+venv/
+
+# uv lock file (tracked, tapi ignore jika perlu)
+# uv.lock di-track agar semua orang pakai versi dependency yang sama
+
+# ================================
+# Environment & Credentials
+# ================================
+.env
+.envs/.env
+etl/.env
+
+# ================================
+# Data files (generated at runtime)
+# ================================
+/data/
+*.duckdb
+*.sqlite
+*.db
+
+# ================================
+# dbt
+# ================================
+**/dbt_project/target/
+**/dbt_project/logs/
+**/dbt_project/dbt_packages/
+.user.yml
+
+# ================================
+# IDE & OS
+# ================================
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ================================
+# Testing & Linting
+# ================================
 .ruff_cache/
 .pytest_cache/
+.coverage
+htmlcov/
+
+# ================================
+# Logs
+# ================================
 logs/
-.DS_Store
-desktop.ini
-.claude/
-dbt_project/target/
-dbt_project/logs/
-dbt_project/dbt_packages/
-.user.yml
+*.log
+
+# ================================
+# Project-specific ignores
+# ================================
+
+# Proposal document (large file with embedded images)
+R.A.D.A.R Pangan Final Submission Pemantauan Inflasi.md
+
+# Workshop draft material (personal)
+Draft Materi.md
+
+# Flowchart
+inflasi-flowchart.html
+.playwright-mcp/
+
+# Update Sprint
+progress-report-*.html

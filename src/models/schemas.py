@@ -59,43 +59,5 @@ class RCAResult(BaseModel):
     checks: list[CheckResult]
     price_delta_pct: float
     is_anomaly: bool
-    severity_level: str = "L0"        # L0 (aman) – L4 (darurat), dari 5 indikator tersedia
-    yes_indicators: list[str] = []    # nama-nama indikator yang bernilai YES
-
-
-# ── BMKG Response Models ──────────────────────────────────────────────────────
-
-class BmkgWilayah(BaseModel):
-    kode: str
-    nama: str
-    provinsi: str
-    lat: float
-    lon: float
-    iklim: str
-
-
-class BmkgCuacaHarian(BaseModel):
-    tanggal: str
-    kondisi: str
-    suhu_min: float
-    suhu_max: float
-    kelembaban: int
-    curah_hujan: float
-    sumber: str
-
-
-class BmkgPeringatan(BaseModel):
-    kode_peringatan: str
-    tipe: str
-    level: str
-    deskripsi: str
-    tgl_mulai: str
-    tgl_selesai: str
-    nama: str
-    provinsi: str
-
-
-class BmkgPeringatanAktif(BmkgPeringatan):
-    wilayah_kode: str
-    lat: float
-    lon: float
+    severity_level: str = "L0"        # L0 (aman) - L4 (darurat)
+    yes_indicators: list[str] = []    # nama indikator yang bernilai YES

@@ -1,168 +1,277 @@
 """
-Data layer untuk RCA Inflasi.
+Data layer: commodity data from Supabase PostgreSQL (Gold layer).
 
-Sumber data:
-  - Harga, kota, stok  → DUMMY data (TODO: sambung API PIHPS / Badan Pangan / Bulog)
-  - Cuaca              → bmkg_db.py (SQLite simulasi tarikan BMKG, date-aware)
+Reads real PIHPS price data from app.harga_pangan (synced from BigQuery)
+and provides the same interface that routes.py expects.
 
-Untuk ganti ke sumber real:
-  - get_price_data()     → sambung ke API Badan Pangan / PIHPS
-  - get_kota_spread()    → sambung ke database harga multi-kota
-  - get_stok_data()      → sambung ke API Bulog / Badan Pangan
-  - Cuaca sudah diarahkan ke bmkg_db; saat real tinggal ganti implementasi di sana
+Architecture:
+    BigQuery -> raw.harga_pangan (Bronze, ETL only)
+    Supabase -> app.harga_pangan (Gold, synced from BigQuery, served to UI)
+    Supabase -> app.* (auth, HET, ML predictions)
 """
+from __future__ import annotations
 
-from datetime import date
-from src.models.schemas import CommodityData, CuacaInfo, KotaInfo, StokInfo
-from src.data.bmkg_db import get_cuaca_komoditas
-from src.data.stok_db import get_stok_komoditas
-from config.settings import STOK_MENIPIS_THRESHOLD, STOK_KRITIS_THRESHOLD, COMMODITY_RELATIONS
+import math
+from datetime import date, timedelta
+from typing import Optional
 
-# ──────────────────────────────────────────────
-# DUMMY DATA
-# Ganti isi dict ini (atau fungsi di bawah) saat connect ke data real
-# ──────────────────────────────────────────────
+from config.settings import DEFAULT_PRICE_THRESHOLD_PCT
+from src.data.database import db_cursor
+from src.data.weather_data import get_weather_for_rca
+from src.models.schemas import CommodityData, CuacaInfo, StokInfo, KotaInfo
 
-DUMMY_COMMODITIES: dict[str, dict] = {
-    "cabai": {
-        "key": "cabai",
-        "name": "Cabai Merah",
-        "price_now": 45000,
-        "price_prev": 38000,
-        "price_threshold": 10.0,
-        "ml_pred": 52000,
-        "kota_list": [
-            {"nama": "Jakarta",    "naik": True},
-            {"nama": "Surabaya",   "naik": True},
-            {"nama": "Bandung",    "naik": False},
-            {"nama": "Semarang",   "naik": False},
-            {"nama": "Yogyakarta", "naik": False},
-            {"nama": "Malang",     "naik": False},
-        ],
-    },
-    "bawang": {
-        "key": "bawang",
-        "name": "Bawang Merah",
-        "price_now": 38000,
-        "price_prev": 31000,
-        "price_threshold": 10.0,
-        "ml_pred": 46000,
-        "kota_list": [
-            {"nama": "Jakarta",    "naik": True},
-            {"nama": "Surabaya",   "naik": True},
-            {"nama": "Bandung",    "naik": True},
-            {"nama": "Semarang",   "naik": True},
-            {"nama": "Yogyakarta", "naik": True},
-            {"nama": "Malang",     "naik": False},
-        ],
-    },
-    "beras": {
-        "key": "beras",
-        "name": "Beras",
-        "price_now": 15200,
-        "price_prev": 13950,
-        "price_threshold": 5.0,
-        "ml_pred": 16800,
-        "kota_list": [
-            {"nama": "Jakarta",    "naik": True},
-            {"nama": "Surabaya",   "naik": False},
-            {"nama": "Bandung",    "naik": False},
-            {"nama": "Semarang",   "naik": False},
-            {"nama": "Yogyakarta", "naik": False},
-            {"nama": "Malang",     "naik": False},
-        ],
-    },
-    "ayam": {
-        "key": "ayam",
-        "name": "Daging Ayam",
-        "price_now": 32000,
-        "price_prev": 30500,
-        "price_threshold": 10.0,
-        "ml_pred": 33500,
-        "kota_list": [
-            {"nama": "Jakarta",    "naik": True},
-            {"nama": "Surabaya",   "naik": True},
-            {"nama": "Bandung",    "naik": False},
-            {"nama": "Semarang",   "naik": False},
-            {"nama": "Yogyakarta", "naik": False},
-            {"nama": "Malang",     "naik": False},
-        ],
-    },
+
+# MVP komoditas filter -- only surface these in the dashboard/API
+# comcat_id values verified from app.harga_pangan
+MVP_KOMODITAS_FILTER: set[str] = {
+    "com_11",  # Bawang Merah Ukuran Sedang
+    "com_12",  # Bawang Putih Ukuran Sedang
+    "com_13",  # Cabai Merah Besar
+    "com_14",  # Cabai Merah Keriting
+    "com_15",  # Cabai Rawit Hijau
+    "com_16",  # Cabai Rawit Merah
 }
 
-
-# ──────────────────────────────────────────────
-# INTERFACE FUNCTIONS
-# Ganti implementasi di sini saat punya data real
-# ──────────────────────────────────────────────
-
-def _derive_stok(stok_kota: dict[str, int], kapasitas: int) -> StokInfo:
-    """Hitung status stok dari data per kota vs kapasitas normal."""
-    pct = sum(stok_kota.values()) / (kapasitas * len(stok_kota))
-    if pct >= STOK_MENIPIS_THRESHOLD:
-        return StokInfo(status="Normal",  kelas="ok",     pct=round(pct, 3))
-    elif pct >= STOK_KRITIS_THRESHOLD:
-        return StokInfo(status="Menipis", kelas="warn",   pct=round(pct, 3))
-    else:
-        return StokInfo(status="Kritis",  kelas="danger", pct=round(pct, 3))
+# Mapping comcat_id -> key yang user-friendly (untuk URL)
+# Populated at startup from DB, filtered to MVP komoditas
+KOMODITAS_MAP: dict[str, dict[str, str]] = {}
 
 
-def get_related_deltas(key: str) -> list[dict]:
+def _valid_price(val: object) -> bool:
+    """Check if a price value is valid (not None, not NaN, positive)."""
+    if val is None:
+        return False
+    try:
+        fval = float(val)
+        return math.isfinite(fval) and fval > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _load_komoditas_map() -> None:
+    """Load komoditas mapping from Supabase PostgreSQL (called once at startup).
+
+    Only loads MVP komoditas (bawang merah, bawang putih, all cabai types).
     """
-    Return delta harga (%) untuk komoditas yang berkorelasi dengan key.
-    Hanya pakai data harga — tidak hit DB cuaca/stok.
-    Saat connect ke real data: ganti DUMMY_COMMODITIES lookup dengan query PIHPS.
-    """
-    result = []
-    for rkey in COMMODITY_RELATIONS.get(key, []):
-        raw = DUMMY_COMMODITIES.get(rkey)
-        if not raw:
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT comcat_id, komoditas_nama
+            FROM app.harga_pangan
+            ORDER BY comcat_id
+        """)
+        rows = cur.fetchall()
+
+    # Use clear + update to mutate the existing dict object in-place
+    # so all modules that imported KOMODITAS_MAP see the updated data
+    KOMODITAS_MAP.clear()
+    for row in rows:
+        comcat_id = row["comcat_id"]
+
+        # Filter: only include MVP komoditas
+        if comcat_id not in MVP_KOMODITAS_FILTER:
             continue
-        delta = ((raw["price_now"] - raw["price_prev"]) / raw["price_prev"]) * 100
-        result.append({
-            "key":       rkey,
-            "name":      raw["name"],
-            "delta_pct": round(delta, 2),
-            "threshold": raw["price_threshold"],
-        })
-    return result
+
+        # Create URL-friendly key: "Bawang Merah Ukuran Sedang" -> "bawang_merah_ukuran_sedang"
+        key = row["komoditas_nama"].lower().replace(" ", "_").replace("-", "_")
+        KOMODITAS_MAP[key] = {
+            "comcat_id": comcat_id,
+            "name": row["komoditas_nama"],
+        }
+
+
+def init_commodity_data() -> None:
+    """Initialize commodity data layer. Call at app startup."""
+    _load_komoditas_map()
 
 
 def get_all_commodities() -> list[str]:
-    """Return daftar key komoditas yang tersedia."""
-    return list(DUMMY_COMMODITIES.keys())
+    """Return list of commodity keys."""
+    if not KOMODITAS_MAP:
+        _load_komoditas_map()
+    return list(KOMODITAS_MAP.keys())
 
 
-def get_commodity_data(key: str, tanggal: date | None = None) -> CommodityData | None:
+def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[CommodityData]:
     """
-    Ambil data lengkap satu komoditas.
+    Get commodity data for RCA engine.
 
-    Cuaca diambil dari bmkg_db (SQLite simulasi BMKG) berdasarkan tanggal.
-    Jika tanggal=None, gunakan hari ini.
-
-    TODO (saat connect ke real data):
-      price_now, price_prev  → API PIHPS / Badan Pangan
-      kota_list              → query DB harga multi-kota
-      stok                   → API Bulog / Badan Pangan
-      Cuaca: sudah terstruktur via bmkg_db — tinggal ganti implementasi di sana
+    Returns CommodityData with real PIHPS data from Supabase PostgreSQL:
+    - price_now: harga rata-rata hari ini (semua kota, pasar tradisional)
+    - price_prev: harga rata-rata kemarin
+    - kota_list: daftar kota dengan flag naik/turun
+    - cuaca: real weather data dari Open-Meteo (app.cuaca_harian via Supabase)
+    - stok: placeholder (tidak ada data real stok)
     """
-    raw = DUMMY_COMMODITIES.get(key)
-    if not raw:
+    if not KOMODITAS_MAP:
+        _load_komoditas_map()
+
+    if key not in KOMODITAS_MAP:
         return None
 
-    if tanggal is None:
-        tanggal = date.today()
+    info = KOMODITAS_MAP[key]
+    comcat_id = info["comcat_id"]
+    target_date = tanggal or date.today()
+    prev_date = target_date - timedelta(days=1)
 
-    cuaca = get_cuaca_komoditas(key, tanggal)
+    # PostgreSQL: use DISTINCT ON to get latest price per kota
+    # Harga hari ini per kota -- cari tanggal terdekat jika hari ini belum ada
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT ON (kota_nama)
+                kota_nama, provinsi_id, harga, tanggal
+            FROM app.harga_pangan
+            WHERE comcat_id = %s
+              AND pasar_tipe = 1
+              AND tanggal <= %s
+            ORDER BY kota_nama, tanggal DESC
+        """, (comcat_id, target_date))
+        rows_today = cur.fetchall()
+
+    # Harga kemarin per kota
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT ON (kota_nama)
+                kota_nama, harga, tanggal
+            FROM app.harga_pangan
+            WHERE comcat_id = %s
+              AND pasar_tipe = 1
+              AND tanggal <= %s
+            ORDER BY kota_nama, tanggal DESC
+        """, (comcat_id, prev_date))
+        rows_prev = cur.fetchall()
+
+    if not rows_today:
+        return None
+
+    prices_today = [r["harga"] for r in rows_today if _valid_price(r["harga"])]
+    prices_prev = [r["harga"] for r in rows_prev if _valid_price(r["harga"])]
+
+    price_now = int(sum(prices_today) / len(prices_today)) if prices_today else 0
+    price_prev = int(sum(prices_prev) / len(prices_prev)) if prices_prev else price_now
+
+    # Build kota list with naik/turun flag
+    prev_map = {r["kota_nama"]: r["harga"] for r in rows_prev if _valid_price(r["harga"])}
+    kota_list = []
+    for row in rows_today:
+        kota_nama = row["kota_nama"]
+        harga_now = row["harga"] if _valid_price(row["harga"]) else 0
+        harga_prev = prev_map.get(kota_nama, harga_now)
+        kota_list.append(KotaInfo(
+            nama=kota_nama,
+            naik=harga_now > harga_prev if harga_prev else False,
+        ))
+
+    # Price threshold for anomaly detection (default 10%)
+    threshold = DEFAULT_PRICE_THRESHOLD_PCT
+
+    # Cuaca -- check ALL provinces in the data, pick the most extreme
+    # This ensures we detect extreme weather regardless of which kota comes first
+    provinsi_ids = list({r["provinsi_id"] for r in rows_today if r.get("provinsi_id")})
+    cuaca = CuacaInfo(
+        ekstrem=False,
+        desc="Provinsi tidak teridentifikasi",
+        daerah="",
+        detail="",
+    )
+    for prov_id in provinsi_ids:
+        cuaca_check = get_weather_for_rca(prov_id, tanggal=target_date)
+        if cuaca_check.ekstrem:
+            # Found extreme weather -- use this one (most severe wins)
+            cuaca = cuaca_check
+            break
+        # Keep the last non-extreme as fallback description
+        if not cuaca.daerah:
+            cuaca = cuaca_check
+
+    # Stok placeholder -- tidak ada data real stok untuk MVP
+    stok = StokInfo(
+        status="Normal",
+        kelas="ok",
+        pct=1.0,
+    )
 
     return CommodityData(
-        key=raw["key"],
-        name=raw["name"],
-        price_now=raw["price_now"],
-        price_prev=raw["price_prev"],
-        price_threshold=raw["price_threshold"],
-        ml_pred=raw.get("ml_pred"),
+        key=key,
+        name=info["name"],
+        price_now=price_now,
+        price_prev=price_prev,
+        price_threshold=threshold,
+        ml_pred=None,
         cuaca=cuaca,
-        kota_list=[KotaInfo(**k) for k in raw["kota_list"]],
-        stok=_derive_stok(*stok_raw) if (stok_raw := get_stok_komoditas(key, tanggal)) else StokInfo(status="Unknown", kelas="ok"),
+        kota_list=kota_list,
+        stok=stok,
     )
+
+
+# --- Dashboard-specific queries -----------------------------------------------
+
+def get_price_summary(comcat_id: str, target_date: Optional[date] = None) -> dict:
+    """Get price summary for dashboard (latest prices, deltas, national avg)."""
+    tgl = target_date or date.today()
+
+    with db_cursor() as cur:
+        # Find latest date with data for this komoditas
+        cur.execute("""
+            SELECT MAX(tanggal) AS max_tgl
+            FROM app.harga_pangan
+            WHERE comcat_id = %s
+              AND tanggal <= %s
+        """, (comcat_id, tgl))
+        max_row = cur.fetchone()
+
+        if not max_row or not max_row["max_tgl"]:
+            return {}
+
+        max_tgl = max_row["max_tgl"]
+
+        # Get all prices for that date
+        cur.execute("""
+            SELECT kota_nama, harga, tanggal
+            FROM app.harga_pangan
+            WHERE comcat_id = %s
+              AND pasar_tipe = 1
+              AND tanggal = %s
+            ORDER BY kota_nama
+        """, (comcat_id, max_tgl))
+        rows = cur.fetchall()
+
+    if not rows:
+        return {}
+
+    prices = [r["harga"] for r in rows if _valid_price(r["harga"])]
+    return {
+        "tanggal": str(rows[0]["tanggal"]),
+        "rata_rata": round(sum(prices) / len(prices), 2) if prices else 0,
+        "harga_min": min(prices) if prices else 0,
+        "harga_max": max(prices) if prices else 0,
+        "jumlah_kota": len(rows),
+        "per_kota": [dict(r) for r in rows],
+    }
+
+
+def get_price_history(
+    comcat_id: str,
+    n_days: int = 30,
+    target_date: Optional[date] = None,
+) -> list[dict]:
+    """Get daily average price history for charts."""
+    tgl = target_date or date.today()
+    start = tgl - timedelta(days=n_days)
+
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT
+                tanggal,
+                ROUND(AVG(harga)::numeric, 2) as avg_harga,
+                COUNT(DISTINCT kota_id) as jumlah_kota
+            FROM app.harga_pangan
+            WHERE comcat_id = %s
+              AND pasar_tipe = 1
+              AND tanggal BETWEEN %s AND %s
+              AND harga > 0
+            GROUP BY tanggal
+            ORDER BY tanggal
+        """, (comcat_id, start, tgl))
+        rows = cur.fetchall()
+
+    return [dict(r) for r in rows]

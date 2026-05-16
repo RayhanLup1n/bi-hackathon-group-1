@@ -1,27 +1,27 @@
 """
 RCA Rule Engine — Decision Tree untuk Root Cause Analysis inflasi harga pangan.
 
-Semua 4 check selalu dijalankan (tidak ada skip).
-Diagnosis ditentukan dari check pertama yang triggered:
+Urutan pemeriksaan (sequential, early exit):
   1. Cek Hari Raya        → Demand Spike
-  2. Cek Cuaca BMKG       → Gangguan Supply
+  2. Cek Cuaca (Open-Meteo) → Gangguan Supply
   3. Cek Persebaran Kota  → Supply Nasional
   4. Cek Stok Pedagang    → Distribusi Lokal / Unknown
 
-Severity L0–L4 dihitung terpisah dari seluruh hasil check.
+Severity L0-L4 dihitung terpisah dari seluruh indikator yang tersedia.
 """
 
+import logging
 from datetime import date
 
 from config.settings import (
-    HARI_RAYA_CALENDAR, HARI_RAYA_WINDOW_DAYS, HARI_RAYA_POST_WINDOW_DAYS,
+    HARI_RAYA_WINDOW_DAYS, HARI_RAYA_POST_WINDOW_DAYS,
     STOK_MENIPIS_THRESHOLD,
 )
 from src.models.schemas import (
     CommodityData, RCAResult, CheckResult, DiagnosisType
 )
-from src.data.inflasi_db import get_inflasi_tren
-from src.data.commodity_data import get_related_deltas
+
+logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────
 # DIAGNOSIS TEMPLATES
@@ -94,16 +94,71 @@ DIAGNOSIS_TEMPLATES: dict[DiagnosisType, dict] = {
 
 
 # ──────────────────────────────────────────────
+# SEVERITY LABELS (untuk display di frontend)
+# ──────────────────────────────────────────────
+
+SEVERITY_LABELS: dict[str, str] = {
+    "L0": "Aman",
+    "L1": "Waspada",
+    "L2": "Awas",
+    "L3": "Kritis",
+    "L4": "Darurat",
+}
+
+
+# ──────────────────────────────────────────────
 # INDIVIDUAL CHECK FUNCTIONS
 # Tambah fungsi _check_*() baru di sini untuk extend rule tree
 # ──────────────────────────────────────────────
 
-def _check_hari_raya(data: CommodityData, today: date) -> CheckResult:
-    """Check 1: Apakah hari ini masuk window hari raya? (H-14 s/d H+3)
-    Kalender dibaca dari config/settings.py — tidak bergantung pada field per-komoditas.
+# -- Hari Besar cache (loaded from Supabase app.hari_besar, 91 rows) ----------
+# Format: list of (nama: str, tanggal: date)
+_hari_besar_cache: list[tuple[str, date]] | None = None
+
+
+def _get_hari_besar_calendar() -> list[tuple[str, date]]:
+    """Get hari besar calendar from Supabase PostgreSQL, with in-memory cache.
+
+    Returns list of (nama, tanggal) tuples. Data source: app.hari_besar
+    (91 rows from python-holidays, covering 2024-2027).
+    Returns empty list if database is unreachable (hari raya check will be skipped).
     """
-    for nama, tgl_str in HARI_RAYA_CALENDAR:
-        tgl = date.fromisoformat(tgl_str)
+    global _hari_besar_cache
+    if _hari_besar_cache is not None:
+        return _hari_besar_cache
+
+    try:
+        from src.data.database import db_cursor
+
+        with db_cursor() as cur:
+            cur.execute("SELECT nama, tanggal FROM app.hari_besar ORDER BY tanggal")
+            rows = cur.fetchall()
+
+        _hari_besar_cache = [(r["nama"], r["tanggal"]) for r in rows]
+        logger.info(
+            "Loaded %d hari besar from Supabase", len(_hari_besar_cache)
+        )
+        return _hari_besar_cache
+    except Exception:
+        logger.warning(
+            "Supabase hari_besar unavailable -- hari raya check will not trigger"
+        )
+        # Return empty so hari raya check gracefully reports "clear"
+        return []
+
+
+def _check_hari_raya(data: CommodityData, today: date) -> CheckResult:
+    """Check 1: Apakah hari ini masuk window hari besar? (H-14 s/d H+3)
+
+    Reads from app.hari_besar (91 rows, all national holidays +
+    cuti bersama from python-holidays).
+    """
+    calendar = _get_hari_besar_calendar()
+
+    for nama, tgl in calendar:
+        # tgl bisa berupa date object (dari BigQuery) atau str (dari fallback)
+        if isinstance(tgl, str):
+            tgl = date.fromisoformat(tgl)
         delta = (tgl - today).days   # positif = hari raya belum tiba
         if -HARI_RAYA_POST_WINDOW_DAYS <= delta <= HARI_RAYA_WINDOW_DAYS:
             if delta > 0:
@@ -133,12 +188,12 @@ def _check_hari_raya(data: CommodityData, today: date) -> CheckResult:
 
 
 def _check_cuaca(data: CommodityData) -> CheckResult:
-    """Check 2: Ada cuaca ekstrem di daerah produksi? (sumber: BMKG)"""
+    """Check 2: Ada cuaca ekstrem di daerah produksi? (sumber: Open-Meteo Historical API)"""
     cuaca = data.cuaca
     if cuaca.ekstrem:
         return CheckResult(
             step=2,
-            nama="Cek Cuaca Ekstrem (BMKG)",
+            nama="Cek Cuaca Ekstrem (Open-Meteo)",
             status="triggered",
             detail=(
                 f"⚠ {cuaca.desc} terdeteksi di daerah produksi "
@@ -147,9 +202,9 @@ def _check_cuaca(data: CommodityData) -> CheckResult:
         )
     return CheckResult(
         step=2,
-        nama="Cek Cuaca Ekstrem (BMKG)",
+        nama="Cek Cuaca Ekstrem (Open-Meteo)",
         status="clear",
-        detail=f"Cuaca: {cuaca.desc} — tidak ada peringatan ekstrem dari BMKG",
+        detail=f"Cuaca: {cuaca.desc} — tidak ada cuaca ekstrem terdeteksi",
     )
 
 
@@ -199,81 +254,26 @@ def _check_stok(data: CommodityData) -> CheckResult:
     )
 
 
-def _check_cross_commodity(data: CommodityData) -> CheckResult:
-    """Check 6: Apakah komoditas terkait juga naik anomali? (korelasi supply chain / substitusi)"""
-    related = get_related_deltas(data.key)
-
-    if not related:
-        return CheckResult(
-            step=6,
-            nama="Cek Korelasi Komoditas Terkait",
-            status="clear",
-            detail="Tidak ada komoditas terkait yang dikonfigurasi",
-        )
-
-    anomali = [r for r in related if r["delta_pct"] >= r["threshold"]]
-    lines = "\n".join(
-        f"{'⚠' if r['delta_pct'] >= r['threshold'] else '·'} "
-        f"{r['name']}: +{r['delta_pct']:.1f}% (ambang {r['threshold']:.0f}%)"
-        for r in related
-    )
-
-    if anomali:
-        return CheckResult(
-            step=6,
-            nama="Cek Korelasi Komoditas Terkait",
-            status="triggered",
-            detail=(
-                f"⚠ {len(anomali)} komoditas terkait juga anomali — "
-                f"indikasi gangguan supply chain sistemik\n{lines}"
-            ),
-        )
-    return CheckResult(
-        step=6,
-        nama="Cek Korelasi Komoditas Terkait",
-        status="clear",
-        detail=f"Komoditas terkait tidak menunjukkan anomali:\n{lines}",
-    )
-
-
-def _check_inflasi_tren(data: CommodityData, today: date) -> CheckResult:
-    """Check 5: Apakah inflasi M-to-M positif 3 bulan berturut di kota pantauan? (sumber: BPS)"""
-    kota_names = [k.nama for k in data.kota_list]
-    triggered, detail = get_inflasi_tren(kota_names, today)
-    return CheckResult(
-        step=5,
-        nama="Cek Tren Inflasi Bulanan (BPS)",
-        status="triggered" if triggered else "clear",
-        detail=detail,
-    )
+def _skip(step: int, nama: str, reason: str) -> CheckResult:
+    return CheckResult(step=step, nama=nama, status="skip", detail=f"Dilewati — {reason}")
 
 
 # ──────────────────────────────────────────────
-# SEVERITY SCORING (5 indikator tersedia dari 10)
+# SEVERITY SCORING
+# Hitung severity level dari indikator yang tersedia.
 # Skala: L0 (aman) → L4 (darurat)
 # ──────────────────────────────────────────────
-
-# Label deskriptif per level (untuk display di frontend)
-SEVERITY_LABELS: dict[str, str] = {
-    "L0": "Aman",
-    "L1": "Waspada",
-    "L2": "Awas",
-    "L3": "Kritis",
-    "L4": "Darurat",
-}
-
 
 def _score_severity(
     data: CommodityData, checks: list[CheckResult], delta_pct: float
 ) -> tuple[str, list[str]]:
     """
-    Hitung severity level dari 6 indikator yang datanya tersedia.
-    Skoring proporsional terhadap 6 indikator:
-      0 → L0, 1 → L1, 2 → L2, 3-4 → L3, 5-6 → L4
+    Hitung severity level dari indikator yang tersedia.
+    Skoring: 0 → L0, 1 → L1, 2 → L2, 3 → L3, 4+ → L4
     """
     yes: list[str] = []
 
-    # G1 — Anomali harga
+    # G1 — Anomali harga (delta >= threshold)
     if delta_pct >= data.price_threshold:
         yes.append("G1: Anomali Harga")
 
@@ -296,16 +296,6 @@ def _score_severity(
     if total_kota > 0 and kota_naik / total_kota >= data.threshold_kota:
         yes.append("T2: Kenaikan Serempak")
 
-    # E1 — Tren inflasi M-to-M positif 3 bulan berturut (dari BPS)
-    c5 = next((c for c in checks if c.step == 5), None)
-    if c5 and c5.status == "triggered":
-        yes.append("E1: Tren Inflasi 3 Bulan")
-
-    # C1 — Komoditas terkait juga naik anomali (korelasi supply chain)
-    c6 = next((c for c in checks if c.step == 6), None)
-    if c6 and c6.status == "triggered":
-        yes.append("C1: Korelasi Komoditas")
-
     score = len(yes)
     if score == 0:
         level = "L0"
@@ -313,7 +303,7 @@ def _score_severity(
         level = "L1"
     elif score == 2:
         level = "L2"
-    elif score <= 4:
+    elif score <= 3:
         level = "L3"
     else:
         level = "L4"
@@ -328,8 +318,8 @@ def _score_severity(
 
 def run_rca(data: CommodityData, today: date | None = None) -> RCAResult:
     """
-    Jalankan semua 4 check tanpa early exit.
-    Diagnosis ditentukan dari check pertama yang triggered.
+    Jalankan decision tree RCA secara sequential.
+    Return early saat trigger pertama ditemukan.
 
     today: tanggal referensi untuk cek kalender hari raya.
            Default date.today(). Bisa di-override untuk simulasi.
@@ -337,32 +327,52 @@ def run_rca(data: CommodityData, today: date | None = None) -> RCAResult:
     if today is None:
         today = date.today()
 
+    checks: list[CheckResult] = []
+
+    # Hitung delta harga
     delta_pct = ((data.price_now - data.price_prev) / data.price_prev) * 100
     is_anomaly = delta_pct >= data.price_threshold
 
+    # ── Check 1: Hari Raya ──────────────────────
     c1 = _check_hari_raya(data, today)
-    c2 = _check_cuaca(data)
-    c3 = _check_persebaran_kota(data)
-    c4 = _check_stok(data)
-    c5 = _check_inflasi_tren(data, today)
-    c6 = _check_cross_commodity(data)
-    checks = [c1, c2, c3, c4, c5, c6]
-
-    # Diagnosis dari trigger pertama yang ditemukan
-    # c4 "clear" = stok normal; c4 "triggered" = stok menipis/kritis
+    checks.append(c1)
     if c1.status == "triggered":
+        checks += [
+            _skip(2, "Cek Cuaca Ekstrem (Open-Meteo)", "demand trigger sudah cukup kuat"),
+            _skip(3, "Cek Persebaran Kenaikan Antar Kota", "demand trigger sudah cukup kuat"),
+            _skip(4, "Cek Stok Pedagang (Badan Pangan)", "demand trigger sudah cukup kuat"),
+        ]
         diagnosis = DiagnosisType.DEMAND
-    elif c2.status == "triggered":
+        return _build_result(data, diagnosis, checks, delta_pct, is_anomaly)
+
+    # ── Check 2: Cuaca ──────────────────────────
+    c2 = _check_cuaca(data)
+    checks.append(c2)
+    if c2.status == "triggered":
+        checks += [
+            _skip(3, "Cek Persebaran Kenaikan Antar Kota", "cuaca trigger ditemukan"),
+            _skip(4, "Cek Stok Pedagang (Badan Pangan)", "cuaca trigger ditemukan"),
+        ]
         diagnosis = DiagnosisType.SUPPLY
-    elif c3.status == "triggered":
+        return _build_result(data, diagnosis, checks, delta_pct, is_anomaly)
+
+    # ── Check 3: Persebaran Kota ────────────────
+    c3 = _check_persebaran_kota(data)
+    checks.append(c3)
+    if c3.status == "triggered":
+        checks.append(
+            _skip(4, "Cek Stok Pedagang (Badan Pangan)", "persebaran kota trigger ditemukan")
+        )
         diagnosis = DiagnosisType.SUPPLY
-    elif c4.status == "triggered":
-        diagnosis = DiagnosisType.UNKNOWN
-    elif c5.status == "triggered":
-        # Stok normal, tidak ada trigger supply/demand, tapi tren inflasi persisten
-        diagnosis = DiagnosisType.EKSPEKTASI
-    else:
+        return _build_result(data, diagnosis, checks, delta_pct, is_anomaly)
+
+    # ── Check 4: Stok ───────────────────────────
+    c4 = _check_stok(data)
+    checks.append(c4)
+    if c4.status == "clear":
         diagnosis = DiagnosisType.DISTRIBUSI
+    else:
+        diagnosis = DiagnosisType.UNKNOWN
 
     return _build_result(data, diagnosis, checks, delta_pct, is_anomaly)
 

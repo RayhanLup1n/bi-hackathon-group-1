@@ -1,144 +1,199 @@
 """
-src/data/auth_db.py
-===================
-Database autentikasi pengguna.
+Auth data layer: user management via Supabase PostgreSQL.
 
-Database : data/auth.db  (SQLite, auto-created saat init_db_auth dipanggil)
+Table: app.users (id SERIAL, username, password_hash, is_admin, is_analyst, is_active, created_at)
 
-Tabel
------
-users  — id, username, password_hash, role, created_at
+Boolean flags instead of role VARCHAR:
+  is_admin   = can manage users + full access
+  is_analyst = can run RCA + view detailed analysis
+  is_active  = account enabled (FALSE = soft-deleted/disabled)
+  (none set) = viewer / read-only access
 
-Role
-----
-admin    — akses penuh + manajemen pengguna
-analyst  — akses penuh RCA dashboard
-viewer   — akses read-only
-
-Fungsi publik
--------------
-init_db_auth()                             → buat tabel & seed default users (idempoten)
-get_user_by_username(username)             → dict user atau None
-verify_password(plain, hashed)             → bool
-list_users()                               → list semua users (tanpa password_hash)
-create_user(username, password, role)      → dict user baru
-update_user(user_id, password, role)       → dict user yang diupdate atau None
-delete_user(user_id)                       → None
+Provides the same interface that auth_routes.py expects:
+- create_user, get_user_by_username, list_users, update_user, delete_user, verify_password
 """
-import sqlite3
-from pathlib import Path
+from __future__ import annotations
 
 import bcrypt
 
-DB_PATH = Path(__file__).parent.parent.parent / "data" / "auth.db"
+from src.data.database import db_cursor
 
 
-def _hash(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+# ── Password hashing ─────────────────────────────────────────────────────────
 
-
-def _verify(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode(), hashed.encode())
-
-_SEED_USERS = [
-    ("admin",   "admin123",   "admin"),
-    ("analyst", "analyst123", "analyst"),
-]
-
-
-def _conn() -> sqlite3.Connection:
-    c = sqlite3.connect(str(DB_PATH))
-    c.row_factory = sqlite3.Row
-    return c
-
-
-def init_db_auth() -> None:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    con = _conn()
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            username     TEXT    NOT NULL UNIQUE,
-            password_hash TEXT   NOT NULL,
-            role         TEXT    NOT NULL DEFAULT 'viewer',
-            created_at   TEXT    DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    for username, password, role in _SEED_USERS:
-        exists = con.execute(
-            "SELECT 1 FROM users WHERE username = ?", (username,)
-        ).fetchone()
-        if not exists:
-            con.execute(
-                "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-                (username, _hash(password), role),
-            )
-    con.commit()
-    con.close()
-
-
-def get_user_by_username(username: str) -> dict | None:
-    con = _conn()
-    row = con.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
-    con.close()
-    return dict(row) if row else None
+def _hash_password(password: str) -> str:
+    """Hash password with bcrypt."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return _verify(plain, hashed)
+    """Verify plain password against bcrypt hash."""
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+
+
+def _compute_role(user: dict) -> str:
+    """Derive human-readable role string from boolean flags.
+
+    Used for backward compatibility in API responses and JWT tokens.
+    """
+    if user.get("is_admin"):
+        return "admin"
+    elif user.get("is_analyst"):
+        return "analyst"
+    return "viewer"
+
+
+def _user_to_dict(row: dict) -> dict:
+    """Convert DB row to API-friendly dict with computed 'role' field."""
+    d = dict(row)
+    # Remove password_hash from output if present
+    d.pop("password_hash", None)
+    # Add computed role for backward compat
+    d["role"] = _compute_role(d)
+    return d
+
+
+# ── Seed default users ───────────────────────────────────────────────────────
+
+def init_db_auth() -> None:
+    """Seed default users if table is empty."""
+    with db_cursor() as cur:
+        cur.execute("SELECT COUNT(*) as cnt FROM app.users")
+        count = cur.fetchone()["cnt"]
+
+    if count == 0:
+        _seed_defaults()
+
+
+def _seed_defaults() -> None:
+    """Insert default admin and analyst users."""
+    defaults = [
+        # (username, password, is_admin, is_analyst)
+        ("admin",   "admin123",   True,  False),
+        ("analyst", "analyst123", False, True),
+    ]
+    for username, password, is_admin, is_analyst in defaults:
+        try:
+            create_user(username, password, is_admin=is_admin, is_analyst=is_analyst)
+        except ValueError:
+            pass  # already exists
+
+
+# ── CRUD operations ──────────────────────────────────────────────────────────
+
+def create_user(
+    username: str,
+    password: str,
+    is_admin: bool = False,
+    is_analyst: bool = False,
+    is_active: bool = True,
+) -> dict:
+    """Create a new user. Raises ValueError if username exists."""
+    password_hash = _hash_password(password)
+
+    with db_cursor() as cur:
+        # Check if exists
+        cur.execute("SELECT id FROM app.users WHERE username = %s", [username])
+        if cur.fetchone():
+            raise ValueError(f"Username '{username}' sudah terdaftar")
+
+        cur.execute("""
+            INSERT INTO app.users (username, password_hash, is_admin, is_analyst, is_active)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id, username, is_admin, is_analyst, is_active, created_at
+        """, [username, password_hash, is_admin, is_analyst, is_active])
+        row = cur.fetchone()
+
+    return _user_to_dict(row)
+
+
+def get_user_by_username(username: str) -> dict | None:
+    """Get user by username (includes password_hash for auth)."""
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT id, username, password_hash, is_admin, is_analyst, is_active, created_at
+            FROM app.users
+            WHERE username = %s
+        """, [username])
+        row = cur.fetchone()
+
+    if not row:
+        return None
+    d = dict(row)
+    d["role"] = _compute_role(d)  # add computed role but keep password_hash
+    return d
 
 
 def list_users() -> list[dict]:
-    con = _conn()
-    rows = con.execute(
-        "SELECT id, username, role, created_at FROM users ORDER BY id"
-    ).fetchall()
-    con.close()
-    return [dict(r) for r in rows]
+    """List all users (without password_hash)."""
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT id, username, is_admin, is_analyst, is_active, created_at
+            FROM app.users
+            ORDER BY id
+        """)
+        rows = cur.fetchall()
 
-
-def create_user(username: str, password: str, role: str) -> dict:
-    con = _conn()
-    try:
-        con.execute(
-            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-            (username, _hash(password), role),
-        )
-        con.commit()
-        row = con.execute(
-            "SELECT id, username, role, created_at FROM users WHERE username = ?",
-            (username,),
-        ).fetchone()
-        return dict(row)
-    except sqlite3.IntegrityError:
-        raise ValueError(f"Username '{username}' sudah terdaftar")
-    finally:
-        con.close()
+    return [_user_to_dict(r) for r in rows]
 
 
 def update_user(
     user_id: int,
-    password: str | None = None,
-    role: str | None = None,
+    new_password: str | None = None,
+    is_admin: bool | None = None,
+    is_analyst: bool | None = None,
+    is_active: bool | None = None,
 ) -> dict | None:
-    con = _conn()
-    if password:
-        con.execute(
-            "UPDATE users SET password_hash = ? WHERE id = ?",
-            (_hash(password), user_id),
-        )
-    if role:
-        con.execute("UPDATE users SET role = ? WHERE id = ?", (role, user_id))
-    con.commit()
-    row = con.execute(
-        "SELECT id, username, role, created_at FROM users WHERE id = ?", (user_id,)
-    ).fetchone()
-    con.close()
-    return dict(row) if row else None
+    """Update user fields. Only non-None values are updated."""
+    updates = []
+    params = []
+
+    if new_password:
+        updates.append("password_hash = %s")
+        params.append(_hash_password(new_password))
+    if is_admin is not None:
+        updates.append("is_admin = %s")
+        params.append(is_admin)
+    if is_analyst is not None:
+        updates.append("is_analyst = %s")
+        params.append(is_analyst)
+    if is_active is not None:
+        updates.append("is_active = %s")
+        params.append(is_active)
+
+    if not updates:
+        return get_user_by_id(user_id)
+
+    params.append(user_id)
+    set_clause = ", ".join(updates)
+
+    with db_cursor() as cur:
+        cur.execute(f"""
+            UPDATE app.users
+            SET {set_clause}
+            WHERE id = %s
+            RETURNING id, username, is_admin, is_analyst, is_active, created_at
+        """, params)
+        row = cur.fetchone()
+
+    return _user_to_dict(row) if row else None
 
 
-def delete_user(user_id: int) -> None:
-    con = _conn()
-    con.execute("DELETE FROM users WHERE id = ?", (user_id,))
-    con.commit()
-    con.close()
+def delete_user(user_id: int) -> bool:
+    """Delete user by ID. Returns True if deleted."""
+    with db_cursor() as cur:
+        cur.execute("DELETE FROM app.users WHERE id = %s", [user_id])
+        return cur.rowcount > 0
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    """Get user by ID (without password_hash)."""
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT id, username, is_admin, is_analyst, is_active, created_at
+            FROM app.users
+            WHERE id = %s
+        """, [user_id])
+        row = cur.fetchone()
+
+    return _user_to_dict(row) if row else None

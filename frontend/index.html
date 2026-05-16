@@ -3,109 +3,128 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RCA RadarPangan</title>
+  <title>R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Alpine.js CDN -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
+    /* -- Reset + Design tokens (inline fallback) -- */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg:        #f0f4ff;
-      --bg2:       #ffffff;
-      --surface:   #ffffff;
-      --surface2:  #f5f7ff;
-      --border:    #dde3f7;
-      --border2:   #c7d2fe;
-      --accent:    #6366f1;
-      --accent2:   #4f46e5;
-      --warn:      #f59e0b;
-      --danger:    #ef4444;
-      --success:   #10b981;
-      --highlight: #ec4899;
-      --info:      #06b6d4;
-      --text:      #1e293b;
-      --text2:     #475569;
-      --muted:     #94a3b8;
+      --bg: #EEF7F1; --bg2: #F0FBF4;
+      --surface: #FFFFFF; --surface2: #F0FBF4;
+      --border: #1a1a1a; --border2: #1a1a1a;
+      --accent: #2ECC88; --accent2: #1D7A56;
+      --warn: #FBBF24; --danger: #F87171; --success: #34D399;
+      --highlight: #A7F3D0; --info: #67E8F9;
+      --text: #1a1a1a; --text2: #3f3f46; --muted: #71717a;
       --mono: 'JetBrains Mono', monospace;
-      --sans: 'Inter', sans-serif;
-      --radius: 14px;
-      --radius-sm: 10px;
+      --sans: 'Inter', system-ui, sans-serif;
+      --radius: 16px; --radius-sm: 12px;
+      --shadow: 4px 4px 0px #1a1a1a; --shadow-lg: 6px 6px 0px #1a1a1a;
+      --bw: 2.5px;
     }
-
     html { scroll-behavior: smooth; }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      min-height: 100vh;
-      overflow-x: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
     }
-
-    /* ── Background gradient mesh ── */
     body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
+      content: ''; position: fixed; inset: 0;
       background-image:
-        radial-gradient(ellipse at 10% 10%, rgba(99,102,241,0.18) 0%, transparent 50%),
-        radial-gradient(ellipse at 90% 15%, rgba(236,72,153,0.12) 0%, transparent 45%),
-        radial-gradient(ellipse at 80% 85%, rgba(6,182,212,0.14) 0%, transparent 50%),
-        radial-gradient(ellipse at 20% 90%, rgba(16,185,129,0.12) 0%, transparent 45%),
-        radial-gradient(ellipse at 55% 50%, rgba(245,158,11,0.06) 0%, transparent 40%);
-      pointer-events: none;
-      z-index: 0;
+        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
+      pointer-events: none; z-index: 0;
     }
 
+    /* -- App container (inline fallback) -- */
     .app {
-      position: relative;
-      z-index: 1;
-      max-width: 1100px;
-      margin: 0 auto;
+      position: relative; z-index: 1;
+      max-width: 1100px; margin: 0 auto;
       padding: 24px 20px 48px;
     }
 
-    /* ── Header ── */
+    /* -- Header (inline fallback) -- */
     .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 28px;
-      padding: 16px 20px;
-      background: rgba(255,255,255,0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.9);
-      border-radius: var(--radius);
-      box-shadow: 0 2px 16px rgba(99,102,241,0.08);
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; padding: 14px 20px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
     }
     .header-left { display: flex; align-items: center; gap: 14px; }
     .logo-icon {
-      width: 42px; height: 42px;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      border-radius: 12px;
+      width: 44px; height: 44px;
+      border: var(--bw) solid var(--border); border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
-      box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
+      overflow: hidden; padding: 0;
     }
+    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
     .header-title {
-      font-size: 17px; font-weight: 800; letter-spacing: -0.3px;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
     }
-    .header-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
-    .header-right { display: flex; align-items: center; gap: 8px; }
-    .status-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--success);
-      box-shadow: 0 0 8px var(--success);
-      animation: pulse-dot 2s ease-in-out infinite;
+    .header-sub {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 2px; letter-spacing: 0.5px;
     }
-    .status-text { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .nav-link {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
+      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
+    }
+    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .nav-link-default { background: var(--surface); color: var(--accent2); }
+    .nav-link-default:hover { background: #E0F5EA; }
+    .nav-link-active { background: var(--accent); color: #fff; }
+    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
+    .nav-link-danger:hover { background: #FECACA; }
+    .user-badge {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; background: var(--surface2);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .user-badge strong { color: var(--accent2); }
 
-    /* ── Main layout ── */
+    /* -- Cards (inline fallback) -- */
+    .card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 18px;
+      position: relative; overflow: hidden; box-shadow: var(--shadow);
+    }
+    .card::after {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 5px;
+      background: var(--accent); border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .card + .card { margin-top: 14px; }
+    .card-label {
+      font-family: var(--mono); font-size: 10px; color: var(--text);
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px; font-weight: 800;
+    }
+    .card-label::before {
+      content: ''; display: inline-block;
+      width: 4px; height: 12px; background: var(--accent);
+      border-radius: 2px; border: 1px solid var(--border);
+    }
+
+    /* -- Responsive header stacking -- */
+    @media (max-width: 640px) {
+      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .header-right { width: 100%; justify-content: flex-start; }
+    }
+
+    /* -- Dashboard page-specific styles -- */
+
+    /* -- Main layout -- */
     .main-grid {
       display: grid;
       grid-template-columns: 340px 1fr;
@@ -116,67 +135,33 @@
       .main-grid { grid-template-columns: 1fr; }
     }
 
-    /* ── Cards ── */
-    .card {
-      background: rgba(255,255,255,0.8);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.95);
-      border-radius: var(--radius);
-      padding: 18px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 4px 24px rgba(99,102,241,0.07), 0 1px 4px rgba(99,102,241,0.05);
-    }
-    .card::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, #6366f1, #ec4899, #06b6d4);
-      border-radius: var(--radius) var(--radius) 0 0;
-    }
-    .card + .card { margin-top: 12px; }
-    .card-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 12px;
-      display: flex; align-items: center; gap: 6px;
-      font-weight: 600;
-    }
-    .card-label::before {
-      content: '';
-      display: inline-block;
-      width: 3px; height: 10px;
-      background: linear-gradient(180deg, #6366f1, #ec4899);
-      border-radius: 2px;
-    }
-
-    /* ── Commodity selector ── */
+    /* -- Cards (page overrides) -- */
     .commodity-select {
       width: 100%;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
       color: var(--text);
       font-family: var(--sans);
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       padding: 10px 14px;
       border-radius: var(--radius-sm);
       cursor: pointer;
       outline: none;
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231a1a1a' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      box-shadow: 3px 3px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
     }
     .commodity-select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .commodity-select:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--border);
     }
 
     /* ── Price display ── */
@@ -184,8 +169,8 @@
     .price-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
     .price-now {
       font-family: var(--mono);
-      font-size: 30px;
-      font-weight: 600;
+      font-size: 32px;
+      font-weight: 700;
       color: var(--text);
       letter-spacing: -1px;
       line-height: 1;
@@ -193,111 +178,106 @@
     .price-delta {
       font-family: var(--mono);
       font-size: 12px;
-      font-weight: 600;
-      padding: 3px 9px;
-      border-radius: 20px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
     }
-    .delta-up { background: rgba(239,68,68,0.12); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
-    .delta-down { background: rgba(110,231,183,0.1); color: var(--success); border: 1px solid rgba(110,231,183,0.2); }
+    .delta-up { background: #FEE2E2; color: #DC2626; }
+    .delta-down { background: #D1FAE5; color: #059669; }
     .price-pred {
       font-family: var(--mono);
       font-size: 11px;
       color: var(--muted);
+      font-weight: 500;
     }
-    .price-pred span { color: var(--warn); font-weight: 600; }
+    .price-pred span { color: var(--accent2); font-weight: 800; }
 
     /* ── Signal grid ── */
     .signal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .signal-item {
       background: var(--surface2);
-      border: 1.5px solid var(--border);
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
       padding: 10px 12px;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.15s, box-shadow 0.15s;
     }
     .signal-item.warn-item {
-      border-color: rgba(245,158,11,0.45);
-      background: rgba(245,158,11,0.05);
-      box-shadow: 0 2px 8px rgba(245,158,11,0.1);
+      background: #FEF3C7;
+      box-shadow: 2px 2px 0 var(--border);
     }
-    .signal-key { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.5px; }
-    .signal-val { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text); }
-    .signal-val.warn { color: var(--warn); }
-    .signal-val.ok { color: var(--success); }
-    .signal-val.danger { color: var(--danger); }
+    .signal-key { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.5px; font-weight: 600; }
+    .signal-val { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text); }
+    .signal-val.warn { color: #B45309; }
+    .signal-val.ok { color: #059669; }
+    .signal-val.danger { color: #DC2626; }
 
     /* ── Anomaly banner ── */
     .anomaly-banner {
       border-radius: var(--radius);
       padding: 16px 20px;
-      border: 1.5px solid;
+      border: var(--bw) solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 12px;
-      transition: all 0.4s ease;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      margin-bottom: 14px;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow);
     }
     .anomaly-banner.normal {
-      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.06));
-      border-color: rgba(16,185,129,0.3);
-      box-shadow: 0 4px 20px rgba(16,185,129,0.1);
+      background: #D1FAE5;
     }
     .anomaly-banner.anomali {
-      background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(245,158,11,0.06));
-      border-color: rgba(239,68,68,0.3);
-      box-shadow: 0 4px 20px rgba(239,68,68,0.12);
+      background: #FEE2E2;
     }
     .anomaly-banner.blank {
-      background: rgba(255,255,255,0.75);
-      border-color: var(--border);
-      box-shadow: 0 2px 12px rgba(99,102,241,0.06);
+      background: var(--surface);
     }
     .anomaly-left { display: flex; align-items: center; gap: 10px; }
-    .anomaly-icon { font-size: 20px; line-height: 1; }
-    .anomaly-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-    .anomaly-status { font-size: 15px; font-weight: 700; margin-top: 1px; }
-    .anomaly-status.normal-text { color: var(--success); }
-    .anomaly-status.danger-text { color: var(--danger); }
+    .anomaly-icon { font-size: 22px; line-height: 1; }
+    .anomaly-label { font-family: var(--mono); font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .anomaly-status { font-size: 16px; font-weight: 900; margin-top: 1px; }
+    .anomaly-status.normal-text { color: #059669; }
+    .anomaly-status.danger-text { color: #DC2626; }
     .anomaly-right { text-align: right; }
-    .anomaly-delta { font-family: var(--mono); font-size: 18px; font-weight: 600; }
-    .anomaly-threshold { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .anomaly-delta { font-family: var(--mono); font-size: 20px; font-weight: 800; }
+    .anomaly-threshold { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; font-weight: 600; }
 
     /* ── RCA Steps ── */
     .rca-panel {
-      background: rgba(255,255,255,0.8);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1.5px solid rgba(255,255,255,0.95);
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius);
       overflow: hidden;
-      box-shadow: 0 4px 24px rgba(99,102,241,0.07);
+      box-shadow: var(--shadow);
     }
     .rca-header {
       padding: 14px 18px 12px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: var(--bw) solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: linear-gradient(135deg, rgba(99,102,241,0.04), rgba(236,72,153,0.03));
+      background: #E0F5EA;
     }
     .rca-header-title {
       font-family: var(--mono);
       font-size: 10px;
-      color: var(--accent);
+      color: var(--text);
       text-transform: uppercase;
       letter-spacing: 1.5px;
-      font-weight: 600;
+      font-weight: 800;
     }
     .rca-header-badge {
       font-family: var(--mono);
       font-size: 10px;
-      color: var(--accent2);
-      background: rgba(99,102,241,0.1);
-      border: 1px solid rgba(99,102,241,0.2);
+      color: var(--text);
+      background: var(--surface);
+      border: 2px solid var(--border);
       padding: 2px 10px;
-      border-radius: 20px;
+      border-radius: 8px;
+      font-weight: 700;
+      box-shadow: 2px 2px 0 var(--border);
     }
 
     .check-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
@@ -308,9 +288,9 @@
       gap: 12px;
       padding: 12px 14px;
       border-radius: var(--radius-sm);
-      border: 1.5px solid var(--border);
-      background: var(--surface2);
-      transition: all 0.35s ease;
+      border: var(--bw) solid var(--border);
+      background: var(--surface);
+      transition: all 0.25s ease;
       position: relative;
       overflow: hidden;
     }
@@ -318,69 +298,65 @@
       content: '';
       position: absolute;
       left: 0; top: 0; bottom: 0;
-      width: 4px;
+      width: 5px;
       border-radius: 2px 0 0 2px;
       background: transparent;
-      transition: background 0.35s;
+      transition: background 0.3s;
     }
-    .check-item.active::before { background: linear-gradient(180deg, #6366f1, #ec4899); }
-    .check-item.triggered::before { background: linear-gradient(180deg, #f59e0b, #ef4444); }
-    .check-item.clear::before { background: linear-gradient(180deg, #10b981, #06b6d4); }
+    .check-item.active::before { background: var(--accent); }
+    .check-item.triggered::before { background: var(--warn); }
+    .check-item.clear::before { background: var(--success); }
 
     .check-item.active {
-      border-color: rgba(99,102,241,0.3);
-      background: rgba(99,102,241,0.04);
-      box-shadow: 0 2px 12px rgba(99,102,241,0.1);
+      background: #E0F5EA;
+      box-shadow: 3px 3px 0 var(--border);
     }
     .check-item.triggered {
-      border-color: rgba(245,158,11,0.35);
-      background: rgba(245,158,11,0.05);
-      box-shadow: 0 2px 12px rgba(245,158,11,0.1);
+      background: #FEF3C7;
+      box-shadow: 3px 3px 0 var(--border);
     }
     .check-item.clear {
-      border-color: rgba(16,185,129,0.2);
-      background: rgba(16,185,129,0.03);
-      opacity: 0.7;
+      background: #ECFDF5;
+      opacity: 0.8;
     }
     .check-item.skip { opacity: 0.35; }
 
     .check-num {
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
-      border: 1.5px solid var(--border2);
+      border: var(--bw) solid var(--border);
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
       flex-shrink: 0;
-      transition: all 0.35s;
+      background: var(--surface);
+      transition: all 0.3s;
     }
     .check-item.active .check-num {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: rgba(99,102,241,0.1);
-      box-shadow: 0 0 12px rgba(99,102,241,0.3);
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 2px 2px 0 var(--border);
       animation: spin-check 1.5s linear infinite;
     }
     .check-item.triggered .check-num {
-      border-color: var(--warn);
-      color: var(--warn);
-      background: rgba(245,158,11,0.12);
+      background: var(--warn);
+      color: var(--text);
+      box-shadow: 2px 2px 0 var(--border);
       animation: none;
     }
     .check-item.clear .check-num {
-      border-color: var(--success);
-      color: var(--success);
-      background: rgba(16,185,129,0.1);
+      background: var(--success);
+      color: var(--text);
       animation: none;
     }
 
     .check-content { flex: 1; min-width: 0; }
-    .check-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .check-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
     .check-item.clear .check-name { color: var(--text2); }
     .check-item.skip .check-name { color: var(--muted); }
     .check-detail {
@@ -390,33 +366,33 @@
       line-height: 1.6;
       white-space: pre-line;
     }
-    .check-detail .val { color: var(--warn); font-weight: 600; }
 
     .check-badge {
       font-family: var(--mono);
       font-size: 10px;
       padding: 3px 10px;
-      border-radius: 20px;
+      border-radius: 8px;
       flex-shrink: 0;
       align-self: flex-start;
-      font-weight: 600;
+      font-weight: 800;
+      border: 2px solid var(--border);
+      text-transform: uppercase;
     }
-    .badge-checking { background: rgba(99,102,241,0.12); color: var(--accent); border: 1px solid rgba(99,102,241,0.2); }
-    .badge-triggered { background: rgba(245,158,11,0.15); color: #d97706; border: 1px solid rgba(245,158,11,0.25); }
-    .badge-clear { background: rgba(16,185,129,0.12); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
-    .badge-skip { background: rgba(148,163,184,0.15); color: var(--muted); border: 1px solid rgba(148,163,184,0.2); }
+    .badge-checking { background: #E0F5EA; color: var(--accent2); }
+    .badge-triggered { background: #FEF3C7; color: #92400E; }
+    .badge-clear { background: #D1FAE5; color: #065F46; }
+    .badge-skip { background: #F4F4F5; color: var(--muted); border-color: #a1a1aa; }
 
     /* ── Result card ── */
     .result-card {
       border-radius: var(--radius);
       padding: 22px;
-      border: 1.5px solid;
-      margin-top: 12px;
-      transition: all 0.4s ease;
+      border: var(--bw) solid var(--border);
+      margin-top: 14px;
+      transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      box-shadow: var(--shadow-lg);
     }
     .result-card::before {
       content: '';
@@ -424,7 +400,7 @@
       top: -60px; right: -60px;
       width: 160px; height: 160px;
       border-radius: 50%;
-      opacity: 0.12;
+      opacity: 0.15;
     }
     .result-card::after {
       content: '';
@@ -432,72 +408,70 @@
       bottom: -40px; left: -40px;
       width: 100px; height: 100px;
       border-radius: 50%;
-      opacity: 0.07;
+      opacity: 0.10;
     }
-    .result-demand { background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.05)); border-color: rgba(16,185,129,0.3); box-shadow: 0 6px 30px rgba(16,185,129,0.12); }
-    .result-demand::before { background: #10b981; }
-    .result-demand::after { background: #06b6d4; }
-    .result-supply { background: linear-gradient(135deg, rgba(245,158,11,0.09), rgba(239,68,68,0.05)); border-color: rgba(245,158,11,0.35); box-shadow: 0 6px 30px rgba(245,158,11,0.12); }
-    .result-supply::before { background: #f59e0b; }
-    .result-supply::after { background: #ef4444; }
-    .result-distribusi { background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.05)); border-color: rgba(99,102,241,0.3); box-shadow: 0 6px 30px rgba(99,102,241,0.12); }
-    .result-distribusi::before { background: #6366f1; }
-    .result-distribusi::after { background: #ec4899; }
-    .result-ekspektasi { background: linear-gradient(135deg, rgba(6,182,212,0.09), rgba(99,102,241,0.05)); border-color: rgba(6,182,212,0.35); box-shadow: 0 6px 30px rgba(6,182,212,0.12); }
-    .result-ekspektasi::before { background: #06b6d4; }
-    .result-ekspektasi::after { background: #6366f1; }
-    .result-unknown { background: linear-gradient(135deg, rgba(148,163,184,0.08), rgba(100,116,139,0.05)); border-color: rgba(148,163,184,0.3); }
+    .result-demand { background: #D1FAE5; }
+    .result-demand::before { background: var(--success); }
+    .result-demand::after { background: var(--info); }
+    .result-supply { background: #FEF3C7; }
+    .result-supply::before { background: var(--warn); }
+    .result-supply::after { background: var(--danger); }
+    .result-distribusi { background: #E0F5EA; }
+    .result-distribusi::before { background: var(--accent); }
+    .result-distribusi::after { background: var(--highlight); }
+    .result-unknown { background: #F4F4F5; }
 
     .result-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
     .result-meta { flex: 1; }
-    .result-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
-    .result-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; }
-    .result-demand .result-title { color: #059669; }
-    .result-supply .result-title { color: #d97706; }
-    .result-distribusi .result-title { color: #4f46e5; }
-    .result-ekspektasi .result-title { color: #0891b2; }
+    .result-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text2); margin-bottom: 5px; font-weight: 800; }
+    .result-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.2; }
+    .result-demand .result-title { color: #065F46; }
+    .result-supply .result-title { color: #92400E; }
+    .result-distribusi .result-title { color: #1D7A56; }
     .result-unknown .result-title { color: var(--muted); }
     .result-type-badge {
       font-family: var(--mono);
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 800;
       padding: 5px 14px;
-      border-radius: 20px;
+      border-radius: 8px;
       flex-shrink: 0;
-      border: 1.5px solid;
+      border: var(--bw) solid var(--border);
       text-transform: uppercase;
       letter-spacing: 1px;
+      box-shadow: 3px 3px 0 var(--border);
     }
-    .result-demand .result-type-badge { background: rgba(16,185,129,0.12); color: #059669; border-color: rgba(16,185,129,0.3); }
-    .result-supply .result-type-badge { background: rgba(245,158,11,0.12); color: #d97706; border-color: rgba(245,158,11,0.3); }
-    .result-distribusi .result-type-badge { background: rgba(99,102,241,0.12); color: #4f46e5; border-color: rgba(99,102,241,0.3); }
-    .result-ekspektasi .result-type-badge { background: rgba(6,182,212,0.12); color: #0891b2; border-color: rgba(6,182,212,0.3); }
-    .result-unknown .result-type-badge { background: rgba(148,163,184,0.12); color: var(--muted); border-color: rgba(148,163,184,0.3); }
+    .result-demand .result-type-badge { background: #A7F3D0; color: #065F46; }
+    .result-supply .result-type-badge { background: #FDE68A; color: #92400E; }
+    .result-distribusi .result-type-badge { background: #A7F3D0; color: #1D7A56; }
+    .result-unknown .result-type-badge { background: #E4E4E7; color: var(--muted); }
 
     .result-desc { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 14px; }
 
     .action-box {
-      background: rgba(255,255,255,0.6);
-      border: 1.5px solid var(--border);
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
       padding: 14px 16px;
+      box-shadow: 2px 2px 0 var(--border);
     }
     .action-label {
       font-family: var(--mono);
       font-size: 10px;
-      color: var(--accent);
+      color: var(--text);
       text-transform: uppercase;
       letter-spacing: 1.5px;
       margin-bottom: 8px;
       display: flex; align-items: center; gap: 6px;
-      font-weight: 600;
+      font-weight: 800;
     }
     .action-label::before {
       content: '';
       display: inline-block;
-      width: 3px; height: 10px;
-      background: linear-gradient(180deg, #6366f1, #ec4899);
+      width: 4px; height: 12px;
+      background: var(--accent);
       border-radius: 2px;
+      border: 1px solid var(--border);
     }
     .action-text { font-size: 13px; color: var(--text); line-height: 1.7; }
 
@@ -506,288 +480,207 @@
     .sim-date-input {
       flex: 1;
       min-width: 140px;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
       color: var(--text);
       font-family: var(--mono);
       font-size: 12px;
+      font-weight: 600;
       padding: 8px 12px;
       border-radius: var(--radius-sm);
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
     }
-    .sim-date-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-    .sim-date-input.active { border-color: var(--warn); color: #d97706; background: rgba(245,158,11,0.05); }
+    .sim-date-input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .sim-date-input.active { background: #FEF3C7; color: #92400E; }
     .sim-reset {
-      background: none;
-      border: 1.5px solid var(--border);
-      color: var(--muted);
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
+      color: var(--text);
       font-family: var(--mono);
       font-size: 11px;
+      font-weight: 700;
       padding: 8px 12px;
       border-radius: var(--radius-sm);
       cursor: pointer;
       white-space: nowrap;
-      transition: border-color 0.2s, color 0.2s, background 0.2s;
+      box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
     }
-    .sim-reset:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,0.05); }
-    .sim-label { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 100%; margin-top: 4px; }
-    .sim-label.warn { color: #d97706; }
+    .sim-reset:hover { background: #E0F5EA; }
+    .sim-reset:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0 0 0 var(--border);
+    }
+    .sim-label { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 100%; margin-top: 4px; font-weight: 600; }
+    .sim-label.warn { color: #92400E; }
 
-    /* ── Run button ── */
+    /* ── Run button — neobrutalist press effect ── */
     .run-btn {
       width: 100%;
       padding: 14px;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
+      background: var(--accent);
       color: #ffffff;
       font-family: var(--sans);
       font-size: 14px;
-      font-weight: 700;
-      border: none;
+      font-weight: 800;
+      border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
       cursor: pointer;
       letter-spacing: 0.3px;
-      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 4px 20px rgba(99,102,241,0.35);
-      margin-top: 12px;
+      box-shadow: var(--shadow);
+      margin-top: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
+      transition: transform 0.1s, box-shadow 0.1s;
     }
     .run-btn:disabled {
-      opacity: 0.35;
+      opacity: 0.4;
       cursor: not-allowed;
       box-shadow: none;
+      transform: translate(2px, 2px);
     }
     .run-btn:hover:not(:disabled) {
-      opacity: 0.92;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(99,102,241,0.45);
+      background: var(--accent2);
     }
-    .run-btn:active:not(:disabled) { transform: translateY(0); }
+    .run-btn:active:not(:disabled) {
+      transform: translate(4px, 4px);
+      box-shadow: 0 0 0 var(--border);
+    }
 
     /* ── Footer ── */
     .footer {
       text-align: center;
       margin-top: 32px;
       padding-top: 20px;
-      border-top: 1px solid var(--border);
+      border-top: var(--bw) solid var(--border);
       font-family: var(--mono);
       font-size: 10px;
       color: var(--muted);
+      font-weight: 600;
     }
-    .footer a { color: var(--accent); text-decoration: none; transition: opacity 0.2s; }
-    .footer a:hover { opacity: 0.75; }
-    .footer-sep { margin: 0 10px; color: var(--border2); }
+    .footer a { color: var(--accent2); text-decoration: none; font-weight: 700; }
+    .footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .footer-sep { margin: 0 10px; color: var(--border); }
 
-    /* ── Progress bar (during RCA run) ── */
+    /* ── Progress bar ── */
     .progress-bar {
-      height: 3px;
-      background: var(--border);
-      margin: 0 0 0;
+      height: 4px;
+      background: #E4E4E7;
       overflow: hidden;
+      border-bottom: 1px solid var(--border);
     }
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #6366f1, #ec4899, #06b6d4);
+      background: var(--accent);
       width: 0%;
       transition: width 0.4s ease;
     }
 
-    /* ── Price display tweaks ── */
-    .price-now { color: var(--accent2); }
-    .delta-up { background: rgba(239,68,68,0.1); color: #dc2626; border: 1px solid rgba(239,68,68,0.2); }
-    .delta-down { background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.2); }
-    .price-pred { color: var(--text2); }
-    .price-pred span { color: var(--accent); font-weight: 700; }
-
-    /* ── Animations ── */
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--success); }
-      50% { opacity: 0.6; box-shadow: 0 0 4px var(--success); }
-    }
-    @keyframes spin-check {
-      0% { box-shadow: 0 0 10px rgba(99,102,241,0.2); }
-      50% { box-shadow: 0 0 18px rgba(99,102,241,0.5); }
-      100% { box-shadow: 0 0 10px rgba(99,102,241,0.2); }
-    }
-    @keyframes slide-up {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-in { animation: slide-up 0.4s ease both; }
-
-    /* ── Daerah produksi chips ── */
+    /* ── Info panels (HET + weather) ── */
     .wilayah-section {
       margin-top: 12px;
       padding-top: 12px;
-      border-top: 1px solid var(--border);
+      border-top: 2px dashed #d4d4d8;
     }
     .wilayah-label {
       font-family: var(--mono);
       font-size: 10px;
-      color: var(--muted);
+      color: var(--text);
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 8px;
       display: flex;
       align-items: center;
       gap: 5px;
+      font-weight: 800;
     }
-    .wilayah-chips {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    .wilayah-chip {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 5px 9px;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .wilayah-chip:hover {
-      border-color: var(--border2);
-      box-shadow: 0 1px 6px rgba(99,102,241,0.08);
-    }
-    .wilayah-chip-num {
-      font-family: var(--mono);
-      font-size: 9px;
-      font-weight: 700;
-      color: var(--accent);
-      background: rgba(99,102,241,0.1);
-      border-radius: 4px;
-      padding: 1px 5px;
-      flex-shrink: 0;
-    }
-    .wilayah-chip-nama {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text);
-      flex: 1;
-    }
-    .wilayah-chip-prov {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    /* ── Loading skeleton ── */
-    .skeleton {
-      background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.8) 50%, var(--border) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 4px;
-      display: inline-block;
-    }
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
-    /* ── Severity scoring ── */
-    .severity-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-      padding: 10px 14px;
-      background: rgba(255,255,255,0.55);
+    .info-panel {
+      padding: 10px 12px;
       border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-    }
-    .severity-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      white-space: nowrap;
-    }
-    .severity-badge {
+      border: var(--bw) solid var(--border);
+      background: var(--surface);
       font-family: var(--mono);
       font-size: 12px;
-      font-weight: 700;
-      padding: 4px 14px;
-      border-radius: 20px;
-      white-space: nowrap;
+      color: var(--muted);
+      box-shadow: 2px 2px 0 var(--border);
+      transition: all 0.3s ease;
     }
-    .sev-l0 { background: rgba(16,185,129,0.12); color: #059669; border: 1.5px solid rgba(16,185,129,0.3); }
-    .sev-l1 { background: rgba(6,182,212,0.12); color: #0891b2; border: 1.5px solid rgba(6,182,212,0.3); }
-    .sev-l2 { background: rgba(245,158,11,0.14); color: #d97706; border: 1.5px solid rgba(245,158,11,0.35); }
-    .sev-l3 { background: rgba(239,68,68,0.12); color: #dc2626; border: 1.5px solid rgba(239,68,68,0.3); }
-    .sev-l4 { background: rgba(127,29,29,0.14); color: #991b1b; border: 1.5px solid rgba(153,27,27,0.4); }
-    .indicator-chips { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
-    .indicator-chip {
-      font-family: var(--mono);
-      font-size: 10px;
-      padding: 2px 8px;
-      border-radius: 5px;
-      background: rgba(99,102,241,0.07);
-      border: 1px solid rgba(99,102,241,0.15);
-      color: var(--text2);
-      white-space: nowrap;
+
+    /* ── Price Trend Chart ── */
+    .chart-mini-card {
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 18px;
+      margin-bottom: 14px;
     }
+    .chart-mini-card canvas { max-height: 200px; }
+    .chart-mini-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .chart-mini-label::before {
+      content: ''; display: inline-block;
+      width: 4px; height: 12px; background: var(--accent);
+      border-radius: 2px; border: 1px solid var(--border);
+    }
+
+    /* ── Animations ── */
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
+    }
+    @keyframes spin-check {
+      0% { box-shadow: 2px 2px 0 var(--border); }
+      50% { box-shadow: 3px 3px 0 var(--border), 0 0 0 3px rgba(46,204,136,0.3); }
+      100% { box-shadow: 2px 2px 0 var(--border); }
+    }
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: slide-up 0.35s ease both; }
+
   </style>
 </head>
 <body>
-<div class="app">
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     ALPINE.JS APP — Single reactive component
+     ════════════════════════════════════════════════════════════════════════════ -->
+<div class="app" x-data="radar()">
 
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-left">
-      <div class="logo-icon">📡</div>
+      <div class="logo-icon"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
       <div>
-        <div class="header-title">RCA RadarPangan</div>
-        <div class="header-sub">root cause analysis engine &nbsp;·&nbsp; v0.1</div>
+        <div class="header-title">R.A.D.A.R Pangan</div>
+        <div class="header-sub">monitoring &amp; rca engine &nbsp;&middot;&nbsp; v0.5</div>
       </div>
     </div>
     <div class="header-right">
-      <span id="userBadge" style="
-        font-family:var(--mono); font-size:11px; color:var(--text2);
-        padding:6px 12px; background:var(--surface2);
-        border:1px solid var(--border); border-radius:var(--radius-sm);
-      ">—</span>
-      <a id="adminLink" href="/admin" style="display:none;
-        font-family:var(--mono); font-size:11px; font-weight:600;
-        color:var(--accent); text-decoration:none;
-        border:1.5px solid var(--border2); border-radius:var(--radius-sm);
-        padding:6px 12px; background:rgba(99,102,241,0.06);
-        transition:background 0.2s;
-      " onmouseover="this.style.background='rgba(99,102,241,0.13)'"
-         onmouseout="this.style.background='rgba(99,102,241,0.06)'">👥 Users</a>
-      <a href="/guide" style="
-        font-family:var(--mono); font-size:11px; font-weight:600;
-        color:var(--text2); text-decoration:none;
-        border:1.5px solid var(--border); border-radius:var(--radius-sm);
-        padding:6px 12px; background:var(--surface2);
-        transition:background 0.2s, color 0.2s;
-      " onmouseover="this.style.background='rgba(99,102,241,0.07)';this.style.color='var(--accent)'"
-         onmouseout="this.style.background='var(--surface2)';this.style.color='var(--text2)'">📖 Panduan</a>
-      <a id="dbDebugLink" href="/static/debug.html" style="
-        font-family:var(--mono); font-size:11px; font-weight:600;
-        color:var(--accent); text-decoration:none;
-        border:1.5px solid var(--border2); border-radius:var(--radius-sm);
-        padding:6px 12px; background:rgba(99,102,241,0.06);
-        transition:background 0.2s, border-color 0.2s;
-      " onmouseover="this.style.background='rgba(99,102,241,0.13)'"
-         onmouseout="this.style.background='rgba(99,102,241,0.06)'">Pantau Database</a>
-      <button onclick="logout()" style="
-        font-family:var(--mono); font-size:11px; font-weight:600;
-        color:#dc2626; cursor:pointer;
-        border:1.5px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm);
-        padding:6px 12px; background:rgba(239,68,68,0.05);
-        transition:background 0.2s;
-      " onmouseover="this.style.background='rgba(239,68,68,0.12)'"
-         onmouseout="this.style.background='rgba(239,68,68,0.05)'">Keluar</button>
-      <div class="status-dot"></div>
-      <span class="status-text">API online</span>
+      <span class="user-badge">
+        <strong x-text="user?.username || '—'"></strong> &middot; <span x-text="user?.role || ''"></span>
+      </span>
+      <a href="/" class="nav-link nav-link-active">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-default">Panduan</a>
+      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
+        <a href="/rca" class="nav-link nav-link-default">RCA</a>
+      </template>
+      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
+        <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
+      </template>
+      <template x-if="user?.is_admin || user?.role === 'admin'">
+        <a href="/admin" class="nav-link nav-link-default">Admin</a>
+      </template>
+      <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
     </div>
   </header>
 
@@ -797,28 +690,66 @@
     <!-- ── Left panel: controls ── -->
     <div class="left-panel">
 
-      <!-- Commodity + Price -->
+      <!-- Commodity + HET + Weather + Price -->
       <div class="card">
         <div class="card-label">Komoditas</div>
-        <select class="commodity-select" id="commodity" onchange="updateCommodity()">
-          <option value="">— Memuat komoditas... —</option>
+        <select class="commodity-select" x-model="selectedKey" @change="selectCommodity()">
+          <template x-for="c in commodities" :key="c.key">
+            <option :value="c.key" x-text="c.name"></option>
+          </template>
         </select>
 
-        <!-- Daerah produksi -->
+        <!-- HET Status -->
         <div class="wilayah-section">
-          <div class="wilayah-label">📍 Daerah Produksi (BMKG)</div>
-          <div class="wilayah-chips" id="wilayahChips">
-            <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Memuat...</div>
+          <div class="wilayah-label">📊 Status HET</div>
+          <div class="info-panel"
+               :style="hetData ? `background:${hetStyle.bg};border-color:${hetStyle.border};color:${hetStyle.color}` : ''">
+            <template x-if="hetData">
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;margin-bottom:3px">
+                  <span x-text="hetStyle.icon"></span>
+                  <span x-text="hetData.status.toUpperCase()"></span>
+                  <span x-show="hetData.pct_of_het" x-text="'(' + hetData.pct_of_het + '%)'"></span>
+                </div>
+                <div x-show="hetData.het_harga" style="font-size:11px;opacity:0.8"
+                     x-text="'HET: Rp ' + (hetData.het_harga||0).toLocaleString('id-ID') + '/kg'"></div>
+                <div style="font-size:10px;margin-top:2px;opacity:0.7" x-text="hetData.keterangan || ''"></div>
+              </div>
+            </template>
+            <template x-if="!hetData"><span>Memuat...</span></template>
           </div>
         </div>
 
+        <!-- Weather -->
+        <div class="wilayah-section" style="margin-top:8px; border-top:none;">
+          <div class="wilayah-label">🌤 Cuaca (Open-Meteo)</div>
+          <div class="info-panel"
+               :style="currentData ? `background:${weatherStyle.bg};border-color:${weatherStyle.border};color:${weatherStyle.color}` : ''">
+            <template x-if="currentData">
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12px;margin-bottom:2px">
+                  <span x-text="currentData.cuaca.ekstrem ? '⛈' : '☀'"></span>
+                  <span x-text="currentData.cuaca.desc"></span>
+                </div>
+                <div x-show="currentData.cuaca.daerah" style="font-size:10px;opacity:0.8"
+                     x-text="'Lokasi: ' + currentData.cuaca.daerah"></div>
+                <div style="font-size:10px;margin-top:2px;opacity:0.7" x-text="currentData.cuaca.detail || ''"></div>
+              </div>
+            </template>
+            <template x-if="!currentData"><span>Memuat...</span></template>
+          </div>
+        </div>
+
+        <!-- Price -->
         <div class="price-block" style="margin-top:16px">
           <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Harga Sekarang</div>
           <div class="price-row">
-            <span class="price-now" id="priceNow">—</span>
-            <span class="price-delta" id="priceDelta" style="display:none"></span>
+            <span class="price-now" x-text="currentData ? fmt(currentData.price_now) : '—'"></span>
+            <span x-show="currentData" class="price-delta"
+                  :class="deltaPct >= 0 ? 'delta-up' : 'delta-down'"
+                  x-text="(deltaPct >= 0 ? '▲ +' : '▼ ') + deltaPct.toFixed(1) + '%'"></span>
           </div>
-          <div class="price-pred">Prediksi ML: <span id="mlPred">—</span></div>
+          <div class="price-pred">Prediksi ML: <span x-text="currentData && currentData.ml_pred ? fmt(currentData.ml_pred) : '—'"></span></div>
         </div>
       </div>
 
@@ -826,40 +757,48 @@
       <div class="card">
         <div class="card-label">Sinyal Input</div>
         <div class="signal-grid">
-          <div class="signal-item" id="si-tanggal">
+          <div class="signal-item">
             <div class="signal-key">Tgl. Analisis</div>
-            <div class="signal-val" id="dTanggal">—</div>
+            <div class="signal-val" :class="simDate ? 'warn' : ''"
+                 x-text="simDate ? simDate + ' (sim)' : todayISO()"></div>
           </div>
-          <div class="signal-item" id="si-cuaca">
-            <div class="signal-key">Cuaca BMKG</div>
-            <div class="signal-val" id="dCuaca">—</div>
+          <div class="signal-item" :class="currentData && currentData.cuaca.ekstrem ? 'warn-item' : ''">
+            <div class="signal-key">Cuaca</div>
+            <div class="signal-val" :class="currentData && currentData.cuaca.ekstrem ? 'warn' : 'ok'"
+                 x-text="currentData ? currentData.cuaca.desc : '—'"></div>
           </div>
-          <div class="signal-item" id="si-kota">
+          <div class="signal-item" :class="kotaRatio >= 0.6 ? 'warn-item' : ''">
             <div class="signal-key">Kota Naik</div>
-            <div class="signal-val" id="dKota">—</div>
+            <div class="signal-val" :class="kotaRatio >= 0.6 ? 'warn' : ''"
+                 x-text="currentData ? kotaNaik + ' / ' + totalKota + ' kota' : '—'"></div>
           </div>
-          <div class="signal-item" id="si-stok">
+          <div class="signal-item" :class="currentData && currentData.stok.kelas !== 'ok' ? 'warn-item' : ''">
             <div class="signal-key">Stok Pedagang</div>
-            <div class="signal-val" id="dStok">—</div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px" id="dStokPct"></div>
+            <div class="signal-val" :class="currentData ? currentData.stok.kelas : ''"
+                 x-text="currentData ? currentData.stok.status : '—'"></div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px"
+                 x-text="currentData ? (currentData.stok.pct * 100).toFixed(1) + '% kapasitas' : ''"></div>
           </div>
         </div>
       </div>
 
       <!-- Simulation date -->
-      <div class="card" id="simCard">
+      <div class="card">
         <div class="card-label">Simulasi Tanggal</div>
         <div class="sim-row">
-          <input type="date" class="sim-date-input" id="simDate" oninput="onSimDateChange()">
-          <button class="sim-reset" onclick="resetSimDate()">↺ Hari ini</button>
+          <input type="date" class="sim-date-input" :class="simDate ? 'active' : ''"
+                 x-model="simDate" @change="onSimDateChange()"
+                 min="2020-01-01" max="2026-12-31">
+          <button class="sim-reset" @click="simDate = ''; onSimDateChange()">↺ Hari ini</button>
         </div>
-        <div class="sim-label" id="simLabel">— menggunakan tanggal hari ini</div>
+        <div class="sim-label" :class="simDate ? 'warn' : ''"
+             x-text="simDate ? '⚠ simulasi aktif: ' + simDate : '— menggunakan tanggal hari ini'"></div>
       </div>
 
       <!-- Run button -->
-      <button class="run-btn" id="runBtn" onclick="runRCA()" disabled>
-        <span id="runBtnIcon">▶</span>
-        <span id="runBtnText">Jalankan RCA</span>
+      <button class="run-btn" @click="runRCA()" :disabled="!selectedKey || rcaRunning">
+        <span x-text="rcaRunning ? '⟳' : '▶'"></span>
+        <span x-text="rcaRunning ? 'Menganalisis...' : 'Jalankan RCA'"></span>
       </button>
 
     </div>
@@ -868,88 +807,75 @@
     <div class="right-panel">
 
       <!-- Anomaly banner -->
-      <div class="anomaly-banner blank" id="anomalyBanner">
+      <div class="anomaly-banner" :class="!currentData ? 'blank' : (isAnomaly ? 'anomali' : 'normal')">
         <div class="anomaly-left">
-          <div class="anomaly-icon" id="anomalyIcon">🔍</div>
+          <div class="anomaly-icon" x-text="!currentData ? '🔍' : (isAnomaly ? '⚠️' : '✅')"></div>
           <div>
             <div class="anomaly-label">Status Anomali Harga</div>
-            <div class="anomaly-status" id="anomalyStatus" style="color:var(--muted)">Pilih komoditas</div>
+            <div class="anomaly-status"
+                 :class="!currentData ? '' : (isAnomaly ? 'danger-text' : 'normal-text')"
+                 :style="!currentData ? 'color:var(--muted)' : ''"
+                 x-text="!currentData ? 'Pilih komoditas' : (isAnomaly ? 'ANOMALI TERDETEKSI' : 'Harga Normal')"></div>
           </div>
         </div>
         <div class="anomaly-right">
-          <div class="anomaly-delta" id="anomalyDelta" style="color:var(--muted)">—</div>
-          <div class="anomaly-threshold" id="anomalyThreshold">threshold: —</div>
+          <div class="anomaly-delta"
+               :style="!currentData ? 'color:var(--muted)' : (isAnomaly ? 'color:var(--danger)' : 'color:var(--success)')"
+               x-text="currentData ? '+' + deltaPct.toFixed(1) + '%' : '—'"></div>
+          <div class="anomaly-threshold"
+               x-text="currentData ? 'threshold: ' + currentData.price_threshold + '%' : 'threshold: —'"></div>
         </div>
+      </div>
+
+      <!-- Price Trend Mini Chart -->
+      <div class="chart-mini-card" x-show="currentData">
+        <div class="chart-mini-label">Tren Harga 30 Hari</div>
+        <canvas id="dashPriceChart"></canvas>
       </div>
 
       <!-- RCA checklist -->
       <div class="rca-panel">
         <div class="rca-header">
           <span class="rca-header-title">RCA Checklist — urutan pemeriksaan</span>
-          <span class="rca-header-badge" id="rcaBadge">belum dijalankan</span>
+          <span class="rca-header-badge" x-text="rcaBadge"></span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-        <div class="check-list" id="checkList">
-
-          <div class="check-item" id="c1">
-            <div class="check-num" id="n1">1</div>
-            <div class="check-content">
-              <div class="check-name">Cek Kalender Hari Raya</div>
-              <div class="check-detail" id="d1">Menunggu analisis...</div>
+        <div class="progress-bar"><div class="progress-fill" :style="'width:' + rcaProgress + '%'"></div></div>
+        <div class="check-list">
+          <template x-for="(check, idx) in checks" :key="check.step">
+            <div class="check-item" :class="check.uiState">
+              <div class="check-num" x-text="check.uiState === 'triggered' ? '!' : (check.uiState === 'clear' ? '✓' : check.step)"></div>
+              <div class="check-content">
+                <div class="check-name" x-text="check.nama"></div>
+                <div class="check-detail" x-text="check.detail"></div>
+              </div>
+              <div class="check-badge"
+                   :class="'badge-' + (check.uiState === 'pending' ? 'skip' : (check.uiState === 'active' ? 'checking' : check.uiState))"
+                   x-text="check.badgeLabel"></div>
             </div>
-            <div class="check-badge badge-skip" id="b1">TUNGGU</div>
-          </div>
-
-          <div class="check-item skip" id="c2">
-            <div class="check-num" id="n2">2</div>
-            <div class="check-content">
-              <div class="check-name">Cek Cuaca Ekstrem (BMKG)</div>
-              <div class="check-detail" id="d2">Menunggu hasil cek sebelumnya...</div>
-            </div>
-            <div class="check-badge badge-skip" id="b2">SKIP</div>
-          </div>
-
-          <div class="check-item skip" id="c3">
-            <div class="check-num" id="n3">3</div>
-            <div class="check-content">
-              <div class="check-name">Cek Persebaran Kenaikan Antar Kota</div>
-              <div class="check-detail" id="d3">Menunggu hasil cek sebelumnya...</div>
-            </div>
-            <div class="check-badge badge-skip" id="b3">SKIP</div>
-          </div>
-
-          <div class="check-item skip" id="c4">
-            <div class="check-num" id="n4">4</div>
-            <div class="check-content">
-              <div class="check-name">Cek Stok Pedagang (Badan Pangan)</div>
-              <div class="check-detail" id="d4">Menunggu hasil cek sebelumnya...</div>
-            </div>
-            <div class="check-badge badge-skip" id="b4">SKIP</div>
-          </div>
-
-          <div class="check-item skip" id="c5">
-            <div class="check-num" id="n5">5</div>
-            <div class="check-content">
-              <div class="check-name">Cek Tren Inflasi Bulanan (BPS)</div>
-              <div class="check-detail" id="d5">Menunggu hasil cek sebelumnya...</div>
-            </div>
-            <div class="check-badge badge-skip" id="b5">SKIP</div>
-          </div>
-
-          <div class="check-item skip" id="c6">
-            <div class="check-num" id="n6">6</div>
-            <div class="check-content">
-              <div class="check-name">Cek Korelasi Komoditas Terkait</div>
-              <div class="check-detail" id="d6">Menunggu hasil cek sebelumnya...</div>
-            </div>
-            <div class="check-badge badge-skip" id="b6">SKIP</div>
-          </div>
-
+          </template>
         </div>
       </div>
 
       <!-- Result box -->
-      <div id="resultBox" style="display:none"></div>
+      <div x-show="rcaResult" x-transition class="result-card animate-in"
+           :class="'result-' + (rcaResult ? rcaResult.diagnosis : 'unknown')">
+        <template x-if="rcaResult">
+          <div>
+            <div class="result-top">
+              <div class="result-meta">
+                <div class="result-label">Diagnosis RCA</div>
+                <div class="result-title" x-text="rcaResult.title"></div>
+              </div>
+              <div class="result-type-badge" x-text="typeLabels[rcaResult.diagnosis] || rcaResult.diagnosis"></div>
+            </div>
+            <div class="result-desc" x-text="rcaResult.description"></div>
+            <div class="action-box">
+              <div class="action-label">Rekomendasi Aksi</div>
+              <div class="action-text" x-text="rcaResult.action"></div>
+            </div>
+          </div>
+        </template>
+      </div>
 
     </div>
   </div>
@@ -960,350 +886,360 @@
     <span class="footer-sep">|</span>
     <a href="/redoc" target="_blank">/redoc</a>
     <span class="footer-sep">|</span>
-    <span>RCA RadarPangan &copy; 2025</span>
+    <span>R.A.D.A.R Pangan &copy; 2026</span>
   </footer>
 
 </div>
 
+<!-- ════════════════════════════════════════════════════════════════════════════
+     ALPINE.JS COMPONENT
+     ════════════════════════════════════════════════════════════════════════════ -->
 <script>
-const API = "";
+function radar() {
+  return {
+    // ── Auth ────────────────────────────────────────────────────────────────
+    user: null,
+    token: null,
 
-let currentData = null;
+    // ── Data state ──────────────────────────────────────────────────────────
+    commodities: [],
+    selectedKey: '',
+    simDate: '',
+    currentData: null,
+    hetData: null,
+    rcaResult: null,
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-(async function initAuth() {
-  const token = localStorage.getItem('rca_token');
-  if (!token) { window.location.replace('/login'); return; }
-  try {
-    const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
-    if (!r.ok) throw new Error();
-    const me = await r.json();
-    const badge = document.getElementById('userBadge');
-    badge.innerHTML = `<strong style="color:var(--accent)">${me.username}</strong> · ${me.role}`;
+    // ── UI state ────────────────────────────────────────────────────────────
+    rcaRunning: false,
+    rcaProgress: 0,
+    rcaBadge: 'belum dijalankan',
+    dashChart: null,  // Chart.js instance for dashboard mini chart
 
-    if (me.role === 'admin') {
-      document.getElementById('adminLink').style.display = '';
-    }
+    // Default RCA check items (before any analysis)
+    checks: [
+      { step: 1, nama: 'Cek Kalender Hari Raya', status: 'pending', detail: 'Menunggu analisis...', uiState: '', badgeLabel: 'MENUNGGU' },
+      { step: 2, nama: 'Cek Cuaca Ekstrem (Open-Meteo)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+      { step: 3, nama: 'Cek Persebaran Kenaikan Antar Kota', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+      { step: 4, nama: 'Cek Stok Pedagang (Badan Pangan)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+    ],
 
-    if (me.role === 'viewer') {
-      document.getElementById('simCard').style.display = 'none';
-    }
-  } catch {
-    localStorage.removeItem('rca_token');
-    localStorage.removeItem('rca_user');
-    window.location.replace('/login');
-  }
-})();
+    // Type labels for result card
+    typeLabels: { demand: 'Demand', supply: 'Supply', distribusi: 'Distribusi', unknown: 'Unknown' },
 
-function logout() {
-  localStorage.removeItem('rca_token');
-  localStorage.removeItem('rca_user');
-  window.location.replace('/login');
-}
+    // HET status → color mapping
+    hetColorMap: {
+      aman:            { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  color: '#059669', icon: '✅' },
+      waspada:         { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#d97706', icon: '⚠️' },
+      kritis:          { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   color: '#dc2626', icon: '🔴' },
+      melampaui:       { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',   color: '#dc2626', icon: '🚨' },
+      tidak_tersedia:  { bg: 'var(--surface2)',        border: 'var(--border)',          color: 'var(--muted)', icon: '—' },
+    },
 
-function getSimDate() {
-  return document.getElementById("simDate").value || null;
-}
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+    // ── Computed properties ─────────────────────────────────────────────────
 
-async function onSimDateChange() {
-  const val = getSimDate();
-  const label = document.getElementById("simLabel");
-  const input = document.getElementById("simDate");
-  if (val) {
-    label.textContent = `⚠ simulasi aktif: ${val}`;
-    label.className = "sim-label warn";
-    input.className = "sim-date-input active";
-  } else {
-    label.textContent = "— menggunakan tanggal hari ini";
-    label.className = "sim-label";
-    input.className = "sim-date-input";
-  }
-  await updateCommodity();
-  if (document.getElementById("resultBox").style.display !== "none") {
-    runRCA();
-  }
-}
+    get deltaPct() {
+      if (!this.currentData || !this.currentData.price_prev) return 0;
+      return ((this.currentData.price_now - this.currentData.price_prev) / this.currentData.price_prev) * 100;
+    },
 
-function resetSimDate() {
-  document.getElementById("simDate").value = "";
-  onSimDateChange();
-}
+    get isAnomaly() {
+      if (!this.currentData) return false;
+      return this.deltaPct >= this.currentData.price_threshold;
+    },
 
-function updateTanggalDisplay() {
-  const sim = getSimDate();
-  const el = document.getElementById("dTanggal");
-  if (sim) {
-    el.textContent = sim + " (sim)";
-    el.className = "signal-val warn";
-  } else {
-    el.textContent = todayISO();
-    el.className = "signal-val";
-  }
-}
+    get kotaNaik() {
+      if (!this.currentData) return 0;
+      return this.currentData.kota_list.filter(k => k.naik).length;
+    },
 
-function commodityUrl(key) {
-  const sim = getSimDate();
-  return `/api/commodity/${key}` + (sim ? `?sim_date=${sim}` : "");
-}
+    get totalKota() {
+      if (!this.currentData) return 0;
+      return this.currentData.kota_list.length;
+    },
 
-function rcaUrl(key) {
-  const sim = getSimDate();
-  return `/api/rca/${key}` + (sim ? `?sim_date=${sim}` : "");
-}
+    get kotaRatio() {
+      return this.totalKota > 0 ? this.kotaNaik / this.totalKota : 0;
+    },
 
-async function fetchJSON(url) {
-  const token = localStorage.getItem('rca_token');
-  const headers = token ? { Authorization: 'Bearer ' + token } : {};
-  const res = await fetch(API + url, { headers });
-  if (res.status === 401) { logout(); return; }
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
+    get hetStyle() {
+      if (!this.hetData) return this.hetColorMap.tidak_tersedia;
+      return this.hetColorMap[this.hetData.status] || this.hetColorMap.tidak_tersedia;
+    },
 
-function fmt(n) {
-  return "Rp " + n.toLocaleString("id-ID");
-}
+    get weatherStyle() {
+      if (!this.currentData) return { bg: '', border: '', color: '' };
+      const ext = this.currentData.cuaca.ekstrem;
+      return {
+        bg:     ext ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.05)',
+        border: ext ? 'rgba(245,158,11,0.3)'  : 'rgba(16,185,129,0.2)',
+        color:  ext ? '#d97706'                : '#059669',
+      };
+    },
 
-async function loadCommodities() {
-  try {
-    const keys = await fetchJSON("/api/commodities");
-    const sel = document.getElementById("commodity");
-    sel.innerHTML = keys.map(k =>
-      `<option value="${k}">${k.charAt(0).toUpperCase() + k.slice(1)}</option>`
-    ).join("");
-    await updateCommodity();
-  } catch (e) {
-    console.error("Gagal load komoditas:", e);
-  }
-}
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
-async function loadWilayahProduksi(key) {
-  const container = document.getElementById("wilayahChips");
-  container.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Memuat...</div>';
-  try {
-    const wilayah = await fetchJSON(`/api/bmkg/komoditas/${key}/wilayah-produksi`);
-    if (!wilayah.length) {
-      container.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">—</div>';
-      return;
-    }
-    container.innerHTML = wilayah.map(w => `
-      <div class="wilayah-chip">
-        <span class="wilayah-chip-num">P${w.prioritas}</span>
-        <span class="wilayah-chip-nama">${w.nama}</span>
-        <span class="wilayah-chip-prov">${w.provinsi}</span>
-      </div>
-    `).join("");
-  } catch (e) {
-    container.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Gagal memuat</div>';
-  }
-}
+    fmt(n) {
+      return 'Rp ' + (n || 0).toLocaleString('id-ID');
+    },
 
-async function updateCommodity() {
-  const key = document.getElementById("commodity").value;
-  if (!key) return;
+    todayISO() {
+      return new Date().toISOString().slice(0, 10);
+    },
 
-  loadWilayahProduksi(key);
+    async fetchJSON(url) {
+      const headers = this.token ? { Authorization: 'Bearer ' + this.token } : {};
+      const res = await fetch(url, { headers });
+      if (res.status === 401) { this.logout(); return null; }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
 
-  try {
-    currentData = await fetchJSON(commodityUrl(key));
-    const d = currentData;
+    // ── Init ────────────────────────────────────────────────────────────────
 
-    // Price
-    document.getElementById("priceNow").textContent = fmt(d.price_now);
-    const deltaPct = ((d.price_now - d.price_prev) / d.price_prev * 100).toFixed(1);
-    const deltaEl = document.getElementById("priceDelta");
-    const isUp = deltaPct >= 0;
-    deltaEl.textContent = (isUp ? "▲ +" : "▼ ") + deltaPct + "%";
-    deltaEl.className = "price-delta " + (isUp ? "delta-up" : "delta-down");
-    deltaEl.style.display = "";
-    document.getElementById("mlPred").textContent = d.ml_pred ? fmt(d.ml_pred) : "—";
+    async init() {
+      // Auth check
+      this.token = localStorage.getItem('rca_token');
+      if (!this.token) { window.location.replace('/login'); return; }
 
-    // Signals
-    updateTanggalDisplay();
+      try {
+        const me = await this.fetchJSON('/api/auth/me');
+        if (!me) return;
+        this.user = me;
+      } catch {
+        this.logout();
+        return;
+      }
 
-    const cuacaEl = document.getElementById("dCuaca");
-    cuacaEl.textContent = d.cuaca.desc;
-    cuacaEl.className = "signal-val " + (d.cuaca.ekstrem ? "warn" : "ok");
-    document.getElementById("si-cuaca").className = "signal-item " + (d.cuaca.ekstrem ? "warn-item" : "");
+      // Load commodities
+      try {
+        this.commodities = await this.fetchJSON('/api/commodities/detail') || [];
+        if (this.commodities.length > 0) {
+          this.selectedKey = this.commodities[0].key;
+          await this.selectCommodity();
+        }
+      } catch (e) {
+        console.error('Gagal load komoditas:', e);
+      }
+    },
 
-    const kotaNaik = d.kota_list.filter(k => k.naik).length;
-    const totalKota = d.kota_list.length;
-    const kotaRatio = kotaNaik / totalKota;
-    const kotaEl = document.getElementById("dKota");
-    kotaEl.textContent = `${kotaNaik} / ${totalKota} kota`;
-    kotaEl.className = "signal-val " + (kotaRatio >= 0.6 ? "warn" : "");
-    document.getElementById("si-kota").className = "signal-item " + (kotaRatio >= 0.6 ? "warn-item" : "");
+    logout() {
+      localStorage.removeItem('rca_token');
+      localStorage.removeItem('rca_user');
+      window.location.replace('/login');
+    },
 
-    const stokEl = document.getElementById("dStok");
-    stokEl.textContent = d.stok.status;
-    stokEl.className = "signal-val " + d.stok.kelas;
-    document.getElementById("dStokPct").textContent = (d.stok.pct * 100).toFixed(1) + "% kapasitas";
-    document.getElementById("si-stok").className = "signal-item " + (d.stok.kelas !== "ok" ? "warn-item" : "");
+    // ── Commodity selection ─────────────────────────────────────────────────
 
-    // Anomaly banner
-    const isAnom = parseFloat(deltaPct) >= d.price_threshold;
-    const banner = document.getElementById("anomalyBanner");
-    banner.className = "anomaly-banner " + (isAnom ? "anomali" : "normal");
-    document.getElementById("anomalyIcon").textContent = isAnom ? "⚠️" : "✅";
-    const statusEl = document.getElementById("anomalyStatus");
-    statusEl.textContent = isAnom ? "ANOMALI TERDETEKSI" : "Harga Normal";
-    statusEl.className = "anomaly-status " + (isAnom ? "danger-text" : "normal-text");
-    const deltaColor = isAnom ? "var(--danger)" : "var(--success)";
-    document.getElementById("anomalyDelta").textContent = `+${deltaPct}%`;
-    document.getElementById("anomalyDelta").style.color = deltaColor;
-    document.getElementById("anomalyThreshold").textContent = `threshold: ${d.price_threshold}%`;
+    async selectCommodity() {
+      if (!this.selectedKey) return;
+      const sim = this.simDate ? `?sim_date=${this.simDate}` : '';
 
-    resetChecks();
-    document.getElementById("resultBox").style.display = "none";
-    document.getElementById("runBtn").disabled = false;
-  } catch (e) {
-    console.error("Gagal load data:", e);
-  }
-}
+      try {
+        // Load commodity data
+        this.currentData = await this.fetchJSON(`/api/commodity/${this.selectedKey}${sim}`);
 
-function resetChecks() {
-  document.getElementById("rcaBadge").textContent = "belum dijalankan";
-  document.getElementById("progressFill").style.width = "0%";
+        // Load HET status
+        this.fetchJSON(`/api/het/${this.selectedKey}${sim}`)
+          .then(data => { this.hetData = data; })
+          .catch(() => { this.hetData = null; });
 
-  for (let i = 1; i <= 6; i++) {
-    const ci = document.getElementById("c" + i);
-    ci.className = "check-item" + (i > 1 ? " skip" : "");
-    document.getElementById("n" + i).textContent = i;
-    document.getElementById("b" + i).className = "check-badge " + (i === 1 ? "badge-checking" : "badge-skip");
-    document.getElementById("b" + i).textContent = i === 1 ? "MENUNGGU" : "SKIP";
-    document.getElementById("d" + i).textContent = i === 1 ? "Menunggu analisis..." : "Menunggu hasil cek sebelumnya...";
-  }
-}
+        // Build price trend mini chart
+        this.buildDashChart();
 
-function setActive(n) {
-  const ci = document.getElementById("c" + n);
-  ci.className = "check-item active";
-  document.getElementById("n" + n).textContent = n;
-  document.getElementById("b" + n).className = "check-badge badge-checking";
-  document.getElementById("b" + n).textContent = "CEK...";
-  document.getElementById("d" + n).textContent = "Sedang memeriksa...";
-}
+        // Reset RCA state
+        this.rcaResult = null;
+        this.resetChecks();
+      } catch (e) {
+        console.error('Gagal load data:', e);
+      }
+    },
 
-function setCheck(check) {
-  const ci = document.getElementById("c" + check.step);
-  const badge = document.getElementById("b" + check.step);
-  const num = document.getElementById("n" + check.step);
+    // ── Simulation date ─────────────────────────────────────────────────────
 
-  if (check.status === "triggered") {
-    ci.className = "check-item triggered";
-    badge.className = "check-badge badge-triggered";
-    badge.textContent = "TRIGGERED";
-    num.textContent = "!";
-  } else if (check.status === "clear") {
-    ci.className = "check-item clear";
-    badge.className = "check-badge badge-clear";
-    badge.textContent = "CLEAR";
-    num.textContent = "✓";
-  } else {
-    ci.className = "check-item skip";
-    badge.className = "check-badge badge-skip";
-    badge.textContent = "SKIP";
-    num.textContent = check.step;
-  }
-  document.getElementById("d" + check.step).textContent = check.detail;
-}
+    async onSimDateChange() {
+      await this.selectCommodity();
+      // If RCA result was showing, re-run
+      if (this.rcaResult) {
+        await this.runRCA();
+      }
+    },
 
-async function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+    // ── Dashboard Mini Chart ─────────────────────────────────────────────
 
-async function runRCA() {
-  const key = document.getElementById("commodity").value;
-  const btn = document.getElementById("runBtn");
-  const runText = document.getElementById("runBtnText");
-  const runIcon = document.getElementById("runBtnIcon");
-  btn.disabled = true;
-  runText.textContent = "Menganalisis...";
-  runIcon.textContent = "⟳";
-  resetChecks();
-  document.getElementById("resultBox").style.display = "none";
-  document.getElementById("rcaBadge").textContent = "berjalan...";
+    async buildDashChart() {
+      if (!this.selectedKey) return;
 
-  try {
-    const result = await fetchJSON(rcaUrl(key));
+      // Resolve comcat_id from selected commodity key
+      const commodity = this.commodities.find(c => c.key === this.selectedKey);
+      const comcatId = commodity?.comcat_id || this.selectedKey;
+      const sim = this.simDate ? `&sim_date=${this.simDate}` : '';
 
-    const totalSteps = result.checks.length;
-    for (let idx = 0; idx < result.checks.length; idx++) {
-      const check = result.checks[idx];
-      setActive(check.step);
-      document.getElementById("progressFill").style.width = ((idx / totalSteps) * 100) + "%";
-      await delay(600);
-      setCheck(check);
-      await delay(200);
-    }
+      let historyData = [];
+      try {
+        const data = await this.fetchJSON(`/api/prices/${comcatId}/history?n_days=30${sim}`);
+        if (data) historyData = data;
+      } catch (e) {
+        console.error('Failed to fetch price history:', e);
+        return;
+      }
 
-    document.getElementById("progressFill").style.width = "100%";
-    document.getElementById("rcaBadge").textContent = "selesai";
+      if (historyData.length === 0) return;
 
-    await delay(300);
-    showResult(result);
-  } catch (e) {
-    console.error("RCA gagal:", e);
-    document.getElementById("rcaBadge").textContent = "error";
-  } finally {
-    btn.disabled = false;
-    runText.textContent = "Jalankan RCA";
-    runIcon.textContent = "▶";
-  }
-}
+      // Wait for canvas to render
+      await this.$nextTick();
+      const canvas = document.getElementById('dashPriceChart');
+      if (!canvas) return;
 
-function showResult(result) {
-  const clsMap = {
-    demand: "result-demand",
-    supply: "result-supply",
-    distribusi: "result-distribusi",
-    ekspektasi: "result-ekspektasi",
-    unknown: "result-unknown"
+      // Destroy existing chart
+      if (this.dashChart) {
+        this.dashChart.destroy();
+        this.dashChart = null;
+      }
+
+      const labels = historyData.map(d => {
+        const parts = d.tanggal.split('-');
+        return parts[2] + '/' + parts[1];
+      });
+      const prices = historyData.map(d => d.avg_harga);
+
+      // Determine color based on trend (last vs first)
+      const trendUp = prices[prices.length - 1] > prices[0];
+      const lineColor = trendUp ? '#DC2626' : '#1D7A56';
+      const fillColor = trendUp ? 'rgba(220,38,38,0.06)' : 'rgba(46,204,136,0.08)';
+
+      this.dashChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Harga Rata-rata',
+            data: prices,
+            borderColor: lineColor,
+            backgroundColor: fillColor,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.4,
+            fill: true,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: "'JetBrains Mono', monospace", size: 10 },
+              bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
+              padding: 8,
+              cornerRadius: 6,
+              callbacks: {
+                label: function(ctx) {
+                  return 'Rp ' + Math.round(ctx.parsed.y).toLocaleString('id-ID');
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                font: { family: "'JetBrains Mono', monospace", size: 8 },
+                maxTicksLimit: 8,
+              },
+            },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.04)' },
+              ticks: {
+                font: { family: "'JetBrains Mono', monospace", size: 9 },
+                callback: function(val) { return 'Rp ' + (val / 1000).toFixed(0) + 'k'; },
+              },
+            },
+          },
+        },
+      });
+    },
+
+    // ── RCA ──────────────────────────────────────────────────────────────────
+
+    resetChecks() {
+      this.rcaBadge = 'belum dijalankan';
+      this.rcaProgress = 0;
+      this.checks = [
+        { step: 1, nama: 'Cek Kalender Hari Raya', status: 'pending', detail: 'Menunggu analisis...', uiState: '', badgeLabel: 'MENUNGGU' },
+        { step: 2, nama: 'Cek Cuaca Ekstrem (Open-Meteo)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+        { step: 3, nama: 'Cek Persebaran Kenaikan Antar Kota', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+        { step: 4, nama: 'Cek Stok Pedagang (Badan Pangan)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
+      ];
+    },
+
+    async runRCA() {
+      if (!this.selectedKey || this.rcaRunning) return;
+
+      this.rcaRunning = true;
+      this.rcaResult = null;
+      this.resetChecks();
+      this.rcaBadge = 'berjalan...';
+
+      const sim = this.simDate ? `?sim_date=${this.simDate}` : '';
+
+      try {
+        const result = await this.fetchJSON(`/api/rca/${this.selectedKey}${sim}`);
+        if (!result) return;
+
+        // Animated sequential reveal
+        const total = result.checks.length;
+        for (let idx = 0; idx < total; idx++) {
+          const check = result.checks[idx];
+
+          // Set active state
+          this.checks[idx].uiState = 'active';
+          this.checks[idx].badgeLabel = 'CEK...';
+          this.checks[idx].detail = 'Sedang memeriksa...';
+          this.rcaProgress = ((idx) / total) * 100;
+
+          await this._delay(600);
+
+          // Set final state
+          this.checks[idx].status = check.status;
+          this.checks[idx].detail = check.detail;
+          this.checks[idx].nama = check.nama;
+
+          if (check.status === 'triggered') {
+            this.checks[idx].uiState = 'triggered';
+            this.checks[idx].badgeLabel = 'TRIGGERED';
+          } else if (check.status === 'clear') {
+            this.checks[idx].uiState = 'clear';
+            this.checks[idx].badgeLabel = 'CLEAR';
+          } else {
+            this.checks[idx].uiState = 'skip';
+            this.checks[idx].badgeLabel = 'SKIP';
+          }
+
+          await this._delay(200);
+        }
+
+        this.rcaProgress = 100;
+        this.rcaBadge = 'selesai';
+
+        await this._delay(300);
+        this.rcaResult = result;
+
+      } catch (e) {
+        console.error('RCA gagal:', e);
+        this.rcaBadge = 'error';
+      } finally {
+        this.rcaRunning = false;
+      }
+    },
+
+    _delay(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    },
   };
-  const typeLabel = {
-    demand: "Demand",
-    supply: "Supply",
-    distribusi: "Distribusi",
-    ekspektasi: "Ekspektasi",
-    unknown: "Unknown"
-  };
-  const severityLabel = {
-    L0: "Aman", L1: "Waspada", L2: "Awas", L3: "Kritis", L4: "Darurat"
-  };
-  const sevLevel = result.severity_level || "L0";
-  const sevClass = "sev-" + sevLevel.toLowerCase();
-  const chips = (result.yes_indicators || [])
-    .map(i => `<span class="indicator-chip">${i}</span>`)
-    .join("");
-  const noChips = `<span style="font-family:var(--mono);font-size:10px;color:var(--muted)">tidak ada indikator aktif</span>`;
-
-  const box = document.getElementById("resultBox");
-  box.className = "result-card animate-in " + (clsMap[result.diagnosis] || "result-unknown");
-  box.innerHTML = `
-    <div class="result-top">
-      <div class="result-meta">
-        <div class="result-label">Diagnosis RCA</div>
-        <div class="result-title">${result.title}</div>
-      </div>
-      <div class="result-type-badge">${typeLabel[result.diagnosis] || result.diagnosis}</div>
-    </div>
-    <div class="severity-row">
-      <span class="severity-label">Keparahan</span>
-      <span class="severity-badge ${sevClass}">${sevLevel} — ${severityLabel[sevLevel] || sevLevel}</span>
-      <div class="indicator-chips">${chips || noChips}</div>
-    </div>
-    <div class="result-desc">${result.description}</div>
-    <div class="action-box">
-      <div class="action-label">Rekomendasi Aksi</div>
-      <div class="action-text">${result.action}</div>
-    </div>
-  `;
-  box.style.display = "block";
 }
-
-// Init
-loadCommodities();
 </script>
 </body>
 </html>

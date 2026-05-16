@@ -1,0 +1,17 @@
+.venv/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+/data/
+*.duckdb
+*.db
+etl/
+docs/
+tests/
+*.md
+.envs/.env
+.python-version

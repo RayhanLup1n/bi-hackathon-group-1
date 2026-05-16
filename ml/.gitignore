@@ -1,0 +1,17 @@
+# model binaries — jangan di-commit
+models/*.pkl
+
+# data exports (besar, generate dari DuckDB)
+data/*.parquet
+data/*.csv.gz
+
+# keep het_reference.csv (source of truth, kecil)
+!data/het_reference.csv
+
+# notebook checkpoints
+notebooks/.ipynb_checkpoints/
+
+# python cache
+__pycache__/
+*.pyc
+.env

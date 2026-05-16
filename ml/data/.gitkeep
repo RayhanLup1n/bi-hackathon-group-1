@@ -1,0 +1,3 @@
+# Folder ini berisi:
+# - het_reference.csv   : Data HET per komoditas per wilayah (Bapanas/Permendag)
+# - *.parquet           : Export dari DuckDB untuk training/dev (gitignored)

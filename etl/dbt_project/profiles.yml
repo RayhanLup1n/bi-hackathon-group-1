@@ -2,9 +2,12 @@ pihps_pipeline:
   target: prod
   outputs:
     prod:
-      type: duckdb
-      path: "{{ env_var('DUCKDB_PATH', '/opt/airflow/data/pihps.duckdb') }}"
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('GCP_PROJECT', 'radar-pangan-hackathon') }}"
+      dataset: raw
+      location: "{{ env_var('BQ_LOCATION', 'asia-southeast2') }}"
       threads: 4
-      extensions:
-        - httpfs
-        - parquet
+      timeout_seconds: 300
+      priority: interactive
+      retries: 1
