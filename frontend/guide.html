@@ -80,15 +80,27 @@
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
     .header-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
-    .header-right { display: flex; align-items: center; gap: 8px; }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .nav-link {
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
-      color: var(--text2); text-decoration: none;
-      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-      padding: 6px 12px; background: var(--surface2);
-      transition: background 0.2s, color 0.2s;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
+      border: 2px solid var(--border); box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
     }
-    .nav-link:hover { background: var(--border); color: var(--accent); }
+    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .nav-link-default { background: var(--surface); color: var(--accent2); }
+    .nav-link-default:hover { background: #E0F5EA; }
+    .nav-link-active { background: var(--accent); color: #fff; }
+    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
+    .nav-link-danger:hover { background: #FECACA; }
+    .user-badge {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; background: var(--surface2);
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .user-badge strong { color: var(--accent2); }
+    .nav-role-link { display: none; }
 
     /* Hero */
     .page-hero { text-align: center; margin-bottom: 36px; }
@@ -358,16 +370,18 @@
     <div class="header-left">
       <div class="logo-icon"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
       <div>
-        <div class="header-title">RCA RadarPangan</div>
-        <div class="header-sub">panduan analisis &nbsp;·&nbsp; v0.2</div>
+        <div class="header-title">R.A.D.A.R Pangan</div>
+        <div class="header-sub">panduan analisis</div>
       </div>
     </div>
     <div class="header-right">
-      <span id="userBadge" style="
-        font-family:var(--mono);font-size:11px;color:var(--text2);
-        padding:6px 12px;background:var(--surface2);
-        border:1px solid var(--border);border-radius:var(--radius-sm);">—</span>
-      <a href="/" class="nav-link">← Dashboard</a>
+      <span class="user-badge" id="userBadge">-</span>
+      <a href="/" class="nav-link nav-link-default">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-active">Panduan</a>
+      <a href="/rca" class="nav-link nav-link-default nav-role-link" id="navRca">RCA</a>
+      <a href="/prediksi" class="nav-link nav-link-default nav-role-link" id="navPrediksi">Prediksi</a>
+      <a href="/admin" class="nav-link nav-link-default nav-role-link" id="navAdmin">Admin</a>
+      <button class="nav-link nav-link-danger" id="navLogout" style="display:none" onclick="guideLogout()">Keluar</button>
     </div>
   </header>
 
@@ -975,15 +989,34 @@
 
 </div>
 <script>
+  function guideLogout() {
+    localStorage.removeItem('rca_token');
+    localStorage.removeItem('rca_user');
+    window.location.replace('/login');
+  }
+
   (function() {
     const token = localStorage.getItem('rca_token');
     if (!token) return;
+
+    // Show logout button when logged in
+    document.getElementById('navLogout').style.display = '';
+
     fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } })
       .then(r => r.ok ? r.json() : null)
       .then(me => {
         if (!me) return;
         document.getElementById('userBadge').innerHTML =
-          `<strong style="color:var(--accent)">${me.username}</strong> · ${me.role}`;
+          '<strong>' + me.username + '</strong> ' + me.role;
+
+        // Show nav links based on role
+        if (me.is_analyst || me.is_admin || me.role === 'analyst' || me.role === 'admin') {
+          document.getElementById('navRca').style.display = '';
+          document.getElementById('navPrediksi').style.display = '';
+        }
+        if (me.is_admin || me.role === 'admin') {
+          document.getElementById('navAdmin').style.display = '';
+        }
       })
       .catch(() => {});
   })();

@@ -322,6 +322,7 @@
         <strong x-text="user?.username || '—'"></strong> · <span x-text="user?.role || ''"></span>
       </span>
       <a href="/" class="nav-link nav-link-default">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-default">Panduan</a>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
         <a href="/rca" class="nav-link nav-link-active">RCA</a>
       </template>
