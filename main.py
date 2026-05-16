@@ -31,26 +31,24 @@ _load_env()
 async def lifespan(app: FastAPI):
     """Initialize database connections and seed data at startup."""
     from src.data.database import init_pool, close_pool
-    from src.data.bigquery_client import get_bq_client, close_bq_client
     from src.data.commodity_data import init_commodity_data
     from src.data.auth_db import init_db_auth
 
-    # Initialize connection pool to Supabase PostgreSQL (app.* tables)
+    # Initialize connection pool to Supabase PostgreSQL (Gold layer -- all app data)
     init_pool()
 
-    # Initialize BigQuery client (raw/staging/marts queries)
-    get_bq_client()
-
-    # Load commodity mapping from BigQuery
+    # Load commodity mapping from Supabase PostgreSQL (app.harga_pangan)
     init_commodity_data()
 
     # Seed default users if empty (Supabase)
     init_db_auth()
 
+    # BigQuery client is NOT initialized here -- only used by ETL scripts
+    # and admin-only data quality endpoints (lazy init in data_quality.py)
+
     yield
 
     # Cleanup on shutdown
-    close_bq_client()
     close_pool()
 
 

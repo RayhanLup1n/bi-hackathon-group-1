@@ -1,12 +1,12 @@
 """
-Data layer: weather data from BigQuery raw.cuaca_harian (Open-Meteo).
+Data layer: weather data from Supabase PostgreSQL app.cuaca_harian (Open-Meteo).
 
 Provides weather context for RCA engine by querying historical
-weather data from BigQuery and detecting extreme conditions.
+weather data from Supabase PostgreSQL and detecting extreme conditions.
 
 Architecture:
-    BigQuery → raw.cuaca_harian (analytics queries)
-    Supabase → app.* (auth, HET, ML predictions — unchanged)
+    BigQuery -> raw.cuaca_harian (Bronze, ETL only)
+    Supabase -> app.cuaca_harian (Gold, synced from BigQuery, served to UI)
 
 Integration:
     commodity_data.py calls get_weather_for_rca() to populate
@@ -17,9 +17,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Optional
 
-from google.cloud.bigquery import ScalarQueryParameter
-
-from src.data.bigquery_client import bq_query
+from src.data.database import db_cursor
 from src.models.schemas import CuacaInfo
 from config.settings import (
     WEATHER_PRECIP_EXTREME_MM,
@@ -56,28 +54,21 @@ def get_weather_for_rca(
     days_back = lookback_days or WEATHER_LOOKBACK_DAYS
     start = target - timedelta(days=days_back)
 
-    rows = bq_query(
-        """
-        SELECT
-            tanggal,
-            -- Pick any lokasi_label for display (all in same provinsi)
-            ANY_VALUE(lokasi_label) AS lokasi_label,
-            -- Aggregate across locations: use MAX to catch worst-case extremes
-            MAX(precipitation_sum) AS precipitation_sum,
-            MAX(temperature_max) AS temperature_max,
-            MAX(wind_speed_max) AS wind_speed_max
-        FROM `raw.cuaca_harian`
-        WHERE provinsi_id = @provinsi_id
-          AND tanggal BETWEEN @start_date AND @end_date
-        GROUP BY tanggal
-        ORDER BY tanggal DESC
-        """,
-        params=[
-            ScalarQueryParameter("provinsi_id", "INT64", provinsi_id),
-            ScalarQueryParameter("start_date", "DATE", start),
-            ScalarQueryParameter("end_date", "DATE", target),
-        ],
-    )
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT
+                tanggal,
+                lokasi_label,
+                MAX(precipitation_sum) AS precipitation_sum,
+                MAX(temperature_max) AS temperature_max,
+                MAX(wind_speed_max) AS wind_speed_max
+            FROM app.cuaca_harian
+            WHERE provinsi_id = %s
+              AND tanggal BETWEEN %s AND %s
+            GROUP BY tanggal, lokasi_label
+            ORDER BY tanggal DESC
+        """, (provinsi_id, start, target))
+        rows = cur.fetchall()
 
     if not rows:
         return CuacaInfo(
@@ -97,7 +88,7 @@ def get_weather_for_rca(
                 daerah=row["lokasi_label"],
                 detail=(
                     f"Curah hujan {precip:.0f}mm/hari di {row['lokasi_label']} "
-                    f"melebihi ambang batas {WEATHER_PRECIP_EXTREME_MM:.0f}mm — "
+                    f"melebihi ambang batas {WEATHER_PRECIP_EXTREME_MM:.0f}mm -- "
                     f"risiko banjir dan gangguan distribusi"
                 ),
             )
@@ -108,11 +99,11 @@ def get_weather_for_rca(
         if temp > WEATHER_TEMP_EXTREME_C:
             return CuacaInfo(
                 ekstrem=True,
-                desc=f"Suhu ekstrem ({temp:.1f}°C) pada {row['tanggal']}",
+                desc=f"Suhu ekstrem ({temp:.1f}C) pada {row['tanggal']}",
                 daerah=row["lokasi_label"],
                 detail=(
-                    f"Suhu maksimum {temp:.1f}°C di {row['lokasi_label']} "
-                    f"melebihi {WEATHER_TEMP_EXTREME_C:.0f}°C — "
+                    f"Suhu maksimum {temp:.1f}C di {row['lokasi_label']} "
+                    f"melebihi {WEATHER_TEMP_EXTREME_C:.0f}C -- "
                     f"risiko heat stress pada tanaman"
                 ),
             )
@@ -127,7 +118,7 @@ def get_weather_for_rca(
                 daerah=row["lokasi_label"],
                 detail=(
                     f"Kecepatan angin {wind:.0f} km/h di {row['lokasi_label']} "
-                    f"melebihi {WEATHER_WIND_EXTREME_KMH:.0f} km/h — "
+                    f"melebihi {WEATHER_WIND_EXTREME_KMH:.0f} km/h -- "
                     f"risiko kerusakan tanaman dan gangguan logistik"
                 ),
             )
@@ -148,7 +139,7 @@ def get_weather_for_rca(
             daerah=rows[0]["lokasi_label"],
             detail=(
                 f"Lebih dari {WEATHER_DROUGHT_DAYS} hari berturut-turut "
-                f"curah hujan <1mm di {rows[0]['lokasi_label']} — "
+                f"curah hujan <1mm di {rows[0]['lokasi_label']} -- "
                 f"risiko kekurangan air untuk irigasi"
             ),
         )
@@ -159,7 +150,7 @@ def get_weather_for_rca(
     temp = latest["temperature_max"] or 0
     return CuacaInfo(
         ekstrem=False,
-        desc=f"Normal (hujan {precip:.0f}mm, suhu {temp:.0f}°C)",
+        desc=f"Normal (hujan {precip:.0f}mm, suhu {temp:.0f}C)",
         daerah=latest["lokasi_label"],
         detail=(
             f"Tidak ada cuaca ekstrem terdeteksi dalam {days_back} hari terakhir "
@@ -181,26 +172,21 @@ def get_weather_summary(
     target = tanggal or date.today()
     start = target - timedelta(days=n_days)
 
-    rows = bq_query(
-        """
-        SELECT
-            tanggal,
-            lokasi_label,
-            precipitation_sum,
-            rain_sum,
-            temperature_max,
-            temperature_min,
-            wind_speed_max
-        FROM `raw.cuaca_harian`
-        WHERE provinsi_id = @provinsi_id
-          AND tanggal BETWEEN @start_date AND @end_date
-        ORDER BY tanggal DESC
-        """,
-        params=[
-            ScalarQueryParameter("provinsi_id", "INT64", provinsi_id),
-            ScalarQueryParameter("start_date", "DATE", start),
-            ScalarQueryParameter("end_date", "DATE", target),
-        ],
-    )
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT
+                tanggal,
+                lokasi_label,
+                precipitation_sum,
+                rain_sum,
+                temperature_max,
+                temperature_min,
+                wind_speed_max
+            FROM app.cuaca_harian
+            WHERE provinsi_id = %s
+              AND tanggal BETWEEN %s AND %s
+            ORDER BY tanggal DESC
+        """, (provinsi_id, start, target))
+        rows = cur.fetchall()
 
     return [dict(row) for row in rows]

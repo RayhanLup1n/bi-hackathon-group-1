@@ -254,14 +254,20 @@ def get_cuaca_all_provinces(
     sim_date: Optional[date] = Query(None),
 ) -> list[dict]:
     """Get weather summary for all target provinces."""
-    from etl.config.constants import TARGET_PROVINCE_IDS, PROVINCE_NAMES
+    # Target provinces for MVP (inline to avoid cross-layer import from etl/)
+    target_provinces = {
+        11: "Banten",
+        12: "Jawa Barat",
+        13: "DKI Jakarta",
+        26: "Sulawesi Selatan",
+    }
 
     results = []
-    for prov_id in TARGET_PROVINCE_IDS:
+    for prov_id, prov_nama in target_provinces.items():
         rca_cuaca = get_weather_for_rca(prov_id, tanggal=sim_date)
         results.append({
             "provinsi_id": prov_id,
-            "provinsi_nama": PROVINCE_NAMES.get(prov_id, f"Provinsi {prov_id}"),
+            "provinsi_nama": prov_nama,
             "ekstrem": rca_cuaca.ekstrem,
             "ringkasan": rca_cuaca.desc,
             "daerah": rca_cuaca.daerah,

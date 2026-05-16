@@ -111,36 +111,37 @@ SEVERITY_LABELS: dict[str, str] = {
 # Tambah fungsi _check_*() baru di sini untuk extend rule tree
 # ──────────────────────────────────────────────
 
-# ── Hari Besar cache (loaded from BigQuery raw.hari_besar, 91 rows) ──────
+# -- Hari Besar cache (loaded from Supabase app.hari_besar, 91 rows) ----------
 # Format: list of (nama: str, tanggal: date)
 _hari_besar_cache: list[tuple[str, date]] | None = None
 
 
 def _get_hari_besar_calendar() -> list[tuple[str, date]]:
-    """Get hari besar calendar from BigQuery, with in-memory cache.
+    """Get hari besar calendar from Supabase PostgreSQL, with in-memory cache.
 
-    Returns list of (nama, tanggal) tuples. Data source: BigQuery raw.hari_besar
+    Returns list of (nama, tanggal) tuples. Data source: app.hari_besar
     (91 rows from python-holidays, covering 2024-2027).
-    Returns empty list if BigQuery is unreachable (hari raya check will be skipped).
+    Returns empty list if database is unreachable (hari raya check will be skipped).
     """
     global _hari_besar_cache
     if _hari_besar_cache is not None:
         return _hari_besar_cache
 
     try:
-        from src.data.bigquery_client import bq_query
+        from src.data.database import db_cursor
 
-        rows = bq_query(
-            "SELECT nama, tanggal FROM `raw.hari_besar` ORDER BY tanggal"
-        )
+        with db_cursor() as cur:
+            cur.execute("SELECT nama, tanggal FROM app.hari_besar ORDER BY tanggal")
+            rows = cur.fetchall()
+
         _hari_besar_cache = [(r["nama"], r["tanggal"]) for r in rows]
         logger.info(
-            "Loaded %d hari besar from BigQuery", len(_hari_besar_cache)
+            "Loaded %d hari besar from Supabase", len(_hari_besar_cache)
         )
         return _hari_besar_cache
     except Exception:
         logger.warning(
-            "BigQuery hari_besar unavailable — hari raya check will not trigger"
+            "Supabase hari_besar unavailable -- hari raya check will not trigger"
         )
         # Return empty so hari raya check gracefully reports "clear"
         return []
@@ -149,9 +150,8 @@ def _get_hari_besar_calendar() -> list[tuple[str, date]]:
 def _check_hari_raya(data: CommodityData, today: date) -> CheckResult:
     """Check 1: Apakah hari ini masuk window hari besar? (H-14 s/d H+3)
 
-    Reads from BigQuery raw.hari_besar (91 rows, all national holidays +
-    cuti bersama from python-holidays). Falls back to hardcoded calendar
-    in config/settings.py if BigQuery is unavailable.
+    Reads from app.hari_besar (91 rows, all national holidays +
+    cuti bersama from python-holidays).
     """
     calendar = _get_hari_besar_calendar()
 
