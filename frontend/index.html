@@ -12,6 +12,31 @@
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
+    /* -- Header (inline fallback - shared CSS may be cached) -- */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; padding: 14px 20px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 44px; height: 44px;
+      border: var(--bw) solid var(--border); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
+      overflow: hidden; padding: 0;
+    }
+    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .header-title {
+      font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
+    }
+    .header-sub {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 2px; letter-spacing: 0.5px;
+    }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
     /* -- Dashboard page-specific styles -- */
 
     /* -- Main layout -- */
