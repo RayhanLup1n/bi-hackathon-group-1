@@ -180,6 +180,21 @@ Extensibility dicapai melalui:
 
 **Design**: Mobile-first, responsive (smartphone → tablet → desktop).
 
+### F2: Panduan Analis (Guide)
+
+**Tujuan**: Dokumentasi interaktif yang menjelaskan cara membaca dan menggunakan seluruh fitur platform.
+
+| Komponen | Deskripsi |
+|----------|-----------|
+| **Panel Sinyal Input** | Penjelasan 4 sinyal: tanggal, cuaca, kota naik, stok |
+| **Cara Menjalankan Analisis** | Step-by-step guide RCA |
+| **Hasil Diagnosis** | Penjelasan tiap diagnosis (Demand, Supply, Distribusi, Ekspektasi) |
+| **Tingkat Keparahan** | Penjelasan L0-L4 dan 7 indikator |
+| **Fitur Simulasi Tanggal** | Cara menggunakan sim_date |
+| **Sumber Data** | Daftar sumber data yang digunakan |
+
+**Akses**: Semua user (Viewer, Analyst, Admin) — halaman informasi, read-only.
+
 ### F2: Analisis RCA (Root Cause Analysis)
 
 **Tujuan**: Jelaskan *mengapa* harga naik — bukan hanya *berapa* naiknya.

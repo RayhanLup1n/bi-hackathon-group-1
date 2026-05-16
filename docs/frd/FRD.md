@@ -22,7 +22,7 @@ Dokumen ini menjabarkan **spesifikasi fungsional detail** setiap fitur R.A.D.A.R
 Dokumen ini mencakup **MVP scope** sesuai PRD:
 - 6 komoditas (bawang merah, bawang putih, cabai merah besar, cabai merah keriting, cabai rawit hijau, cabai rawit merah)
 - 4 provinsi (Banten, Jawa Barat, DKI Jakarta, Sulawesi Selatan)
-- 5 halaman (Login, Dashboard, RCA, Prediksi ML, Admin)
+- 6 halaman (Login, Dashboard, Guide, RCA, Prediksi ML, Admin)
 
 ### 1.3 Konvensi
 
@@ -43,22 +43,28 @@ Dokumen ini mencakup **MVP scope** sesuai PRD:
 |---|---------|-----|-------------|-----------|
 | 1 | Login | `/login` | Public | Form login (username + password) |
 | 2 | Dashboard | `/` | Viewer | Monitoring overview: harga, HET, prediksi ringkas, RCA alert |
-| 3 | Analisis RCA | `/rca` | Analyst | Root cause analysis detail per komoditas |
-| 4 | Prediksi ML | `/prediksi` | Analyst | Prediksi harga 7-14 hari + confidence interval |
-| 5 | Admin | `/admin` | Admin | User management CRUD |
+| 3 | Panduan Analis | `/guide` | Viewer | Dokumentasi interaktif cara menggunakan platform |
+| 4 | Analisis RCA | `/rca` | Analyst | Root cause analysis detail per komoditas |
+| 5 | Prediksi ML | `/prediksi` | Analyst | Prediksi harga 7-14 hari + confidence interval |
+| 6 | Admin | `/admin` | Admin | User management CRUD |
 
 ### 2.2 Navigation Flow
 
 ```mermaid
 graph LR
     Login --> Dashboard
+    Dashboard --> Guide
     Dashboard --> RCA
     Dashboard --> Prediksi
     Dashboard --> Admin
+    Guide --> Dashboard
     RCA --> Dashboard
     Prediksi --> Dashboard
     Admin --> Dashboard
     
+    subgraph "Public"
+        Guide["Guide (All users)"]
+    end
     subgraph "Role Guard"
         RCA["RCA (Analyst+)"]
         Prediksi["Prediksi (Analyst+)"]
@@ -122,6 +128,7 @@ graph LR
 | Resource | Viewer | Analyst | Admin |
 |----------|--------|---------|-------|
 | `GET /` (Dashboard) | ✅ Read-only | ✅ Full | ✅ Full |
+| `GET /guide` (Panduan) | ✅ | ✅ | ✅ |
 | `GET /rca` | ❌ Redirect | ✅ Full | ✅ Full |
 | `GET /prediksi` | ❌ Redirect | ✅ Full | ✅ Full |
 | `GET /admin` | ❌ Redirect | ❌ Redirect | ✅ Full |

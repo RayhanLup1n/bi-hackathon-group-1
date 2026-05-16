@@ -333,9 +333,10 @@
 <nav class="wf-tabs">
   <a href="#page-login">1. Login</a>
   <a href="#page-dashboard" class="active">2. Dashboard</a>
-  <a href="#page-rca">3. RCA</a>
-  <a href="#page-prediksi">4. Prediksi ML</a>
-  <a href="#page-admin">5. Admin</a>
+  <a href="#page-guide">3. Guide</a>
+  <a href="#page-rca">4. RCA</a>
+  <a href="#page-prediksi">5. Prediksi ML</a>
+  <a href="#page-admin">6. Admin</a>
 </nav>
 
 <!-- ============================================================== -->
@@ -561,11 +562,136 @@
 <hr class="wf-divider">
 
 <!-- ============================================================== -->
-<!-- PAGE 3: RCA                                                     -->
+<!-- PAGE 3: GUIDE (Panduan Analis)                                  -->
+<!-- ============================================================== -->
+<div id="page-guide">
+  <div class="wf-page">
+    <p class="wf-page-title">Page 3 of 6</p>
+    <h1 class="wf-page-subtitle">Panduan Analis</h1>
+    <div class="wf-viewport-label">Akses: Semua user (Viewer, Analyst, Admin) | Read-only info page</div>
+
+    <div class="wf-nav">
+      <span class="wf-nav-brand">R.A.D.A.R</span>
+      <div class="wf-nav-links">
+        <a href="#">Dashboard</a>
+        <a href="#" class="active">Guide</a>
+        <a href="#">RCA</a>
+        <a href="#">Prediksi</a>
+      </div>
+      <div style="font-size: 11px;"><span class="wf-badge aman">Viewer</span></div>
+    </div>
+
+    <div class="wf-annotation">
+      <strong>Halaman informasi — tidak ada API call.</strong><br>
+      Konten statis yang menjelaskan cara menggunakan platform. Tidak membutuhkan data dari database.
+    </div>
+
+    <!-- Hero -->
+    <div class="wf-card" style="text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 8px;">📖</div>
+      <div style="font-size: 18px; font-weight: 900; margin-bottom: 6px;">Panduan Analis RCA RadarPangan</div>
+      <div style="font-size: 13px; color: var(--muted);">Cara membaca sinyal, menjalankan analisis, memahami diagnosis, dan menafsirkan keparahan.</div>
+    </div>
+
+    <!-- TOC -->
+    <div class="wf-card">
+      <div class="wf-card-label">Daftar Isi</div>
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+        <div><strong style="color: var(--accent2);">1.</strong> Membaca Panel Sinyal Input</div>
+        <div><strong style="color: var(--accent2);">2.</strong> Cara Menjalankan Analisis</div>
+        <div><strong style="color: var(--accent2);">3.</strong> Memahami Hasil Diagnosis</div>
+        <div><strong style="color: var(--accent2);">4.</strong> Tingkat Keparahan (L0-L4)</div>
+        <div><strong style="color: var(--accent2);">5.</strong> Fitur Simulasi Tanggal</div>
+        <div><strong style="color: var(--accent2);">6.</strong> Sumber Data & Referensi</div>
+      </div>
+    </div>
+
+    <!-- Section 1: Sinyal Input -->
+    <div class="wf-card">
+      <div class="wf-card-label">1. Panel Sinyal Input</div>
+      <div style="font-size: 13px; color: var(--text2); margin-bottom: 12px;">
+        4 sinyal kondisi saat ini untuk komoditas yang dipilih:
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; gap: 10px; align-items: center; padding: 8px; background: var(--surface2); border-radius: 8px;">
+          <span style="font-size: 18px;">📅</span>
+          <div><div style="font-weight: 700; font-size: 13px;">Tanggal Analisis</div><div style="font-size: 11px; color: var(--muted);">Acuan seluruh analisis</div></div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; padding: 8px; background: var(--surface2); border-radius: 8px;">
+          <span style="font-size: 18px;">🌦️</span>
+          <div><div style="font-weight: 700; font-size: 13px;">Cuaca Open-Meteo</div><div style="font-size: 11px; color: var(--muted);">Status cuaca di daerah produksi utama</div></div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; padding: 8px; background: var(--surface2); border-radius: 8px;">
+          <span style="font-size: 18px;">🏙️</span>
+          <div><div style="font-weight: 700; font-size: 13px;">Kota Naik</div><div style="font-size: 11px; color: var(--muted);">≥60% kota = kenaikan serempak nasional</div></div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; padding: 8px; background: var(--surface2); border-radius: 8px;">
+          <span style="font-size: 18px;">📦</span>
+          <div><div style="font-weight: 700; font-size: 13px;">Stok Pedagang [Placeholder]</div><div style="font-size: 11px; color: var(--muted);">Normal / Menipis / Kritis</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Diagnosis -->
+    <div class="wf-card">
+      <div class="wf-card-label">3. Hasil Diagnosis</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="padding: 10px; background: #D1FAE5; border-radius: 8px; border: 2px solid var(--border);">
+          <div style="font-weight: 700; font-size: 12px;">Demand Spike</div>
+          <div style="font-size: 11px; color: var(--muted);">Hari raya H-14 s/d H+3</div>
+        </div>
+        <div style="padding: 10px; background: #FEF3C7; border-radius: 8px; border: 2px solid var(--border);">
+          <div style="font-weight: 700; font-size: 12px;">Gangguan Supply</div>
+          <div style="font-size: 11px; color: var(--muted);">Cuaca ekstrem di produksi</div>
+        </div>
+        <div style="padding: 10px; background: #DBEAFE; border-radius: 8px; border: 2px solid var(--border);">
+          <div style="font-weight: 700; font-size: 12px;">Distribusi Lokal</div>
+          <div style="font-size: 11px; color: var(--muted);">Semua check clear</div>
+        </div>
+        <div style="padding: 10px; background: #E5E7EB; border-radius: 8px; border: 2px solid var(--border);">
+          <div style="font-weight: 700; font-size: 12px;">Ekspektasi</div>
+          <div style="font-size: 11px; color: var(--muted);">Inflasi 3 bulan berturut</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Severity -->
+    <div class="wf-card">
+      <div class="wf-card-label">4. Tingkat Keparahan</div>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 60px; text-align: center; padding: 10px; background: #D1FAE5; border-radius: 8px; border: 2px solid var(--border);">
+          <div style="font-weight: 900; font-size: 18px;">L0</div>
+          <div style="font-size: 10px; font-weight: 600;">Aman</div>
+        </div>
+        <div style="flex: 1; min-width: 60px; text-align: center; padding: 10px; background: #DBEAFE; border-radius: 8px; border: 2px solid var(--border);">
+          <div style="font-weight: 900; font-size: 18px;">L1</div>
+          <div style="font-size: 10px; font-weight: 600;">Waspada</div>
+        </div>
+        <div style="flex: 1; min-width: 60px; text-align: center; padding: 10px; background: #FEF3C7; border-radius: 8px; border: 2px solid var(--border);">
+          <div style="font-weight: 900; font-size: 18px;">L2</div>
+          <div style="font-size: 10px; font-weight: 600;">Awas</div>
+        </div>
+        <div style="flex: 1; min-width: 60px; text-align: center; padding: 10px; background: #FED7AA; border-radius: 8px; border: 2px solid var(--border);">
+          <div style="font-weight: 900; font-size: 18px;">L3</div>
+          <div style="font-size: 10px; font-weight: 600;">Kritis</div>
+        </div>
+        <div style="flex: 1; min-width: 60px; text-align: center; padding: 10px; background: #FECACA; border-radius: 8px; border: 2px solid var(--border);">
+          <div style="font-weight: 900; font-size: 18px;">L4</div>
+          <div style="font-size: 10px; font-weight: 600;">Darurat</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="wf-divider">
+
+<!-- ============================================================== -->
+<!-- PAGE 4: RCA                                                     -->
 <!-- ============================================================== -->
 <div id="page-rca">
   <div class="wf-page">
-    <p class="wf-page-title">Page 3 of 5</p>
+    <p class="wf-page-title">Page 4 of 6</p>
     <h1 class="wf-page-subtitle">Analisis RCA</h1>
     <div class="wf-viewport-label">Akses: Analyst+ | Mobile-first</div>
 
@@ -696,7 +822,7 @@
 <!-- ============================================================== -->
 <div id="page-prediksi">
   <div class="wf-page">
-    <p class="wf-page-title">Page 4 of 5</p>
+    <p class="wf-page-title">Page 5 of 6</p>
     <h1 class="wf-page-subtitle">Prediksi Harga (ML)</h1>
     <div class="wf-viewport-label">Akses: Analyst+ | Data source: app.ml_predictions</div>
 
@@ -831,7 +957,7 @@
 <!-- ============================================================== -->
 <div id="page-admin">
   <div class="wf-page">
-    <p class="wf-page-title">Page 5 of 5</p>
+    <p class="wf-page-title">Page 6 of 6</p>
     <h1 class="wf-page-subtitle">Admin — User Management</h1>
     <div class="wf-viewport-label">Akses: Admin only | Data source: app.users</div>
 
