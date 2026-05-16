@@ -15,34 +15,35 @@
     .page-hero { text-align: center; margin-bottom: 36px; }
     .page-hero-badge {
       display: inline-block; font-family: var(--mono); font-size: 11px;
-      color: var(--accent2); background: #E0F5EA;
+      color: var(--accent2); background: var(--highlight);
       border: var(--bw) solid var(--border); border-radius: 20px;
       padding: 4px 14px; margin-bottom: 14px; letter-spacing: 0.5px;
-      box-shadow: 2px 2px 0 var(--border);
+      box-shadow: 2px 2px 0 var(--border); font-weight: 700;
     }
     .page-hero-title {
       font-size: 30px; font-weight: 900; letter-spacing: -0.8px; line-height: 1.2;
-      color: var(--accent2);
-      margin-bottom: 12px;
+      color: var(--text); margin-bottom: 12px;
     }
-    .page-hero-desc { font-size: 14px; color: var(--text2); line-height: 1.7; max-width: 520px; margin: 0 auto; }
+    .page-hero-desc {
+      font-size: 14px; color: var(--text2); line-height: 1.7;
+      max-width: 520px; margin: 0 auto;
+    }
 
     /* TOC */
     .toc {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 22px; margin-bottom: 32px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 18px 22px; margin-bottom: 32px;
       box-shadow: var(--shadow);
     }
     .toc-label {
-      font-family: var(--mono); font-size: 10px; color: var(--accent);
-      text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;
+      font-family: var(--mono); font-size: 10px; color: var(--text);
+      text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800;
       margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
     }
     .toc-label::before {
       content: ''; display: inline-block; width: 4px; height: 12px;
-      background: var(--accent); border-radius: 2px; border: 1px solid var(--border);
+      background: var(--accent); border-radius: 2px;
+      border: 1px solid var(--border);
     }
     .toc-items { display: flex; flex-direction: column; gap: 2px; }
     .toc-items a {
@@ -51,12 +52,12 @@
       padding: 6px 10px; border-radius: var(--radius-sm);
       transition: background 0.15s, color 0.15s;
     }
-    .toc-items a:hover { background: #E0F5EA; color: var(--accent2); }
+    .toc-items a:hover { background: var(--surface2); color: var(--accent2); }
     .toc-n {
       font-family: var(--mono); font-size: 10px; font-weight: 700;
-      color: var(--accent2); background: #E0F5EA;
-      border: 1.5px solid var(--border);
-      border-radius: 4px; padding: 1px 7px; flex-shrink: 0;
+      color: var(--accent2); background: var(--highlight);
+      border: 1.5px solid var(--border); border-radius: 4px;
+      padding: 1px 7px; flex-shrink: 0;
     }
 
     /* Section */
@@ -64,27 +65,36 @@
     .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
     .section-num {
       width: 34px; height: 34px;
-      background: var(--accent);
-      border: var(--bw) solid var(--border);
+      background: var(--accent); border: var(--bw) solid var(--border);
       border-radius: 10px; display: flex; align-items: center; justify-content: center;
       font-family: var(--mono); font-size: 13px; font-weight: 700; color: white;
       flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
     }
     .section-title { font-size: 19px; font-weight: 800; letter-spacing: -0.3px; }
 
-    /* Card - override shared card for guide-specific padding */
-    .card { padding: 20px 22px; }
+    /* Card override: ensure neobrutalism tokens */
+    .card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 20px 22px;
+      box-shadow: var(--shadow); position: relative; overflow: hidden;
+    }
+    .card::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+      background: var(--accent);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
     .card + .card { margin-top: 10px; }
 
     /* Sub-label inside card */
     .sub-label {
-      font-family: var(--mono); font-size: 10px; color: var(--accent);
-      text-transform: uppercase; letter-spacing: 1.3px; font-weight: 600;
+      font-family: var(--mono); font-size: 10px; color: var(--text);
+      text-transform: uppercase; letter-spacing: 1.3px; font-weight: 800;
       margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
     }
     .sub-label::before {
       content: ''; display: inline-block; width: 4px; height: 12px;
-      background: var(--accent); border-radius: 2px; border: 1px solid var(--border);
+      background: var(--accent); border-radius: 2px;
+      border: 1px solid var(--border);
     }
 
     /* Step list */
@@ -92,14 +102,13 @@
     .step-item {
       display: flex; gap: 14px;
       padding: 14px 16px;
-      background: var(--surface);
-      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm);
       box-shadow: 3px 3px 0 var(--border);
     }
     .step-num {
       width: 30px; height: 30px; border-radius: 50%;
-      background: var(--accent);
-      border: var(--bw) solid var(--border);
+      background: var(--accent); border: var(--bw) solid var(--border);
       display: flex; align-items: center; justify-content: center;
       font-family: var(--mono); font-size: 12px; font-weight: 700; color: white;
       flex-shrink: 0; box-shadow: 2px 2px 0 var(--border);
@@ -109,8 +118,9 @@
     .step-desc  { font-size: 13px; color: var(--text2); line-height: 1.7; }
     .step-tip {
       margin-top: 8px; padding: 8px 12px;
-      background: var(--surface2); border: 1.5px solid var(--border);
+      background: var(--surface2); border: var(--bw) solid var(--border);
       border-radius: 7px; font-size: 12px; color: var(--text2); line-height: 1.6;
+      box-shadow: 2px 2px 0 var(--border);
     }
     .step-tip strong { color: var(--accent2); }
 
@@ -121,6 +131,7 @@
       padding: 13px 15px;
       background: var(--surface2); border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
     }
     .signal-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
     .signal-info { flex: 1; }
@@ -129,14 +140,15 @@
     .signal-warn {
       display: inline-block; margin-top: 5px;
       font-family: var(--mono); font-size: 10px; font-weight: 600;
-      color: #d97706; background: rgba(245,158,11,0.1);
-      border: 1px solid rgba(245,158,11,0.25); border-radius: 5px; padding: 2px 8px;
+      color: #92400e; background: #FEF3C7;
+      border: var(--bw) solid var(--border); border-radius: 5px; padding: 2px 8px;
+      box-shadow: 1px 1px 0 var(--border);
     }
     .signal-source {
       display: inline-block; margin-top: 5px; margin-left: 5px;
       font-family: var(--mono); font-size: 10px; font-weight: 600;
-      color: var(--muted); background: rgba(148,163,184,0.1);
-      border: 1px solid rgba(148,163,184,0.2); border-radius: 5px; padding: 2px 8px;
+      color: var(--muted); background: var(--surface);
+      border: 1.5px solid var(--border); border-radius: 5px; padding: 2px 8px;
     }
 
     /* Diagnosis cards */
@@ -145,15 +157,16 @@
     .diag-card {
       border-radius: var(--radius-sm); padding: 16px 18px;
       border: var(--bw) solid var(--border); position: relative; overflow: hidden;
+      box-shadow: 3px 3px 0 var(--border);
     }
     .diag-card::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
       border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     }
-    .dc-demand   { background: #D1FAE5; }
-    .dc-supply   { background: #FEF3C7; }
-    .dc-dist     { background: #E0F5EA; }
-    .dc-unknown  { background: #F3F4F6; }
+    .dc-demand   { background: #ECFDF5; }
+    .dc-supply   { background: #FFFBEB; }
+    .dc-dist     { background: var(--surface2); }
+    .dc-unknown  { background: #F8FAFC; }
     .dc-demand::before  { background: var(--success); }
     .dc-supply::before  { background: var(--warn); }
     .dc-dist::before    { background: var(--accent); }
@@ -163,8 +176,8 @@
       text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;
     }
     .dc-demand .diag-type  { color: #059669; }
-    .dc-supply .diag-type  { color: #d97706; }
-    .dc-dist .diag-type    { color: var(--accent); }
+    .dc-supply .diag-type  { color: #92400e; }
+    .dc-dist .diag-type    { color: var(--accent2); }
     .dc-unknown .diag-type { color: var(--muted); }
     .diag-name { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 7px; }
     .diag-trigger {
@@ -172,7 +185,7 @@
     }
     .diag-action {
       font-size: 12px; color: var(--text2); line-height: 1.65;
-      padding-top: 8px; border-top: 1px solid rgba(148,163,184,0.2);
+      padding-top: 8px; border-top: var(--bw) solid var(--border);
     }
     .diag-action strong { color: var(--text); }
 
@@ -180,20 +193,22 @@
     .sev-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
     .sev-pill {
       display: flex; flex-direction: column; align-items: center;
-      padding: 12px 16px; border-radius: var(--radius-sm); border: var(--bw) solid var(--border);
-      min-width: 80px; flex: 1; box-shadow: 2px 2px 0 var(--border);
+      padding: 12px 16px; border-radius: var(--radius-sm);
+      border: var(--bw) solid var(--border);
+      min-width: 80px; flex: 1;
+      box-shadow: 3px 3px 0 var(--border);
     }
     .sev-pill .lv { font-family: var(--mono); font-size: 18px; font-weight: 800; }
     .sev-pill .nm { font-size: 11px; font-weight: 700; margin-top: 3px; }
     .sev-pill .sc { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
-    .sp-l0 { background: #D1FAE5; }
-    .sp-l1 { background: #CFFAFE; }
-    .sp-l2 { background: #FEF3C7; }
-    .sp-l3 { background: #FEE2E2; }
-    .sp-l4 { background: #FEE2E2; }
+    .sp-l0 { background: #ECFDF5; }
+    .sp-l1 { background: #ECFEFF; }
+    .sp-l2 { background: #FFFBEB; }
+    .sp-l3 { background: #FEF2F2; }
+    .sp-l4 { background: #FFF1F2; }
     .sp-l0 .lv, .sp-l0 .nm { color: #059669; }
     .sp-l1 .lv, .sp-l1 .nm { color: #0891b2; }
-    .sp-l2 .lv, .sp-l2 .nm { color: #d97706; }
+    .sp-l2 .lv, .sp-l2 .nm { color: #92400e; }
     .sp-l3 .lv, .sp-l3 .nm { color: #dc2626; }
     .sp-l4 .lv, .sp-l4 .nm { color: #991b1b; }
 
@@ -202,12 +217,14 @@
       display: flex; gap: 12px; align-items: flex-start;
       padding: 10px 13px; background: var(--surface2);
       border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
     }
     .ind-code {
       font-family: var(--mono); font-size: 11px; font-weight: 700;
-      color: var(--accent2); background: #E0F5EA;
-      border: 1.5px solid var(--border); border-radius: 5px;
+      color: var(--accent2); background: var(--highlight);
+      border: var(--bw) solid var(--border); border-radius: 5px;
       padding: 2px 8px; flex-shrink: 0; align-self: flex-start; margin-top: 1px;
+      box-shadow: 1px 1px 0 var(--border);
     }
     .ind-info { flex: 1; }
     .ind-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
@@ -218,8 +235,8 @@
     .source-item {
       display: flex; gap: 14px; align-items: flex-start;
       padding: 14px 16px;
-      background: var(--surface);
-      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm);
       box-shadow: 3px 3px 0 var(--border);
     }
     .source-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
@@ -227,17 +244,18 @@
     .source-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
     .source-from {
       display: inline-block;
-      font-family: var(--mono); font-size: 10px; font-weight: 600;
-      color: var(--accent2); background: #E0F5EA;
-      border: 1.5px solid var(--border); border-radius: 5px; padding: 2px 8px;
-      margin-bottom: 6px;
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      color: var(--accent2); background: var(--highlight);
+      border: var(--bw) solid var(--border); border-radius: 5px; padding: 2px 8px;
+      margin-bottom: 6px; box-shadow: 1px 1px 0 var(--border);
     }
     .source-desc { font-size: 12px; color: var(--text2); line-height: 1.65; }
     .source-note {
       margin-top: 6px; font-family: var(--mono); font-size: 11px;
-      color: #d97706; background: rgba(245,158,11,0.07);
-      border: 1px solid rgba(245,158,11,0.2); border-radius: 5px;
+      color: #92400e; background: #FEF3C7;
+      border: var(--bw) solid var(--border); border-radius: 5px;
       padding: 4px 10px; display: inline-block;
+      box-shadow: 1px 1px 0 var(--border);
     }
 
     /* Info / tip box */
@@ -246,17 +264,32 @@
       border-radius: var(--radius-sm); padding: 12px 15px;
       display: flex; gap: 10px; font-size: 13px; color: var(--text2);
       line-height: 1.65; margin-top: 14px;
+      box-shadow: 2px 2px 0 var(--border);
     }
     .info-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
 
     /* Footer */
     .footer {
       text-align: center; margin-top: 48px; padding-top: 20px;
-      border-top: 1px solid var(--border);
+      border-top: var(--bw) solid var(--border);
       font-family: var(--mono); font-size: 10px; color: var(--muted);
     }
-    .footer a { color: var(--accent); text-decoration: none; }
-    .footer-sep { margin: 0 10px; color: var(--muted); }
+    .footer a { color: var(--accent2); text-decoration: none; font-weight: 700; }
+    .footer-sep { margin: 0 10px; color: var(--border); }
+
+    /* Region/commodity grid items */
+    .region-cell {
+      padding: 10px 12px; background: var(--surface2);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .region-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      color: var(--accent2); margin-bottom: 6px;
+    }
+    .region-desc {
+      font-size: 11px; color: var(--text2); line-height: 1.7;
+    }
 
     .animate-in { animation: slide-up 0.45s ease both; }
   </style>
@@ -286,7 +319,7 @@
 
   <!-- Hero -->
   <div class="page-hero">
-    <div class="page-hero-badge">📖 Panduan Analisis</div>
+    <div class="page-hero-badge">Panduan Analisis</div>
     <div class="page-hero-title">Panduan Analis R.A.D.A.R Pangan</div>
     <div class="page-hero-desc">
       Cara membaca sinyal, menjalankan analisis, memahami hasil diagnosis,
@@ -301,9 +334,9 @@
       <a href="#s1"><span class="toc-n">1</span> Membaca Panel Sinyal Input</a>
       <a href="#s2"><span class="toc-n">2</span> Cara Menjalankan Analisis</a>
       <a href="#s3"><span class="toc-n">3</span> Memahami Hasil Diagnosis</a>
-      <a href="#s4"><span class="toc-n">4</span> Tingkat Keparahan (L0–L4)</a>
+      <a href="#s4"><span class="toc-n">4</span> Tingkat Keparahan (L0-L4)</a>
       <a href="#s5"><span class="toc-n">5</span> Fitur Simulasi Tanggal</a>
-      <a href="#s6"><span class="toc-n">6</span> Sumber Data & Referensi</a>
+      <a href="#s6"><span class="toc-n">6</span> Sumber Data &amp; Referensi</a>
     </div>
   </div>
 
@@ -319,7 +352,7 @@
       <div class="sub-label">Apa itu sinyal input?</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
         Sebelum menjalankan RCA, panel kiri menampilkan 4 sinyal kondisi saat ini untuk
-        komoditas yang dipilih. Sinyal berwarna <strong style="color:#d97706">kuning</strong>
+        komoditas yang dipilih. Sinyal berwarna <strong style="color:#92400e">kuning</strong>
         berarti ada indikasi masalah yang perlu diperhatikan.
       </p>
       <div class="signal-rows">
@@ -369,10 +402,10 @@
             <div class="signal-name">Kota Naik</div>
             <div class="signal-desc">
               Jumlah kota yang mengalami kenaikan harga dibanding periode sebelumnya,
-              dari total kota pantauan. Jika ≥60% kota naik sekaligus, sinyal berwarna kuning
+              dari total kota pantauan. Jika >=60% kota naik sekaligus, sinyal berwarna kuning
               — menunjukkan kenaikan bersifat nasional, bukan lokal.
             </div>
-            <span class="signal-warn">⚠ ≥ 60% kota = kenaikan serempak nasional</span>
+            <span class="signal-warn">>=60% kota = kenaikan serempak nasional</span>
           </div>
         </div>
         <div class="signal-row">
@@ -386,11 +419,11 @@
             <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
               <div style="font-family:var(--mono);font-size:11px;">
                 <span style="color:#059669;font-weight:700;">Normal</span>
-                <span style="color:var(--muted)"> — stok ≥ 60% kapasitas</span>
+                <span style="color:var(--muted)"> — stok >=60% kapasitas</span>
               </div>
               <div style="font-family:var(--mono);font-size:11px;">
-                <span style="color:#d97706;font-weight:700;">Menipis</span>
-                <span style="color:var(--muted)"> — stok 35%–60% kapasitas</span>
+                <span style="color:#92400e;font-weight:700;">Menipis</span>
+                <span style="color:var(--muted)"> — stok 35%-60% kapasitas</span>
               </div>
               <div style="font-family:var(--mono);font-size:11px;">
                 <span style="color:#dc2626;font-weight:700;">Kritis</span>
@@ -574,7 +607,7 @@
   <section class="section" id="s4">
     <div class="section-header">
       <div class="section-num">4</div>
-      <div class="section-title">Tingkat Keparahan (L0–L4)</div>
+      <div class="section-title">Tingkat Keparahan (L0-L4)</div>
     </div>
 
     <div class="card">
@@ -686,7 +719,7 @@
 
       <div class="step-list">
         <div class="step-item">
-          <div class="step-num" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">↔</div>
+          <div class="step-num" style="background:#FBBF24;">&#x2194;</div>
           <div class="step-content">
             <div class="step-title">Simulasi ke tanggal hari raya</div>
             <div class="step-desc">
@@ -696,7 +729,7 @@
           </div>
         </div>
         <div class="step-item">
-          <div class="step-num" style="background:linear-gradient(135deg,#06b6d4,#2ECC88);">↩</div>
+          <div class="step-num" style="background:var(--info);">&#x21A9;</div>
           <div class="step-content">
             <div class="step-title">Analisis kejadian masa lalu</div>
             <div class="step-desc">
@@ -706,11 +739,11 @@
           </div>
         </div>
         <div class="step-item">
-          <div class="step-num" style="background:linear-gradient(135deg,#10b981,#06b6d4);">↺</div>
+          <div class="step-num" style="background:var(--success);">&#x21BA;</div>
           <div class="step-content">
             <div class="step-title">Kembali ke hari ini</div>
             <div class="step-desc">
-              Klik tombol <strong>↺ Hari ini</strong> untuk menghapus simulasi dan kembali
+              Klik tombol <strong>Hari ini</strong> untuk menghapus simulasi dan kembali
               menggunakan tanggal hari ini. Input tanggal yang berwarna kuning menandakan
               mode simulasi sedang aktif.
             </div>
@@ -739,7 +772,7 @@
       <div class="source-item">
         <div class="source-icon">💰</div>
         <div class="source-body">
-          <div class="source-name">Harga Komoditas & Data Kota</div>
+          <div class="source-name">Harga Komoditas &amp; Data Kota</div>
           <div class="source-from">PIHPS — Panel Harga Pangan Indonesia (bi.go.id/hargapangan)</div>
           <div class="source-desc">
             Harga harian retail di pasar tradisional, mencakup 6 komoditas (Bawang Merah, Bawang Putih,
@@ -756,7 +789,7 @@
           <div class="source-from">Open-Meteo Historical Archive API (open-meteo.com)</div>
           <div class="source-desc">
             Data cuaca harian (curah hujan, suhu, kecepatan angin) dari 5 lokasi pantauan:
-            Tangerang (Banten), Bandung & Cirebon (Jawa Barat), Jakarta (DKI Jakarta),
+            Tangerang (Banten), Bandung &amp; Cirebon (Jawa Barat), Jakarta (DKI Jakarta),
             dan Makassar (Sulawesi Selatan). Total <strong>11.605 rows</strong> data (2020-2026).
             Lookback 7 hari untuk deteksi cuaca ekstrem.
           </div>
@@ -812,30 +845,30 @@
             Wilayah pantauan mencakup 4 provinsi yang mewakili pusat konsumsi dan distribusi utama:
           </div>
           <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">BANTEN</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
+            <div class="region-cell">
+              <div class="region-label">BANTEN</div>
+              <div class="region-desc">
                 Tangerang, Cilegon, Serang<br>
                 <span style="color:var(--muted)">104K rows data harga</span>
               </div>
             </div>
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">JAWA BARAT</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
+            <div class="region-cell">
+              <div class="region-label">JAWA BARAT</div>
+              <div class="region-desc">
                 Bandung, Bogor, Depok, Bekasi, Cirebon, dll<br>
                 <span style="color:var(--muted)">312K rows data harga</span>
               </div>
             </div>
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">DKI JAKARTA</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
+            <div class="region-cell">
+              <div class="region-label">DKI JAKARTA</div>
+              <div class="region-desc">
                 Jakarta Pusat<br>
                 <span style="color:var(--muted)">34K rows data harga</span>
               </div>
             </div>
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">SULAWESI SELATAN</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
+            <div class="region-cell">
+              <div class="region-label">SULAWESI SELATAN</div>
+              <div class="region-desc">
                 Makassar, Pare-Pare, dll<br>
                 <span style="color:var(--muted)">167K rows data harga</span>
               </div>
@@ -848,21 +881,21 @@
         <div class="source-icon">🧅</div>
         <div class="source-body">
           <div class="source-name">Komoditas MVP</div>
-          <div class="source-from">6 komoditas bawang & cabai</div>
+          <div class="source-from">6 komoditas bawang &amp; cabai</div>
           <div class="source-desc">
             Komoditas fokus dipilih berdasarkan volatilitas harga dan relevansi inflasi:
           </div>
           <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">BAWANG</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
+            <div class="region-cell">
+              <div class="region-label">BAWANG</div>
+              <div class="region-desc">
                 Bawang Merah <span style="color:var(--muted)">(com_11)</span><br>
                 Bawang Putih <span style="color:var(--muted)">(com_12)</span>
               </div>
             </div>
-            <div style="padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);">
-              <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">CABAI</div>
-              <div style="font-size:11px;color:var(--text2);line-height:1.7;">
+            <div class="region-cell">
+              <div class="region-label">CABAI</div>
+              <div class="region-desc">
                 Cabai Merah Besar <span style="color:var(--muted)">(com_13)</span><br>
                 Cabai Merah Keriting <span style="color:var(--muted)">(com_14)</span><br>
                 Cabai Rawit Hijau <span style="color:var(--muted)">(com_15)</span><br>
@@ -879,7 +912,7 @@
 
   <!-- Footer -->
   <footer class="footer">
-    <a href="/">← Kembali ke Dashboard</a>
+    <a href="/">Kembali ke Dashboard</a>
     <span class="footer-sep">|</span>
     <a href="/docs" target="_blank">API Docs</a>
     <span class="footer-sep">|</span>
