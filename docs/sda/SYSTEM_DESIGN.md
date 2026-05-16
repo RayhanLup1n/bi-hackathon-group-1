@@ -851,8 +851,8 @@ GET /health → { "status": "ok", "version": "0.5.0", "db": "connected", "bq": "
 |----------|--------|------------------------|-----------|
 | Frontend framework | HTML + Alpine.js | React (proposal), Vue, Svelte | No build step, faster dev, timeline < 3 minggu |
 | Data warehouse | BigQuery | Supabase PostgreSQL, DuckDB | Free 10GB + 1TB queries, auto-scale, partitioning |
-| App database | PostgreSQL (Docker) | Supabase managed, SQLite | Familiar (kantor), no vendor lock-in, no limit |
-| ETL orchestration | Airflow | Prefect, Dagster, Cron | Most mature, good UI, team familiar |
+| App database | PostgreSQL (Docker) | Supabase managed, SQLite | No vendor lock-in, no storage limit, mature ecosystem (pg_stat, indexing, backup) |
+| ETL orchestration | Airflow | Prefect, Dagster, Cron | Most mature, built-in UI monitoring, retry/backfill, largest community + plugin ecosystem |
 | SQL transforms | dbt | Python transforms, stored procedures | Modular, testable, version controlled |
 | IaC | Terraform | Pulumi, CloudFormation | Multi-cloud, HCL readable, GCP support |
 | ML framework | LightGBM | XGBoost, CatBoost, Prophet | Fast, quantile regression native, good accuracy |
