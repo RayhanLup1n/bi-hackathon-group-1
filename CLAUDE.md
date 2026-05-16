@@ -12,6 +12,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
+### Medallion Architecture (Bronze → Silver → Gold)
+
+Data pipeline menggunakan **Medallion Architecture** dengan pembagian database:
+- **BigQuery** = Bronze (raw.*) + Silver (staging.*) — heavy compute, batch transforms
+- **PostgreSQL** = Gold (marts.* + app.*) — low-latency serving, dikonsumsi oleh UI/API/ML
+
+**Database deployment strategy:**
+- **Dev & Demo**: PostgreSQL via Supabase (managed, free tier)
+- **Production**: PostgreSQL via Docker `postgres:16-alpine` (self-hosted di VPS)
+- Code database-agnostic — connection string via env var, pure `psycopg2` driver
+
 ### High-Level System
 
 ```
@@ -24,19 +35,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ┌─────────────────────────────────────────────────────┐
 │          ETL Pipeline (Airflow + dbt)                │
 │          Runs in Docker (local)                      │
-│          Target: Google BigQuery (raw/staging/marts)  │
+│          Medallion: Bronze → Silver → Gold            │
 └────────────────────┬────────────────────────────────┘
                      │
          ┌───────────┴───────────┐
          ▼                       ▼
 ┌────────────────────┐  ┌────────────────────────────┐
-│  Google BigQuery   │  │  Supabase PostgreSQL       │
-│  (Data Warehouse)  │  │  (App/Transactional)       │
-│                    │  │                            │
-│  • raw.*           │  │  • app.users               │
-│  • staging.*       │  │  • app.het_reference       │
-│  • marts.*         │  │  • app.ml_predictions      │
-│                    │  │  • app.komoditas_config     │
+│  Google BigQuery   │  │  PostgreSQL (Gold)          │
+│  Bronze + Silver   │  │  Dev: Supabase (managed)    │
+│                    │  │  Prod: Docker postgres:16   │
+│  • raw.*  (Bronze) │  │                            │
+│  • staging.* (Slv) │  │  • marts.* (dashboard, ML)  │
+│                    │  │  • app.* (users, HET, pred) │
 └────────┬───────────┘  └─────────┬──────────────────┘
          │                        │
          └────────┬───────────────┘
@@ -53,11 +63,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
             └────────────┘
 ```
 
-### Database: Dual Architecture (BigQuery + Supabase)
+### Database: Dual Architecture (BigQuery + PostgreSQL)
 
-**Prinsip**: Data warehouse (raw/staging/marts) di BigQuery, app/transactional data di Supabase PostgreSQL.
+**Prinsip**: BigQuery untuk Bronze+Silver (heavy compute, batch). PostgreSQL untuk Gold (low-latency serving, UI/API/ML consumption).
 
-**BigQuery** (Data Warehouse — free tier: 10 GB storage, 1 TB queries/month):
+**BigQuery** (Bronze + Silver — free tier: 10 GB storage, 1 TB queries/month):
 - Project: `radar-pangan-hackathon`
 - Region: `asia-southeast2`
 - Auth: Application Default Credentials (ADC) via `gcloud auth application-default login`
@@ -94,12 +104,17 @@ BigQuery (Google Cloud)
     └── dashboard_harga_pangan        (pre-computed dashboard data)
 ```
 
-**Supabase PostgreSQL** (App/Transactional — connection via `.envs/.env`):
+**PostgreSQL** (Gold / Serving Layer — Dev: Supabase, Prod: Docker):
 
 ```
-PostgreSQL (Supabase Cloud)
+PostgreSQL (Gold Layer)
 │
-└── app.                              ← Application-managed tables (ONLY schema remaining)
+├── marts.                            ← dbt aggregated tables (synced from BigQuery)
+│   ├── mart_dashboard_harga_pangan  (daily monitoring: delta, status, alert)
+│   ├── mart_dashboard_ringkasan_nasional (national-level aggregations)
+│   └── mart_modelling_harga_pangan  (ML features: lag, rolling, z-score)
+│
+└── app.                              ← Application-managed tables
     ├── users                         (auth: id, username, password_hash, is_admin, is_analyst, is_active, created_at)
     ├── het_reference                 (HET per komoditas per wilayah — dummy awal)
     ├── ml_predictions                (ML model output — managed by ML teammate)
@@ -109,6 +124,7 @@ PostgreSQL (Supabase Cloud)
 
 **NOTE**: raw, staging, marts schemas telah di-DROP dari Supabase (data sudah di BigQuery).
 Cleanup script: `etl/scripts/cleanup_supabase_schemas.py`
+Gold layer tables (marts.*) akan di-sync dari BigQuery → PostgreSQL via dbt atau Python sync script.
 
 **IMPORTANT BigQuery notes for dbt models**:
 - `harga_pangan` has `require_partition_filter=true` — ALL queries MUST include `WHERE tanggal >= '2020-01-01'`
@@ -153,16 +169,19 @@ Cleanup script: `etl/scripts/cleanup_supabase_schemas.py`
 
 HTML + Alpine.js (upgrade dari vanilla JS). No build step.
 Neobrutalism design system (thick black borders, offset shadows, pastel backgrounds).
+CSS: External stylesheet (`frontend/css/style.css`), bukan inline `<style>`.
+Responsive: Mobile-first design (smartphone → tablet → desktop).
 
-Pages (5 total):
+Pages (6 total):
 
 | # | Page | URL | Layout | Role Min |
 |---|------|-----|--------|----------|
 | 1 | Login | `/login` | Single form card | Semua |
-| 2 | Dashboard Monitoring | `/` | Single column, summary + HET + RCA widget | Viewer+ |
-| 3 | Analisis RCA | `/rca` | Single column stacked: filter → RCA result → detail → timeline | Analyst+ |
-| 4 | Prediksi ML | `/prediksi` | Filter → summary cards → grafik → tabel prediksi | Analyst+ |
-| 5 | Admin | `/admin` | Table + modal CRUD | Admin only |
+| 2 | Dashboard Monitoring | `/` | Summary + HET + RCA alert + prediksi ringkas | Viewer+ |
+| 3 | Panduan Analis | `/guide` | Dokumentasi interaktif (read-only) | Semua |
+| 4 | Analisis RCA | `/rca` | Filter → RCA result → 4-step check → hari besar → cuaca | Analyst+ |
+| 5 | Prediksi ML | `/prediksi` | Filter → summary cards → grafik → tabel prediksi | Analyst+ |
+| 6 | Admin | `/admin` | Table + modal CRUD | Admin only |
 
 ### Role Access Matrix (RBAC)
 
@@ -170,6 +189,7 @@ Pages (5 total):
 |------|--------|---------|-------|
 | Login | ✅ | ✅ | ✅ |
 | Dashboard | ✅ Read-only | ✅ Full | ✅ Full |
+| Panduan Analis | ✅ | ✅ | ✅ |
 | Analisis RCA | ❌ Redirect | ✅ Full | ✅ Full |
 | Prediksi ML | ❌ Redirect | ✅ Full | ✅ Full |
 | Admin | ❌ Redirect | ❌ Redirect | ✅ Full |
@@ -354,6 +374,7 @@ Env vars opsional: `GCP_PROJECT` (default: `radar-pangan-hackathon`), `BQ_LOCATI
 Access points:
 - App Login: `http://localhost:8000/login`
 - App Dashboard: `http://localhost:8000`
+- App Guide: `http://localhost:8000/guide` (all users)
 - App RCA: `http://localhost:8000/rca` (analyst+ only)
 - App Prediksi: `http://localhost:8000/prediksi` (analyst+ only)
 - App Admin: `http://localhost:8000/admin` (admin only)
@@ -406,6 +427,9 @@ BQ_LOCATION=asia-southeast2
 - **DO** cek apakah data sudah ada sebelum INSERT (idempotent/upsert)
 - **DO** tambahkan type hints di Python
 - **DO** tulis inline comments untuk logic yang tidak obvious
+- **DO** gunakan external CSS file (`frontend/css/style.css`) — JANGAN inline style di HTML
+- **DO** design mobile-first (smartphone → tablet → desktop)
+- **DO** refer ke dokumen PRD/FRD/ERD/SDA di `docs/` untuk konteks arsitektur
 
 ### DON'T ❌
 - **DON'T** commit password/secrets ke git
@@ -415,11 +439,13 @@ BQ_LOCATION=asia-southeast2
 - **DON'T** hardcode tanggal hari raya — gunakan `python-holidays` package
 - **DON'T** pakai BMKG API untuk data historis (tidak tersedia) — pakai Open-Meteo jika butuh cuaca historis
 - **DON'T** redesign frontend ke React — MVP tetap HTML + Alpine.js
-- **DON'T** ubah schema `marts.*` tanpa koordinasi dengan ML teammate
+- **DON'T** ubah schema Gold layer tanpa koordinasi dengan ML teammate
 - **DON'T** tambahkan AI attribution (Co-Authored-By, Generated by) di commit message
 - **DON'T** over-engineer — fokus ke fungsionalitas MVP yang bisa di-demo
 - **DON'T** tulis dbt SQL dengan syntax PostgreSQL (e.g. `::INT`, `ILIKE`, `BOOL_OR`, `EXTRACT(DOW)`) — gunakan BigQuery SQL
 - **DON'T** query `raw.harga_pangan` tanpa partition filter — BigQuery akan error
+- **DON'T** tulis inline CSS di HTML — gunakan class dari external stylesheet
+- **DON'T** query BigQuery langsung dari user request — semua UI data harus dari PostgreSQL Gold layer
 
 ## Sprint Checkpoints
 
@@ -502,7 +528,7 @@ BQ_LOCATION=asia-southeast2
 - [x] Update auth_db.py: CRUD with boolean flags, _compute_role() backward compat
 - [x] Update admin.html: neobrutalism + boolean checkboxes (replace role dropdown)
 - [x] Run migration script on live Supabase (2 users migrated)
-- [x] Plan 5 pages + role access matrix (Login, Dashboard, RCA, Prediksi ML, Admin)
+- [x] Plan 6 pages + role access matrix (Login, Dashboard, Guide, RCA, Prediksi ML, Admin)
 - [x] 33 tests pass
 
 ### Checkpoint 9: New Pages (RCA + Prediksi ML) ✅ DONE (May 9)
@@ -544,9 +570,22 @@ BQ_LOCATION=asia-southeast2
 
 ### Checkpoint 13: Polish + Demo Prep ⬜ FUTURE
 - [ ] Navigation between pages (header nav links)
-- [ ] Chart.js/Plotly integration in prediksi page
+- [ ] Chart.js integration in prediksi page
+- [ ] Update guide.html (BMKG→Open-Meteo, 6→4 checks, neobrutalism, token key)
+- [ ] Extract inline CSS → external `frontend/css/style.css`
 - [ ] End-to-end testing all pages
 - [ ] Proposal tahap 2 writing
+
+### Checkpoint 14: Documentation ✅ DONE (May 16)
+- [x] PRD (Product Requirements Document) → `docs/prd/PRD.md`
+- [x] FRD (Functional Requirements Document) → `docs/frd/FRD.md`
+- [x] Wireframe / HTML Prototype → `docs/wireframe/wireframe-all-pages.html`
+- [x] ERD (from scratch, UI-driven) → `docs/erd/ERD.md`
+- [x] System Design Architecture → `docs/sda/SYSTEM_DESIGN.md`
+- [x] Tech Stack Documentation → `docs/tech-stack/TECH_STACK.md`
+- [x] Medallion Architecture defined (BigQuery Bronze+Silver → PostgreSQL Gold)
+- [x] Database deployment strategy (Supabase dev/demo → Docker PostgreSQL production)
+- [x] Cross-check consistency: Guide page added to all docs, ERD arrow fixed
 
 ## Team Responsibilities
 
@@ -600,8 +639,11 @@ bi-hackathon-group-1/
 │       ├── migrate_users_boolean_flags.py ← Role → boolean flags migration
 │       └── cleanup_supabase_schemas.py ← Drop raw/staging/marts from Supabase
 ├── frontend/
+│   ├── css/
+│   │   └── style.css           ← External CSS (neobrutalism design system)
 │   ├── index.html              ← Main dashboard (Alpine.js + neobrutalism)
 │   ├── login.html              ← Login page (neobrutalism)
+│   ├── guide.html              ← Panduan Analis (all users, read-only)
 │   ├── admin.html              ← User management (boolean checkboxes)
 │   ├── rca.html                ← Analisis RCA (analyst+ only)
 │   ├── prediksi.html           ← Prediksi ML (analyst+ only)
@@ -626,7 +668,16 @@ bi-hackathon-group-1/
 │   ├── test_rca_engine.py      ← RCA engine unit tests (12 tests)
 │   ├── test_het_monitor.py     ← HET monitor unit tests (14 tests)
 │   └── test_weather_data.py    ← Weather data unit tests (8 tests)
-├── docs/                       ← Session logs
+├── docs/                       ← Project documentation
+│   ├── prd/                    ← Product Requirements Document
+│   ├── frd/                    ← Functional Requirements Document
+│   ├── wireframe/              ← UI wireframe / HTML prototype
+│   ├── erd/                    ← Entity Relationship Diagram
+│   ├── sda/                    ← System Design Architecture
+│   ├── tech-stack/             ← Tech Stack Documentation
+│   ├── session-log/            ← Session logs per sesi pengembangan
+│   ├── demo-scenarios.md       ← Demo script
+│   └── NEED_TO_FIX.md          ← Testing report + known issues
 ├── main.py                     ← FastAPI entry point (v0.4.0)
 ├── pyproject.toml              ← Dependencies (app + dev + etl groups)
 ├── uv.lock                     ← Locked versions for reproducibility
@@ -652,14 +703,14 @@ Code yang sudah ada dan statusnya:
 - **ML Routes** (`src/api/ml_routes.py`): ✅ ML proxy endpoints (forward to inference server).
 - **Auth** (`src/api/auth_routes.py`): ✅ JWT + RBAC boolean flags. is_active check. Default users: admin/admin123, analyst/analyst123.
 - **Auth DB** (`src/data/auth_db.py`): ✅ Boolean flags (is_admin/is_analyst/is_active). `_compute_role()` for backward compat.
-- **BigQuery Client** (`src/data/bigquery_client.py`): ✅ Thread-safe singleton, 60s timeout, GoogleAPIError handling, lazy env vars.
-- **Commodity Data** (`src/data/commodity_data.py`): ✅ Reads from BigQuery. Filtered ke 6 MVP komoditas. Multi-province weather detection.
-- **Database** (`src/data/database.py`): ✅ Shared PostgreSQL connection pool to Supabase (app.* tables only).
+- **Database** (`src/data/database.py`): ✅ Shared PostgreSQL connection pool (Gold layer — Dev: Supabase, Prod: Docker).
+- **BigQuery Client** (`src/data/bigquery_client.py`): ✅ Thread-safe singleton, 60s timeout, GoogleAPIError handling, lazy env vars. Hanya untuk Bronze+Silver queries.
 - **Weather Extractor** (`etl/extractors/openmeteo_extractor.py`): ✅ Open-Meteo API extractor.
 - **BigQuery Migration** (`etl/scripts/migrate_to_bigquery.py`): ✅ Batch migrate from Supabase → BigQuery (WRITE_TRUNCATE, free).
 - **Supabase Cleanup** (`etl/scripts/cleanup_supabase_schemas.py`): ✅ Drop raw/staging/marts from Supabase.
 - **dbt Models**: ✅ All 11 models converted to BigQuery SQL. 11/11 pass, 17/17 tests pass.
 - **Terraform IaC** (`infra/`): ✅ 3 datasets + 8 raw tables provisioned. deletion_protection enabled.
+- **Frontend Guide** (`frontend/guide.html`): ⚠️ Outdated — masih pakai BMKG, 6 checks, glassmorphism, token key `rca_token`. Perlu update ke Open-Meteo, 4 checks, neobrutalism, token key `token`.
 - **Frontend Dashboard** (`frontend/index.html`): ✅ Alpine.js + neobrutalism. HET badge, weather panel, RCA widget.
 - **Frontend Login** (`frontend/login.html`): ✅ Neobrutalism style.
 - **Frontend Admin** (`frontend/admin.html`): ✅ Neobrutalism + boolean checkboxes (is_admin/is_analyst/is_active).
@@ -669,7 +720,7 @@ Code yang sudah ada dan statusnya:
 
 ### Database Status
 
-**BigQuery** (Data Warehouse):
+**BigQuery** (Bronze + Silver):
 - **raw.harga_pangan**: 619,430 rows (4 provinsi, 18 kota, 2020-2026) — partitioned by tanggal
 - **raw.cuaca_harian**: 11,605 rows (5 lokasi, 2020-2026)
 - **raw.dim_provinsi**: 34 rows
@@ -681,13 +732,14 @@ Code yang sudah ada dan statusnya:
 - **Storage**: ~250 MB / 10 GB free tier (2.5% used)
 - **dbt models**: 11/11 pass, 17/17 tests pass
 
-**Supabase PostgreSQL** (App/Transactional — cleaned up):
+**PostgreSQL** (Gold — Dev: Supabase, Prod: Docker):
 - **app.users**: 2 users (admin, analyst)
 - **app.het_reference**: HET dummy data
 - **app.ml_predictions**: ML teammate managed
 - **app.komoditas_config**: 6 MVP komoditas
 - **app.dashboard_harga_pangan**: pre-computed dashboard data (dbt)
-- **Storage**: significantly reduced (raw/staging/marts DROPPED)
+- **marts.***: akan di-sync dari BigQuery (mart_dashboard_*, mart_modelling_*)
+- **Storage**: ~50 MB (Supabase, setelah cleanup)
 
 ### BigQuery SQL Patterns (dbt)
 
@@ -720,5 +772,9 @@ Ketika menulis dbt models, gunakan BigQuery SQL (BUKAN PostgreSQL):
 10. ~~dbt migration to BigQuery~~ ✅ Done (11/11 models, 17/17 tests)
 11. ~~FastAPI dual connection~~ ✅ Done (BigQuery for analytics, Supabase for app.*)
 12. ~~Cleanup Supabase~~ ✅ Done (raw/staging/marts dropped, only app.* remains)
-13. Navigation between pages (header nav links)
-14. Chart.js/Plotly integration in prediksi page
+13. ~~Documentation (PRD/FRD/ERD/SDA/Tech Stack/Wireframe)~~ ✅ Done
+14. Extract inline CSS → external `frontend/css/style.css`
+15. Update guide.html (BMKG→Open-Meteo, 4 checks, neobrutalism, token key)
+16. Navigation between pages (header nav links)
+17. Chart.js integration in prediksi page
+18. BigQuery Gold → PostgreSQL sync script
