@@ -9,8 +9,79 @@
   <link rel="stylesheet" href="/css/style.css">
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <style>
-    /* -- RCA page-specific styles -- */
-    .app { max-width: 860px; }
+    /* -- Reset + Design tokens (inline fallback) -- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #EEF7F1; --bg2: #F0FBF4;
+      --surface: #FFFFFF; --surface2: #F0FBF4;
+      --border: #1a1a1a; --border2: #1a1a1a;
+      --accent: #2ECC88; --accent2: #1D7A56;
+      --warn: #FBBF24; --danger: #F87171; --success: #34D399;
+      --highlight: #A7F3D0; --info: #67E8F9;
+      --text: #1a1a1a; --text2: #3f3f46; --muted: #71717a;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', system-ui, sans-serif;
+      --radius: 16px; --radius-sm: 12px;
+      --shadow: 4px 4px 0px #1a1a1a; --shadow-lg: 6px 6px 0px #1a1a1a;
+      --bw: 2.5px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* -- App container (inline fallback) -- */
+    .app {
+      position: relative; z-index: 1;
+      max-width: 860px; margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+
+    /* -- Header (inline fallback) -- */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; padding: 14px 20px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 44px; height: 44px;
+      border: var(--bw) solid var(--border); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
+      overflow: hidden; padding: 0;
+    }
+    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .header-title {
+      font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
+    }
+    .header-sub {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 2px; letter-spacing: 0.5px;
+    }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .nav-link {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
+      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
+    }
+    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .nav-link-default { background: var(--surface); color: var(--accent2); }
+    .nav-link-default:hover { background: #E0F5EA; }
+    .nav-link-active { background: var(--accent); color: #fff; }
+    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
+    .nav-link-danger:hover { background: #FECACA; }
     .user-badge {
       font-family: var(--mono); font-size: 11px; font-weight: 700;
       padding: 7px 13px; background: var(--surface2);
@@ -19,16 +90,36 @@
     }
     .user-badge strong { color: var(--accent2); }
 
-    /* ── Card ── */
+    /* -- Responsive header stacking -- */
+    @media (max-width: 640px) {
+      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .header-right { width: 100%; justify-content: flex-start; }
+    }
+
+    /* -- RCA page-specific styles -- */
+
+    /* ── Card (override shared - larger padding + margin) ── */
     .card {
       background: var(--surface); border: var(--bw) solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
       padding: 22px; margin-bottom: 20px;
+      position: relative; overflow: hidden;
+    }
+    .card::after {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 5px;
+      background: var(--accent); border-radius: var(--radius) var(--radius) 0 0;
     }
     .card-label {
       font-family: var(--mono); font-size: 10px; font-weight: 800;
       text-transform: uppercase; letter-spacing: 1.2px;
       color: var(--text); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .card-label::before {
+      content: ''; display: inline-block;
+      width: 4px; height: 12px; background: var(--accent);
+      border-radius: 2px; border: 1px solid var(--border);
     }
 
     /* ── Filter bar ── */
