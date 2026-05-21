@@ -602,6 +602,9 @@ class ReasoningAgent:
         base_url: str | None = None,
         tool_context: ToolContext | None = None,
         model: str | None = None,
+        fallback_api_key: str | None = None,
+        fallback_base_url: str | None = None,
+        fallback_model: str | None = None,
     ):
         """
         Args:
@@ -612,19 +615,38 @@ class ReasoningAgent:
                            OpenAI     : https://api.openai.com/v1
             tool_context : ToolContext dengan DataFrame
             model        : Model ID. Via env: LLM_MODEL (default: google/gemini-2.5-flash)
+            fallback_api_key  : Groq API key. Via env: LLM_FALLBACK_API_KEY
+            fallback_base_url : Groq base URL. Via env: LLM_FALLBACK_BASE_URL
+            fallback_model    : Groq model ID. Via env: LLM_FALLBACK_MODEL
         """
         self._api_key  = api_key  or os.environ.get("LLM_API_KEY",  "")
         self._base_url = base_url or os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
         self._model    = model    or os.environ.get("LLM_MODEL",    self.MODEL)
         self._tool_context = tool_context
         self._client = None
+        self._fallback_client = None
+        self._fallback_model  = (
+            fallback_model
+            or os.environ.get("LLM_FALLBACK_MODEL", "llama-3.3-70b-versatile")
+        )
 
-        if self._api_key:
-            try:
-                from openai import OpenAI
+        try:
+            from openai import OpenAI
+            if self._api_key:
                 self._client = OpenAI(api_key=self._api_key, base_url=self._base_url)
-            except ImportError:
-                logger.warning("openai package tidak terinstall. Akan menggunakan fallback.")
+
+            _fb_key = (
+                fallback_api_key
+                or os.environ.get("LLM_FALLBACK_API_KEY", "")
+            )
+            _fb_url = (
+                fallback_base_url
+                or os.environ.get("LLM_FALLBACK_BASE_URL", "https://api.groq.com/openai/v1")
+            )
+            if _fb_key:
+                self._fallback_client = OpenAI(api_key=_fb_key, base_url=_fb_url)
+        except ImportError:
+            logger.warning("openai package tidak terinstall. Akan menggunakan fallback.")
 
     def _build_user_message(self, detection: DetectionResult) -> str:
         """Format sinyal deteksi sebagai user message untuk LLM."""
@@ -660,19 +682,16 @@ class ReasoningAgent:
             + "\n\nGunakan tool untuk menambah context, lalu berikan keputusan akhir dalam format JSON."
         )
 
-    def decide(self, detection: DetectionResult) -> DecisionResult:
+    def _decide_with_client(
+        self,
+        client: Any,
+        model: str,
+        detection: DetectionResult,
+    ) -> DecisionResult:
         """
-        Jalankan ReAct loop dan return DecisionResult.
-
-        Jika LLM client tidak tersedia → gunakan rule-based fallback.
+        Jalankan ReAct loop dengan client dan model yang diberikan.
+        Raises exception jika API call gagal (agar caller bisa coba fallback).
         """
-        if self._client is None or self._tool_context is None:
-            logger.warning("LLM client/context tidak tersedia → menggunakan rule-based fallback")
-            return _rule_based_decision(
-                detection,
-                self._tool_context.df if self._tool_context else pd.DataFrame(),
-            )
-
         # Set target city's island so compare_regional_prices can prioritise nearby surplus
         kota = detection.het_alert.kota_nama
         df   = self._tool_context.df
@@ -692,23 +711,17 @@ class ReasoningAgent:
         tools_called    = []
         final_json      = None
 
-        for iteration in range(self.MAX_ITERATIONS):
-            try:
-                response = self._client.chat.completions.create(
-                    model=self._model,
-                    messages=messages,
-                    tools=TOOL_DEFINITIONS,
-                    tool_choice="auto",
-                    temperature=0.2,
-                    max_tokens=1024,
-                    timeout=30,  # 30s per LLM call, prevents server hang
-                )
-            except Exception as e:
-                logger.error(f"OpenAI API error: {e}")
-                return _rule_based_decision(
-                    detection,
-                    self._tool_context.df if self._tool_context else pd.DataFrame(),
-                )
+        for _iteration in range(self.MAX_ITERATIONS):
+            # Let exceptions propagate so decide() can try the fallback client
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=TOOL_DEFINITIONS,
+                tool_choice="auto",
+                temperature=0.2,
+                max_tokens=1024,
+                timeout=30,  # 30s per LLM call, prevents server hang
+            )
 
             msg = response.choices[0].message
 
@@ -786,11 +799,48 @@ class ReasoningAgent:
                 is_llm_generated      = True,
             )
         else:
-            # LLM ran but JSON parse failed → fallback
+            # LLM ran but JSON parse failed → rule-based fallback
             result = _rule_based_decision(
                 detection,
-                self._tool_context.df if self._tool_context else pd.DataFrame(),
+                self._tool_context.df,
             )
             result.reasoning_trace = reasoning_trace
             result.tools_called    = tools_called
             return result
+
+    def decide(self, detection: DetectionResult) -> DecisionResult:
+        """
+        Jalankan ReAct loop dan return DecisionResult.
+
+        Urutan fallback:
+          1. Primary LLM (LLM_API_KEY / LLM_BASE_URL)
+          2. Groq fallback (LLM_FALLBACK_API_KEY)
+          3. Rule-based fallback (deterministik, tanpa LLM)
+        """
+        if self._tool_context is None:
+            logger.warning("Tool context tidak tersedia → menggunakan rule-based fallback")
+            return _rule_based_decision(detection, pd.DataFrame())
+
+        # Try primary LLM
+        if self._client is not None:
+            try:
+                return self._decide_with_client(self._client, self._model, detection)
+            except Exception as e:
+                logger.warning(f"Primary LLM gagal ({e}). Mencoba Groq fallback...")
+
+        # Try Groq fallback
+        if self._fallback_client is not None:
+            try:
+                logger.info(f"Menggunakan Groq fallback model: {self._fallback_model}")
+                return self._decide_with_client(
+                    self._fallback_client, self._fallback_model, detection
+                )
+            except Exception as e:
+                logger.error(f"Groq fallback juga gagal ({e}). Menggunakan rule-based fallback.")
+
+        # Final: rule-based fallback
+        logger.warning("Semua LLM tidak tersedia → menggunakan rule-based fallback")
+        return _rule_based_decision(
+            detection,
+            self._tool_context.df,
+        )
