@@ -596,6 +596,14 @@
       <li><a href="#keamanan">Keamanan &amp; Keterbatasan</a></li>
       <li><a href="#peningkatan">Peningkatan &amp; Saran Ke Depan</a></li>
       <li><a href="#kesimpulan">Kesimpulan</a></li>
+      <li>
+        <a href="#roadmap-ml">Status Implementasi &amp; Roadmap ML Engine</a>
+        <ol>
+          <li class="sub"><a href="#ml-done">Komponen yang Telah Selesai</a></li>
+          <li class="sub"><a href="#ml-todo">Komponen yang Masih Dibutuhkan</a></li>
+          <li class="sub"><a href="#ml-priority">Urutan Prioritas Pengerjaan</a></li>
+        </ol>
+      </li>
     </ol>
   </div>
 </section>
@@ -1577,6 +1585,151 @@ result = pipeline.analyze(k, kota, tanggal)</code></pre>
     LLM ReAct dengan proximity filter ✓ &nbsp;|&nbsp;
     Zero-downtime fallback ✓ &nbsp;|&nbsp;
     FastAPI REST API ✓
+  </div>
+</section>
+
+<hr class="section-div"/>
+
+<!-- ═══════════════════════ 13. ROADMAP ML ENGINE ═══════════════════════ -->
+<section id="roadmap-ml">
+  <h2>13. Status Implementasi &amp; Roadmap ML Engine</h2>
+  <p>
+    Bagian ini merangkum secara teknis komponen ML Engine yang telah selesai dibangun serta komponen yang masih perlu dikerjakan untuk mendukung penuh seluruh halaman MVP (Login, Dashboard, Peta Risiko, Alert Center, Admin Config). Fokus pengerjaan adalah pada <strong>core sistem ML</strong> — pipeline, model, dan API endpoint — bukan pada lapisan UI.
+  </p>
+
+  <!-- ── DONE ── -->
+  <h3 id="ml-done">13.1 Komponen yang Telah Selesai</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28%">Komponen</th>
+        <th style="width:18%">File / Modul</th>
+        <th>Deskripsi</th>
+        <th style="width:10%">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Lapis 1 — Forecast Engine</strong></td>
+        <td><code>ml/src/features.py</code><br/><code>ml/src/train.py</code></td>
+        <td>4 model LightGBM Quantile Regression (Q50/Q90 × T7/T14) dilatih pada 347K+ rekaman historis PIHPS. MAPE terbaik 3,52%, coverage interval 90,9%.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Lapis 2 — Detection Engine</strong></td>
+        <td><code>ml/src/detect.py</code></td>
+        <td>HET threshold check, Z-score online change point, CUSUM early warning (+2–4 hari deteksi lebih awal), dan disparity scoring antar-kota. Output: level alert <em>green / yellow / red</em>.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Lapis 3 — Decision Engine</strong></td>
+        <td><code>ml/src/decide.py</code></td>
+        <td>LLM ReAct Agent (NVIDIA Llama 3.3 Nemotron Super 49B via NIM) dengan proximity filtering, rule-based fallback, dan multi-criteria ranking. Menghasilkan rekomendasi intervensi dalam Bahasa Indonesia.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Orkestrasi Pipeline</strong></td>
+        <td><code>ml/src/pipeline.py</code></td>
+        <td>Kelas <code>RadarPipeline</code> mengintegrasikan ketiga lapis. Method <code>analyze()</code>, <code>analyze_all()</code>, dan <code>get_active_alerts()</code> siap dipanggil oleh API.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+      <tr>
+        <td><strong>FastAPI Inference Server</strong></td>
+        <td><code>ml/serve/api.py</code></td>
+        <td>7 endpoint aktif pada port 8001: <code>/health</code>, <code>/api/v1/analyze</code>, <code>/api/v1/batch</code>, <code>/api/v1/alerts</code>, <code>/api/v1/komoditas</code>, <code>/api/v1/kota</code>, <code>/api/v1/summary/{tanggal}</code>.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Referensi HET</strong></td>
+        <td><code>ml/data/het_reference.csv</code></td>
+        <td>Tabel HET per komoditas dimuat saat startup pipeline. Digunakan Lapis 2 untuk threshold check dan Lapis 3 untuk konteks rekomendasi.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── TODO ── -->
+  <h3 id="ml-todo" style="margin-top:18px">13.2 Komponen yang Masih Dibutuhkan</h3>
+  <p>Endpoint dan modul berikut belum ada namun diperlukan agar setiap halaman MVP dapat mengonsumsi data ML secara langsung tanpa logika tambahan di sisi frontend.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28%">Komponen / Endpoint</th>
+        <th style="width:18%">Dibutuhkan untuk Halaman</th>
+        <th>Deskripsi &amp; Data yang Dikembalikan</th>
+        <th style="width:12%">Estimasi Kompleksitas</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>GET /api/v1/trend/{komoditas}/{kota}</code></td>
+        <td>Dashboard (Hal. 2)</td>
+        <td>Mengembalikan array tanggal + harga historis + band prediksi P50/P90 untuk 7 dan 14 hari ke depan. Digunakan untuk merender <em>line chart</em> tren harga dengan confidence interval.</td>
+        <td style="text-align:center"><span style="color:var(--green)">Rendah</span></td>
+      </tr>
+      <tr>
+        <td><code>GET /api/v1/risk-map/{tanggal}</code></td>
+        <td>Peta Risiko (Hal. 3)</td>
+        <td>Mengagregasi level risiko (red/yellow/green) per provinsi dari semua kombinasi komoditas–kota aktif pada tanggal tersebut. Output: <code>[{ provinsi, risk_level, dominant_commodity, alert_count }]</code> untuk pewarnaan peta choropleth.</td>
+        <td style="text-align:center"><span style="color:var(--yellow)">Menengah</span></td>
+      </tr>
+      <tr>
+        <td><code>GET /api/v1/alerts</code> — filter &amp; paginasi</td>
+        <td>Alert Center (Hal. 4)</td>
+        <td>Endpoint <code>/alerts</code> sudah ada namun belum mendukung query parameter: <code>?komoditas=</code>, <code>?provinsi=</code>, <code>?level=</code>, <code>?page=</code>, <code>?limit=</code>. Diperlukan untuk tabel alert yang dapat disaring dan di-scroll.</td>
+        <td style="text-align:center"><span style="color:var(--green)">Rendah</span></td>
+      </tr>
+      <tr>
+        <td><code>POST /api/v1/simulate</code></td>
+        <td>Alert Center / Demo (Hal. 4)</td>
+        <td>Simulasi skenario "sebelum vs sesudah intervensi". Input: komoditas, kota, tanggal, jenis intervensi (operasi pasar / redistribusi stok), persentase penurunan harga target. Output: perbandingan prediksi harga dan perubahan level alert. <em>Diwajibkan oleh brief hackathon.</em></td>
+        <td style="text-align:center"><span style="color:var(--red)">Tinggi</span></td>
+      </tr>
+      <tr>
+        <td><code>GET /api/v1/config/het</code><br/><code>PUT /api/v1/config/het</code></td>
+        <td>Admin Config (Hal. 5)</td>
+        <td>Membaca dan memperbarui nilai HET per komoditas secara dinamis tanpa restart server. Saat ini nilai HET statis dari CSV yang dimuat saat startup. Endpoint ini memungkinkan admin mengubah threshold langsung dari UI.</td>
+        <td style="text-align:center"><span style="color:var(--yellow)">Menengah</span></td>
+      </tr>
+      <tr>
+        <td>Notifikasi Alert (email / webhook)</td>
+        <td>Alert Center (Hal. 4)</td>
+        <td>Dispatch notifikasi otomatis saat sistem mendeteksi alert <em>red</em> baru. Dapat diimplementasi sebagai background task FastAPI yang memanggil SMTP (Resend/SendGrid) atau webhook Telegram. Diperlukan untuk demo <em>in-app/email notification</em> sesuai brief.</td>
+        <td style="text-align:center"><span style="color:var(--yellow)">Menengah</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── PRIORITY ── -->
+  <h3 id="ml-priority" style="margin-top:18px">13.3 Urutan Prioritas Pengerjaan</h3>
+  <div class="card-grid cols-3">
+    <div class="card" style="border-top:3px solid var(--green)">
+      <h4>Prioritas 1 — Wajib</h4>
+      <ol style="padding-left:16px;font-size:9.5pt;">
+        <li><code>/api/v1/trend/{komoditas}/{kota}</code><br/><span style="color:var(--muted);font-size:8.5pt;">Unblocks Dashboard charts</span></li>
+        <li><code>/api/v1/risk-map/{tanggal}</code><br/><span style="color:var(--muted);font-size:8.5pt;">Unblocks halaman Peta Risiko</span></li>
+        <li>Filter &amp; paginasi <code>/alerts</code><br/><span style="color:var(--muted);font-size:8.5pt;">Alert Center fungsional</span></li>
+      </ol>
+    </div>
+    <div class="card" style="border-top:3px solid var(--yellow)">
+      <h4>Prioritas 2 — Penting</h4>
+      <ol style="padding-left:16px;font-size:9.5pt;">
+        <li><code>POST /api/v1/simulate</code><br/><span style="color:var(--muted);font-size:8.5pt;">Required oleh brief hackathon (demo skenario)</span></li>
+        <li><code>GET/PUT /api/v1/config/het</code><br/><span style="color:var(--muted);font-size:8.5pt;">Admin page — update HET dinamis</span></li>
+      </ol>
+    </div>
+    <div class="card" style="border-top:3px solid var(--red)">
+      <h4>Prioritas 3 — Nice to Have</h4>
+      <ol style="padding-left:16px;font-size:9.5pt;">
+        <li>Notifikasi email/webhook<br/><span style="color:var(--muted);font-size:8.5pt;">Demo in-app &amp; email alert</span></li>
+        <li><code>POST /api/v1/retrain</code><br/><span style="color:var(--muted);font-size:8.5pt;">Trigger retraining model dari Admin UI</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="highlight-box" style="margin-top:14px;">
+    <strong>Ringkasan:</strong> Dari 7 komponen ML Engine yang diperlukan, <strong>5 telah selesai</strong> (core pipeline + 7 endpoint dasar). Tersisa <strong>5 komponen baru</strong> yang perlu dibangun — semuanya berupa penambahan endpoint di <code>ml/serve/api.py</code> dan logika aggregasi di <code>ml/src/pipeline.py</code>, tanpa perlu mengubah arsitektur yang sudah ada.
   </div>
 </section>
 
