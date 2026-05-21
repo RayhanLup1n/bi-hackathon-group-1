@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RADAR Pangan — Laporan Sistem</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:   #1a3a5c;
+      --accent:    #e85d04;
+      --green:     #2d6a4f;
+      --yellow:    #b5830a;
+      --red:       #c0392b;
+      --light-bg:  #f8f9fa;
+      --border:    #dee2e6;
+      --text:      #212529;
+      --muted:     #6c757d;
+      --card-bg:   #ffffff;
+      --radius:    6px;
+      --shadow:    0 1px 4px rgba(0,0,0,.10);
+    }
+
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.55;
+      color: var(--text);
+      background: #fff;
+    }
+
+    /* ── Print / PDF ──────────────────────────────────────── */
+    @media print {
+      body { font-size: 9.5pt; }
+      .page-break { page-break-before: always; }
+      .no-print { display: none !important; }
+      .cover { min-height: 100vh; }
+      section { page-break-inside: avoid; }
+      h2, h3 { page-break-after: avoid; }
+      table { page-break-inside: auto; }
+      tr    { page-break-inside: avoid; }
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 24px;
+    }
+
+    section {
+      margin-bottom: 28px;
+    }
+
+    /* ── Cover Page ───────────────────────────────────────── */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 92vh;
+      text-align: center;
+      padding: 40px 24px;
+      border-bottom: 4px solid var(--primary);
+      background: linear-gradient(160deg, #eaf0fb 0%, #fff 60%);
+    }
+
+    .cover .badge {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 9pt;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .cover h1 {
+      font-size: 34pt;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+
+    .cover h1 span {
+      color: var(--accent);
+    }
+
+    .cover .subtitle {
+      font-size: 13pt;
+      color: var(--muted);
+      margin-top: 10px;
+      max-width: 600px;
+    }
+
+    .cover .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 28px;
+      margin-top: 36px;
+      text-align: left;
+      max-width: 460px;
+    }
+
+    .cover .meta-item label {
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      display: block;
+    }
+
+    .cover .meta-item span {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .cover .logo-area {
+      margin-bottom: 28px;
+    }
+
+    .logo-svg {
+      width: 72px;
+      height: 72px;
+    }
+
+    /* ── TOC ──────────────────────────────────────────────── */
+    .toc {
+      background: var(--light-bg);
+      border-left: 4px solid var(--primary);
+      padding: 16px 20px;
+      border-radius: var(--radius);
+    }
+
+    .toc h2 { color: var(--primary); margin-bottom: 10px; font-size: 12pt; }
+
+    .toc ol { padding-left: 18px; }
+    .toc li { margin: 3px 0; font-size: 9.5pt; }
+    .toc li a { color: var(--primary); text-decoration: none; }
+    .toc li a:hover { text-decoration: underline; }
+    .toc li.sub { padding-left: 14px; font-size: 9pt; color: var(--muted); }
+
+    /* ── Headings ─────────────────────────────────────────── */
+    h2 {
+      font-size: 15pt;
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 5px;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    h3 {
+      font-size: 11.5pt;
+      color: var(--primary);
+      margin: 14px 0 7px;
+      font-weight: 700;
+    }
+
+    h4 {
+      font-size: 10pt;
+      color: var(--text);
+      font-weight: 700;
+      margin: 10px 0 5px;
+    }
+
+    /* ── Paragraphs & Text ────────────────────────────────── */
+    p { margin-bottom: 8px; text-align: justify; }
+    strong { color: var(--primary); }
+    .muted { color: var(--muted); font-size: 9pt; }
+
+    /* ── Cards & Boxes ────────────────────────────────────── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+    }
+
+    .card-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+    .card-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .card-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+    @media print {
+      .card-grid.cols-4 { grid-template-columns: 1fr 1fr; }
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      text-align: center;
+    }
+
+    .stat-card .num {
+      font-size: 20pt;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .stat-card .label {
+      font-size: 8.5pt;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .highlight-box {
+      background: #eaf0fb;
+      border-left: 4px solid var(--primary);
+      padding: 10px 14px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 10px 0;
+      font-size: 9.5pt;
+    }
+
+    .alert-green  { background:#e9f7ef; border-left: 4px solid #27ae60; padding:8px 12px; border-radius:0 4px 4px 0; }
+    .alert-yellow { background:#fef9e7; border-left: 4px solid #f39c12; padding:8px 12px; border-radius:0 4px 4px 0; }
+    .alert-red    { background:#fdedec; border-left: 4px solid #e74c3c; padding:8px 12px; border-radius:0 4px 4px 0; }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+      margin: 10px 0 14px;
+    }
+
+    th {
+      background: var(--primary);
+      color: #fff;
+      padding: 7px 10px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td { background: #f8f9fa; }
+
+    .badge-green  { background:#d4edda; color:#155724; padding:2px 7px; border-radius:10px; font-size:8pt; font-weight:600; }
+    .badge-yellow { background:#fff3cd; color:#856404; padding:2px 7px; border-radius:10px; font-size:8pt; font-weight:600; }
+    .badge-red    { background:#f8d7da; color:#721c24; padding:2px 7px; border-radius:10px; font-size:8pt; font-weight:600; }
+    .badge-blue   { background:#cce5ff; color:#004085; padding:2px 7px; border-radius:10px; font-size:8pt; font-weight:600; }
+    .badge-gray   { background:#e2e3e5; color:#383d41; padding:2px 7px; border-radius:10px; font-size:8pt; font-weight:600; }
+
+    /* ── Architecture Diagram (CSS/SVG inline) ────────────── */
+    .arch-diagram {
+      width: 100%;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+
+    .arch-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      align-items: center;
+    }
+
+    .arch-box {
+      width: 100%;
+      max-width: 700px;
+      border-radius: 8px;
+      padding: 12px 18px;
+      position: relative;
+    }
+
+    .arch-box.layer1 { background:#dbeafe; border: 2px solid #3b82f6; }
+    .arch-box.layer2 { background:#dcfce7; border: 2px solid #22c55e; }
+    .arch-box.layer3 { background:#fef9c3; border: 2px solid #eab308; }
+    .arch-box.input  { background:#f3e8ff; border: 2px solid #a855f7; }
+    .arch-box.output { background:#fee2e2; border: 2px solid #ef4444; }
+
+    .arch-box .arch-title {
+      font-weight: 700;
+      font-size: 10pt;
+      color: var(--primary);
+    }
+
+    .arch-box .arch-body {
+      font-size: 8.5pt;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    .arch-arrow {
+      font-size: 18pt;
+      color: var(--muted);
+      line-height: 1;
+      margin: 2px 0;
+    }
+
+    /* ── Code / JSON ──────────────────────────────────────── */
+    pre, code {
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 8.5pt;
+    }
+
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      overflow-x: auto;
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+
+    code {
+      background: #f1f3f4;
+      color: #c0392b;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    pre code { background: none; color: inherit; padding: 0; }
+
+    .kw   { color: #569cd6; } /* keyword */
+    .str  { color: #ce9178; } /* string */
+    .num  { color: #b5cea8; } /* number */
+    .cmt  { color: #6a9955; } /* comment */
+    .key  { color: #9cdcfe; } /* JSON key */
+
+    /* ── Pipeline Progress Bar ────────────────────────────── */
+    .pipeline-vis {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      margin: 14px 0;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .pipe-step {
+      flex: 1;
+      padding: 10px 8px;
+      font-size: 8.5pt;
+      text-align: center;
+      font-weight: 600;
+      position: relative;
+    }
+
+    .pipe-step::after {
+      content: "▶";
+      position: absolute;
+      right: -9px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14pt;
+      color: #fff;
+      z-index: 2;
+    }
+
+    .pipe-step:last-child::after { display: none; }
+
+    .pipe-step.etl    { background: #7c3aed; color:#fff; }
+    .pipe-step.l1     { background: #2563eb; color:#fff; }
+    .pipe-step.l2     { background: #16a34a; color:#fff; }
+    .pipe-step.l3     { background: #ca8a04; color:#fff; }
+    .pipe-step.api    { background: #dc2626; color:#fff; }
+
+    /* ── Performance Chart (bar) ──────────────────────────── */
+    .bar-chart {
+      margin: 10px 0;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+
+    .bar-label {
+      width: 140px;
+      font-size: 8.5pt;
+      flex-shrink: 0;
+      text-align: right;
+      color: var(--text);
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 16px;
+      background: #e9ecef;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 6px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      color: #fff;
+      transition: width 0.4s;
+    }
+
+    .bar-fill.good  { background: #22c55e; }
+    .bar-fill.ok    { background: #3b82f6; }
+    .bar-fill.warn  { background: #f59e0b; }
+
+    /* ── ReAct trace ─────────────────────────────────────── */
+    .react-trace {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 10px 0;
+    }
+
+    .react-step {
+      display: flex;
+      gap: 10px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 8.5pt;
+    }
+
+    .react-step:last-child { border-bottom: none; }
+
+    .react-step.think { background: #f0f9ff; }
+    .react-step.tool  { background: #f0fdf4; }
+    .react-step.result{ background: #fefce8; }
+    .react-step.final { background: #fef2f2; }
+
+    .react-icon {
+      font-size: 14pt;
+      flex-shrink: 0;
+      width: 24px;
+      text-align: center;
+      line-height: 1;
+    }
+
+    .react-content { flex: 1; }
+
+    .react-tag {
+      font-weight: 700;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+      display: block;
+    }
+
+    .react-step.think  .react-tag { color: #0369a1; }
+    .react-step.tool   .react-tag { color: #15803d; }
+    .react-step.result .react-tag { color: #a16207; }
+    .react-step.final  .react-tag { color: #b91c1c; }
+
+    /* ── CUSUM Chart (SVG inline) ─────────────────────────── */
+    .chart-wrap { margin: 10px 0; border: 1px solid var(--border); border-radius: var(--radius); padding: 8px; }
+    .chart-title { font-size: 9pt; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .chart-note  { font-size: 8pt; color: var(--muted); margin-top: 4px; }
+
+    /* ── Footer ───────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+      margin-top: 28px;
+      font-size: 8pt;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ── Divider ──────────────────────────────────────────── */
+    hr.section-div {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 24px 0;
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- ═══════════════════════ COVER ═══════════════════════ -->
+<div class="cover">
+  <div class="logo-area">
+    <svg class="logo-svg" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="36" cy="36" r="34" fill="#1a3a5c"/>
+      <circle cx="36" cy="36" r="22" stroke="#e85d04" stroke-width="3" fill="none"/>
+      <circle cx="36" cy="36" r="10" stroke="#fff" stroke-width="2" fill="none"/>
+      <circle cx="36" cy="36" r="3" fill="#e85d04"/>
+      <line x1="36" y1="4"  x2="36" y2="14" stroke="#e85d04" stroke-width="2.5"/>
+      <line x1="36" y1="58" x2="36" y2="68" stroke="#e85d04" stroke-width="2.5"/>
+      <line x1="4"  y1="36" x2="14" y2="36" stroke="#e85d04" stroke-width="2.5"/>
+      <line x1="58" y1="36" x2="68" y2="36" stroke="#e85d04" stroke-width="2.5"/>
+      <text x="36" y="64" fill="#fff" font-size="7" text-anchor="middle" font-family="Arial" font-weight="bold">RADAR PANGAN</text>
+    </svg>
+  </div>
+
+  <div class="badge">Laporan Teknis Sistem</div>
+  <h1>RADAR <span>Pangan</span></h1>
+  <p class="subtitle">
+    Sistem Pemantauan Inflasi Pangan Berbasis Kecerdasan Buatan —<br/>
+    Deteksi Dini, Prediksi Harga, dan Rekomendasi Intervensi Real-Time
+  </p>
+
+  <div class="meta-grid">
+    <div class="meta-item">
+      <label>Tim</label>
+      <span>BI Hackathon Group 1</span>
+    </div>
+    <div class="meta-item">
+      <label>Versi</label>
+      <span>1.0.0 (MVP)</span>
+    </div>
+    <div class="meta-item">
+      <label>Tanggal</label>
+      <span>11 Mei 2026</span>
+    </div>
+    <div class="meta-item">
+      <label>Bahasa</label>
+      <span>Python 3.11 · SQL · HTML</span>
+    </div>
+    <div class="meta-item">
+      <label>Sumber Data</label>
+      <span>BI PIHPS · Supabase</span>
+    </div>
+    <div class="meta-item">
+      <label>LLM</label>
+      <span>NVIDIA Llama 3.3 Nemotron 49B</span>
+    </div>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ═══════════════════════ DAFTAR ISI ═══════════════════════ -->
+<section>
+  <div class="toc">
+    <h2>Daftar Isi</h2>
+    <ol>
+      <li><a href="#abstrak">Abstrak</a></li>
+      <li><a href="#latar">Latar Belakang &amp; Permasalahan</a></li>
+      <li><a href="#arsitektur">Arsitektur Sistem</a></li>
+      <li>
+        <a href="#etl">Pipeline Data (ETL)</a>
+        <ol>
+          <li class="sub"><a href="#etl-extract">Ekstraksi — BI PIHPS API</a></li>
+          <li class="sub"><a href="#etl-transform">Transformasi — dbt</a></li>
+          <li class="sub"><a href="#etl-load">Penyimpanan — Supabase PostgreSQL</a></li>
+        </ol>
+      </li>
+      <li>
+        <a href="#layer1">Lapis 1 — Forecast Engine (LightGBM Quantile)</a>
+        <ol>
+          <li class="sub"><a href="#fitur">Feature Engineering</a></li>
+          <li class="sub"><a href="#model">Model &amp; Training</a></li>
+          <li class="sub"><a href="#performa">Performa Model</a></li>
+        </ol>
+      </li>
+      <li>
+        <a href="#layer2">Lapis 2 — Detection Engine</a>
+        <ol>
+          <li class="sub"><a href="#het">HET Threshold Check</a></li>
+          <li class="sub"><a href="#zscore">Z-score Change Point Detection</a></li>
+          <li class="sub"><a href="#cusum">CUSUM (Early Warning)</a></li>
+          <li class="sub"><a href="#disparity">Disparity Scoring</a></li>
+        </ol>
+      </li>
+      <li>
+        <a href="#layer3">Lapis 3 — Decision Engine (LLM ReAct Agent)</a>
+        <ol>
+          <li class="sub"><a href="#react">Pola ReAct</a></li>
+          <li class="sub"><a href="#tools">Tools yang Tersedia</a></li>
+          <li class="sub"><a href="#proximity">Proximity Filtering</a></li>
+          <li class="sub"><a href="#fallback">Rule-based Fallback</a></li>
+        </ol>
+      </li>
+      <li><a href="#api">API &amp; Integrasi</a></li>
+      <li><a href="#contoh">Contoh Kasus Nyata</a></li>
+      <li><a href="#keamanan">Keamanan &amp; Keterbatasan</a></li>
+      <li><a href="#peningkatan">Peningkatan &amp; Saran Ke Depan</a></li>
+      <li><a href="#kesimpulan">Kesimpulan</a></li>
+      <li>
+        <a href="#roadmap-ml">Status Implementasi &amp; Roadmap ML Engine</a>
+        <ol>
+          <li class="sub"><a href="#ml-done">Komponen yang Telah Selesai</a></li>
+          <li class="sub"><a href="#ml-todo">Komponen yang Masih Dibutuhkan</a></li>
+          <li class="sub"><a href="#ml-priority">Urutan Prioritas Pengerjaan</a></li>
+        </ol>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<hr class="section-div">
+
+<!-- ═══════════════════════ 1. ABSTRAK ═══════════════════════ -->
+<section id="abstrak">
+  <h2>1. Abstrak</h2>
+  <p>
+    <strong>RADAR Pangan</strong> (Real-time Anomaly Detection and Recommendation for Pangan) adalah sistem kecerdasan buatan multi-lapis yang dirancang untuk memantau, mendeteksi, dan memberikan rekomendasi intervensi terhadap inflasi harga pangan strategis di Indonesia. Sistem ini dikembangkan dalam konteks BI Hackathon dengan memanfaatkan data harga harian dari portal Bank Indonesia (PIHPS), yang mencakup lebih dari <strong>347.550 rekaman</strong> sejak tahun 2020 di 10 kota Jawa Barat dan DKI Jakarta untuk 21 komoditas pangan.
+  </p>
+  <p>
+    Sistem bekerja melalui tiga lapis pemrosesan yang saling terintegrasi: (1) <em>Forecast Engine</em> berbasis LightGBM Quantile Regression yang memprediksi harga 7 dan 14 hari ke depan dengan akurasi MAPE serendah 3,52%; (2) <em>Detection Engine</em> yang mengombinasikan pemeriksaan batas HET (Harga Eceran Tertinggi), Z-score online, algoritma CUSUM untuk deteksi dini drift harga, dan disparity scoring antar-kota; serta (3) <em>Decision Engine</em> berbasis Large Language Model (NVIDIA Llama 3.3 Nemotron Super 49B) yang menggunakan pola <em>ReAct</em> (Reason + Act) untuk menganalisis konteks, memanggil tool pengambilan data, dan menghasilkan rekomendasi intervensi konkret dalam Bahasa Indonesia.
+  </p>
+  <p>
+    Seluruh pipeline diorkestrasi melalui FastAPI (<code>http://localhost:8001</code>) dan terhubung ke basis data Supabase PostgreSQL di cloud. Sistem mampu menghasilkan analisis lengkap dalam waktu di bawah 10 detik dan memiliki mekanisme fallback berbasis aturan bila layanan LLM tidak tersedia, sehingga menjamin ketersediaan (<em>zero downtime</em>).
+  </p>
+
+  <div class="card-grid cols-4" style="margin-top:14px;">
+    <div class="stat-card">
+      <div class="num">347K+</div>
+      <div class="label">Rekaman harga pangan (2020–2026)</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">4</div>
+      <div class="label">Model LightGBM (Q50 &amp; Q90, 7d &amp; 14d)</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">3,52%</div>
+      <div class="label">MAPE terbaik (Q50, 7 hari)</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">49B</div>
+      <div class="label">Parameter LLM (Nemotron)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 2. LATAR BELAKANG ═══════════════════════ -->
+<section id="latar">
+  <h2>2. Latar Belakang &amp; Permasalahan</h2>
+  <p>
+    Inflasi harga pangan merupakan salah satu tantangan makroekonomi yang paling langsung dirasakan masyarakat Indonesia. Komoditas seperti cabai, bawang merah, dan beras memiliki volatilitas harga yang tinggi — dipengaruhi oleh faktor musiman, cuaca, distribusi logistik, dan perilaku spekulatif pasar. Bank Indonesia melalui portal PIHPS (Pusat Informasi Harga Pangan Strategis) menyediakan data harga harian dari ratusan kota, namun potensi data ini belum dimanfaatkan secara optimal untuk deteksi dini dan pengambilan keputusan berbasis bukti.
+  </p>
+  <p>
+    Permasalahan yang diidentifikasi meliputi: (a) tidak ada sistem otomatis yang mendeteksi kenaikan harga <em>sebelum</em> melampaui HET; (b) rekomendasi intervensi bersifat reaktif dan tidak mempertimbangkan distribusi harga antar-wilayah; (c) analisis konteks musiman (Ramadan, panen, hari besar) dilakukan secara manual. RADAR Pangan dirancang untuk mengatasi ketiga permasalahan tersebut secara simultan.
+  </p>
+
+  <div class="card-grid cols-3" style="margin-top:12px;">
+    <div class="card">
+      <h4>❌ Masalah 1</h4>
+      <p style="font-size:9pt;">Tidak ada deteksi dini sebelum harga melampaui HET. Petugas baru bereaksi setelah lonjakan terjadi.</p>
+    </div>
+    <div class="card">
+      <h4>❌ Masalah 2</h4>
+      <p style="font-size:9pt;">Rekomendasi intervensi tidak mempertimbangkan surplus/defisit antar-kota di pulau yang sama.</p>
+    </div>
+    <div class="card">
+      <h4>❌ Masalah 3</h4>
+      <p style="font-size:9pt;">Konteks musiman (Ramadan, hari raya, musim panen) tidak dianalisis secara otomatis.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 3. ARSITEKTUR ═══════════════════════ -->
+<section id="arsitektur">
+  <h2>3. Arsitektur Sistem</h2>
+
+  <p>
+    RADAR Pangan mengikuti arsitektur <em>layered pipeline</em> — setiap lapisan mengonsumsi output lapisan sebelumnya dan memperkaya analisis. Pipeline berjalan dari kiri ke kanan: sumber data → ETL → tiga lapisan analitik → API.
+  </p>
+
+  <!-- Visualisasi pipeline -->
+  <div class="pipeline-vis" style="margin-bottom:16px;">
+    <div class="pipe-step etl">🗄️ ETL<br/><span style="font-size:7pt;font-weight:400;">PIHPS → Supabase</span></div>
+    <div class="pipe-step l1">📈 Lapis 1<br/><span style="font-size:7pt;font-weight:400;">LightGBM Forecast</span></div>
+    <div class="pipe-step l2">🔍 Lapis 2<br/><span style="font-size:7pt;font-weight:400;">Detection Engine</span></div>
+    <div class="pipe-step l3">🤖 Lapis 3<br/><span style="font-size:7pt;font-weight:400;">LLM ReAct Agent</span></div>
+    <div class="pipe-step api">🌐 API<br/><span style="font-size:7pt;font-weight:400;">FastAPI :8001</span></div>
+  </div>
+
+  <!-- Diagram detail -->
+  <div class="arch-diagram">
+    <div class="arch-flow">
+      <div class="arch-box input" style="max-width:700px;">
+        <div class="arch-title">📥 INPUT</div>
+        <div class="arch-body">
+          BI PIHPS API — harga harian 21 komoditas × 10 kota (Jabar + DKI Jakarta) &nbsp;|&nbsp;
+          <code>mart_modelling_harga_pangan</code> — 174.290 baris siap pakai di Supabase &nbsp;|&nbsp;
+          <code>het_reference.csv</code> — HET per komoditas per provinsi (Perpres, Permendag, Bapanas)
+        </div>
+      </div>
+      <div class="arch-arrow">▼</div>
+      <div class="arch-box layer1" style="max-width:700px;">
+        <div class="arch-title">📈 LAPIS 1 — Forecast Engine</div>
+        <div class="arch-body">
+          4 model LightGBM Quantile: <strong>lgbm_q50_t7</strong> · <strong>lgbm_q90_t7</strong> ·
+          <strong>lgbm_q50_t14</strong> · <strong>lgbm_q90_t14</strong><br/>
+          Fitur: lag 1d/7d/14d/30d · rolling avg/std 7d&amp;30d · kalender · HET utilization · Z-score<br/>
+          Output: <em>harga_pred_p50_7d</em>, <em>harga_pred_p90_7d</em>, <em>harga_pred_p50_14d</em>, <em>harga_pred_p90_14d</em>
+        </div>
+      </div>
+      <div class="arch-arrow">▼</div>
+      <div class="arch-box layer2" style="max-width:700px;">
+        <div class="arch-title">🔍 LAPIS 2 — Detection Engine</div>
+        <div class="arch-body">
+          A) <strong>HET Check</strong>: green / yellow / red berdasarkan rasio harga vs HET<br/>
+          B1) <strong>Z-score Online</strong>: spike tunggal mendadak → red<br/>
+          B2) <strong>CUSUM</strong>: drift kumulatif sustained → yellow (early warning 2–4 hari lebih awal)<br/>
+          C) <strong>Disparity Score</strong>: ketimpangan harga antar-kota → kandidat koordinasi stok
+        </div>
+      </div>
+      <div class="arch-arrow">▼</div>
+      <div class="arch-box layer3" style="max-width:700px;">
+        <div class="arch-title">🤖 LAPIS 3 — Decision Engine (LLM ReAct Agent)</div>
+        <div class="arch-body">
+          Model: <strong>NVIDIA Llama 3.3 Nemotron Super 49B</strong> via NVIDIA NIM API<br/>
+          Pattern: ReAct (Reason + Act) — multi-turn tool calling<br/>
+          Tools: get_historical_pattern · compare_regional_prices · get_upcoming_events · get_het_breach_history<br/>
+          Proximity filtering: hanya rekomendasikan kota di pulau yang sama atau bertetangga<br/>
+          Output: <em>final_alert_level</em> · <em>intervention_priority (1–5)</em> · <em>rekomendasi (Bahasa Indonesia)</em>
+        </div>
+      </div>
+      <div class="arch-arrow">▼</div>
+      <div class="arch-box output" style="max-width:700px;">
+        <div class="arch-title">🌐 OUTPUT — FastAPI Inference Server (:8001)</div>
+        <div class="arch-body">
+          <code>POST /api/v1/analyze</code> &nbsp;·&nbsp; <code>POST /api/v1/batch</code> &nbsp;·&nbsp;
+          <code>GET /api/v1/alerts</code> &nbsp;·&nbsp; <code>GET /api/v1/summary/{tanggal}</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Stack Teknologi</h3>
+  <table>
+    <thead><tr><th>Komponen</th><th>Teknologi</th><th>Versi / Detail</th></tr></thead>
+    <tbody>
+      <tr><td>Bahasa Pemrograman</td><td>Python</td><td>3.11 / 3.14</td></tr>
+      <tr><td>Model ML</td><td>LightGBM Quantile Regression</td><td>4 model (.pkl)</td></tr>
+      <tr><td>LLM</td><td>NVIDIA Llama 3.3 Nemotron Super 49B</td><td>NVIDIA NIM API</td></tr>
+      <tr><td>LLM SDK</td><td>openai-python (OpenAI-compatible)</td><td>base_url override</td></tr>
+      <tr><td>Web Framework</td><td>FastAPI + uvicorn</td><td>Port 8001</td></tr>
+      <tr><td>Database</td><td>Supabase PostgreSQL</td><td>aws-1-ap-northeast-1</td></tr>
+      <tr><td>ORM / Connector</td><td>SQLAlchemy + psycopg2-binary</td><td>2.0+</td></tr>
+      <tr><td>ETL Orchestrator</td><td>Apache Airflow 2.9.2</td><td>Docker</td></tr>
+      <tr><td>Data Transform</td><td>dbt-postgres</td><td>dbt-core</td></tr>
+      <tr><td>Data Processing</td><td>Pandas + NumPy</td><td>—</td></tr>
+      <tr><td>Dependency Mgmt</td><td>uv (Astral)</td><td>venv</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 4. ETL ═══════════════════════ -->
+<section id="etl">
+  <h2>4. Pipeline Data (ETL)</h2>
+  <p>
+    Sebelum analisis dapat dilakukan, data mentah dari API PIHPS Bank Indonesia harus diekstrak, dibersihkan, dan dimuat ke basis data cloud. Pipeline ETL dikelola oleh Apache Airflow dengan dua DAG terpisah.
+  </p>
+
+  <h3 id="etl-extract">4.1 Ekstraksi — BI PIHPS API</h3>
+  <p>
+    Komponen <code>PihpsExtractor</code> melakukan autentikasi menggunakan XSRF Token + Session Cookie (mekanisme antiforgery ASP.NET Core). API mengembalikan data dalam format <em>pivot table</em> (tanggal sebagai JSON key), sehingga parser khusus diperlukan untuk <em>unpivot</em> ke format baris. Rate limiting 2 detik per request diterapkan untuk mencegah throttling.
+  </p>
+
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h4>DAG 1: data_ready_modelling</h4>
+      <p style="font-size:9pt;">Muatan historis penuh (2020–2026) untuk training ML. Berjalan satu kali + incremental via checkpoint di <code>raw.pipeline_log</code>. Output: <code>marts.mart_modelling_harga_pangan</code>.</p>
+      <span class="badge-green">Manual Trigger</span>
+    </div>
+    <div class="card">
+      <h4>DAG 2: data_ready_dashboard</h4>
+      <p style="font-size:9pt;">Update harian (D-1) untuk monitoring dashboard. Termasuk <em>health check</em> ke API PIHPS sebelum ekstraksi (fail-fast jika API down). Output: <code>marts.mart_dashboard_harga_pangan</code>.</p>
+      <span class="badge-blue">Daily 07:00 WIB</span>
+    </div>
+  </div>
+
+  <h3 id="etl-transform">4.2 Transformasi — dbt</h3>
+  <p>
+    Transformasi data dilakukan oleh dbt dalam dua tahap: <em>Staging</em> (VIEW, 0 MB storage) untuk pembersihan dan normalisasi, dan <em>Mart</em> (TABLE) untuk fitur engineering siap pakai. Model staging menggunakan <code>ROW_NUMBER()</code> untuk deduplikasi berdasarkan natural key <code>(tanggal, comcat_id, kota_id, pasar_nama)</code>.
+  </p>
+
+  <table>
+    <thead><tr><th>Model dbt</th><th>Tipe</th><th>Keterangan</th></tr></thead>
+    <tbody>
+      <tr><td><code>stg_harga_pangan</code></td><td>VIEW</td><td>Cleaning, type cast, deduplikasi, label pasar</td></tr>
+      <tr><td><code>stg_dim_komoditas</code></td><td>VIEW</td><td>Dimensi unik komoditas</td></tr>
+      <tr><td><code>stg_dim_kota</code></td><td>VIEW</td><td>Kota + join provinsi</td></tr>
+      <tr><td><code>stg_dim_tanggal</code></td><td>TABLE</td><td>Dimensi tanggal + hari besar + window Ramadan</td></tr>
+      <tr><td><code>mart_modelling_harga_pangan</code></td><td>TABLE</td><td>Dataset ML: lag, rolling, kalender, z-score, ratio nasional</td></tr>
+      <tr><td><code>mart_dashboard_harga_pangan</code></td><td>TABLE</td><td>Delta harga, status naik/turun, alert harga</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="etl-load">4.3 Penyimpanan — Supabase PostgreSQL</h3>
+  <p>
+    Semua data disimpan di Supabase PostgreSQL (cloud, region <code>aws-1-ap-northeast-1</code>) agar seluruh anggota tim dapat mengakses basis data yang sama. Skema terbagi menjadi empat lapisan: <code>raw</code>, <code>staging</code>, <code>marts</code>, dan <code>app</code>.
+  </p>
+
+  <table>
+    <thead><tr><th>Tabel</th><th>Skema</th><th>Baris</th><th>Keterangan</th></tr></thead>
+    <tbody>
+      <tr><td><code>harga_pangan</code></td><td>raw</td><td>347.550</td><td>Data mentah PIHPS 2020–2026</td></tr>
+      <tr><td><code>mart_modelling_harga_pangan</code></td><td>marts</td><td>174.290</td><td>Dataset siap ML (pasar tradisional)</td></tr>
+      <tr><td><code>mart_dashboard_harga_pangan</code></td><td>marts</td><td>~346.000</td><td>Data dashboard dengan status &amp; alert</td></tr>
+      <tr><td><code>hari_besar</code></td><td>raw</td><td>91</td><td>Libur nasional 2024–2027 (python-holidays)</td></tr>
+      <tr><td><code>cuaca_harian</code></td><td>raw</td><td>11.605</td><td>Data cuaca Open-Meteo (2020–2026, 5 lokasi)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════ 5. LAPIS 1 ═══════════════════════ -->
+<section id="layer1">
+  <h2>5. Lapis 1 — Forecast Engine (LightGBM Quantile)</h2>
+  <p>
+    Lapis pertama bertanggung jawab memprediksi harga pangan ke depan menggunakan <strong>LightGBM Quantile Regression</strong>. Berbeda dari regresi biasa yang hanya memprediksi nilai tengah, quantile regression menghasilkan interval prediksi yang memungkinkan estimasi <em>worst-case</em> secara probabilistik.
+  </p>
+
+  <div class="highlight-box">
+    <strong>Mengapa satu model global (bukan per-komoditas)?</strong><br/>
+    Dengan 21 komoditas × 10 kota = 210 deret waktu, pendekatan per-series tidak efisien.
+    Model global tunggal memanfaatkan <em>transfer learning</em> implisit: pola harga cabai di Bandung
+    membantu prediksi cabai di Bekasi. Komoditas dan kota di-encode sebagai fitur integer kategoris.
+  </div>
+
+  <h3 id="fitur">5.1 Feature Engineering</h3>
+  <p>
+    Fitur dibangun dari dua sumber: (a) mart Supabase yang sudah berisi lag dan rolling statistics dari dbt, dan (b) fitur HET tambahan yang dihitung saat loading di <code>features.py</code>.
+  </p>
+
+  <table>
+    <thead><tr><th>Kelompok Fitur</th><th>Kolom</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Lag Harga</td>
+        <td><code>harga_lag_1d, _7d, _14d, _30d</code></td>
+        <td>Harga 1, 7, 14, 30 hari yang lalu</td>
+      </tr>
+      <tr>
+        <td>Perubahan</td>
+        <td><code>delta_harga_1d, _7d</code><br/><code>pct_change_1d, _7d</code></td>
+        <td>Selisih dan persen perubahan harga</td>
+      </tr>
+      <tr>
+        <td>Rolling Stats</td>
+        <td><code>rolling_avg_7d/30d, rolling_std_7d/30d</code><br/><code>rolling_min_30d, rolling_max_30d</code></td>
+        <td>Rata-rata, std dev, min, maks bergulir</td>
+      </tr>
+      <tr>
+        <td>Cross-wilayah</td>
+        <td><code>avg_harga_nasional, harga_zscore_30d</code><br/><code>harga_ratio_nasional</code></td>
+        <td>Benchmark nasional dan z-score relatif</td>
+      </tr>
+      <tr>
+        <td>Kalender</td>
+        <td><code>bulan, kuartal, hari_dalam_minggu</code><br/><code>is_ramadan_season, is_year_end_season</code></td>
+        <td>Musiman, hari raya, akhir tahun</td>
+      </tr>
+      <tr>
+        <td>HET</td>
+        <td><code>het_pct_utilization, jarak_ke_het_pct</code></td>
+        <td>% utilisasi HET dan jarak terhadap batas HET</td>
+      </tr>
+      <tr>
+        <td>Kategoris</td>
+        <td><code>comcat_id_encoded, kota_id, provinsi_id</code></td>
+        <td>Identitas komoditas &amp; wilayah (integer-encoded)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><strong>Matching HET</strong> menggunakan prioritas: (1) provinsi spesifik → (2) "Jawa" (untuk 6 provinsi Jawa) → (3) "Nasional". Coverage: 76,2% baris memiliki referensi HET valid.</p>
+
+  <h3 id="model">5.2 Model &amp; Training</h3>
+
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h4>Konfigurasi Model</h4>
+      <ul style="font-size:9pt;padding-left:16px;">
+        <li>Objective: <code>quantile</code> (pinball loss)</li>
+        <li>n_estimators: 1000 (early stopping 50)</li>
+        <li>learning_rate: 0,05</li>
+        <li>num_leaves: 63, max_depth: -1</li>
+        <li>feature_fraction: 0,8 | bagging: 0,8</li>
+        <li>Random state: 42</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Split Data (Time-based, No Leakage)</h4>
+      <table style="margin:0;">
+        <thead><tr><th>Split</th><th>Periode</th><th>Baris (7d)</th></tr></thead>
+        <tbody>
+          <tr><td>Train</td><td>2020–2024</td><td>262.829</td></tr>
+          <tr><td>Validasi</td><td>2025</td><td>54.411</td></tr>
+          <tr><td>Test</td><td>2026+</td><td>15.750</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3 id="performa">5.3 Performa Model</h3>
+
+  <div class="bar-chart">
+    <div class="bar-row">
+      <div class="bar-label">Q50 / 7 hari (Val)</div>
+      <div class="bar-track"><div class="bar-fill good" style="width:97%;">3,52%</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Q50 / 7 hari (Test)</div>
+      <div class="bar-track"><div class="bar-fill good" style="width:96%;">3,95%</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Q50 / 14 hari (Val)</div>
+      <div class="bar-track"><div class="bar-fill ok" style="width:94%;">4,75%</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Q50 / 14 hari (Test)</div>
+      <div class="bar-track"><div class="bar-fill ok" style="width:93%;">5,43%</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Q90 / 7 hari (Val)</div>
+      <div class="bar-track"><div class="bar-fill ok" style="width:90%;">7,41%</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Q90 / 14 hari (Val)</div>
+      <div class="bar-track"><div class="bar-fill warn" style="width:83%;">9,78%</div></div>
+    </div>
+    <p class="muted" style="margin-top:4px;">Sumbu: 100% = 0% MAPE (sempurna). Target KPI: MAPE ≤ 12%. Semua model lulus.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Model</th><th>Quantile</th><th>Horizon</th><th>MAPE Val</th><th>MAPE Test</th><th>Coverage (Q90)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>lgbm_q50_t7</code></td><td>Q50 (median)</td><td>7 hari</td>
+        <td><span class="badge-green">3,52%</span></td><td>3,95%</td><td>—</td>
+      </tr>
+      <tr>
+        <td><code>lgbm_q90_t7</code></td><td>Q90 (upper)</td><td>7 hari</td>
+        <td>7,41%</td><td>7,82%</td><td><span class="badge-green">90,9%</span></td>
+      </tr>
+      <tr>
+        <td><code>lgbm_q50_t14</code></td><td>Q50 (median)</td><td>14 hari</td>
+        <td>4,75%</td><td>5,43%</td><td>—</td>
+      </tr>
+      <tr>
+        <td><code>lgbm_q90_t14</code></td><td>Q90 (upper)</td><td>14 hari</td>
+        <td>9,78%</td><td>9,27%</td><td>89,1%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="muted">Interval Q90 7-hari sangat terkalibrasi (90,9% ≈ target 90%). Interval 14-hari memiliki coverage lebih rendah — wajar mengingat ketidakpastian yang lebih tinggi pada horizon yang lebih panjang.</p>
+</section>
+
+<!-- ═══════════════════════ 6. LAPIS 2 ═══════════════════════ -->
+<section id="layer2">
+  <h2>6. Lapis 2 — Detection Engine</h2>
+  <p>
+    Lapis kedua mengombinasikan empat mekanisme deteksi yang saling melengkapi. Output akhir adalah <code>DetectionResult</code> yang berisi <code>final_alert_level</code> hasil eskalasi dari semua sinyal.
+  </p>
+
+  <h3 id="het">6.1 HET Threshold Check (Modul A)</h3>
+  <p>
+    Setiap harga aktual dibandingkan dengan HET yang berlaku. Jika prediksi P90 juga melampaui HET, sistem menghasilkan <em>pre-emptive alert</em> sebelum pelanggaran terjadi secara aktual.
+  </p>
+
+  <div class="card-grid cols-3">
+    <div class="alert-green" style="border-radius:4px;margin-bottom:0;">
+      <strong>🟢 GREEN</strong><br/>
+      <span style="font-size:9pt;">Harga &lt; 80% HET<br/>Kondisi normal, tidak ada tindakan</span>
+    </div>
+    <div class="alert-yellow" style="border-radius:4px;margin-bottom:0;">
+      <strong>🟡 YELLOW</strong><br/>
+      <span style="font-size:9pt;">80% ≤ harga &lt; 100% HET<br/>Mendekati batas, perlu pemantauan</span>
+    </div>
+    <div class="alert-red" style="border-radius:4px;margin-bottom:0;">
+      <strong>🔴 RED</strong><br/>
+      <span style="font-size:9pt;">Harga ≥ 100% HET<br/>Pelanggaran HET, intervensi segera</span>
+    </div>
+  </div>
+
+  <h3 id="zscore">6.2 Z-score Online Change Point Detection (Modul B1)</h3>
+  <p>
+    Deteksi perubahan mendadak dengan membandingkan rata-rata 14 hari terakhir (<em>recent window</em>) terhadap rata-rata baseline 60 hari sebelumnya. Jika pergeseran melebihi 2σ baseline, sistem menandai sebagai <em>changepoint</em> (→ <strong>red</strong>).
+  </p>
+
+  <pre><code><span class="cmt"># Simplified logic</span>
+sigma_shift = (recent_mean - baseline_mean) / baseline_std
+is_changepoint = abs(sigma_shift) >= 2.0  <span class="cmt"># 2σ threshold</span></code></pre>
+
+  <h3 id="cusum">6.3 CUSUM Early Warning (Modul B2)</h3>
+  <p>
+    CUSUM (Cumulative Sum Control Chart) adalah metode kontrol statistik klasik yang mengakumulasi deviasi kecil namun konsisten dari baseline. Keunggulan utamanya: mendeteksi <em>drift</em> harga <strong>2–4 hari lebih awal</strong> dibanding Z-score, yang memerlukan lonjakan tunggal besar.
+  </p>
+
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h4>Formula CUSUM</h4>
+      <div style="background:#f8f9fa;padding:8px;border-radius:4px;font-family:monospace;font-size:8.5pt;">
+        CUSUM⁺[t] = max(0, CUSUM⁺[t-1] + zₜ − k)<br/>
+        CUSUM⁻[t] = max(0, CUSUM⁻[t-1] − zₜ − k)<br/><br/>
+        Alarm jika CUSUM⁺ &gt; h atau CUSUM⁻ &gt; h
+      </div>
+      <p style="font-size:8.5pt;margin-top:8px;">
+        <strong>k = 0,5σ</strong> (allowable slack — standar seri ekonomi)<br/>
+        <strong>h = 4σ</strong> (decision threshold — ARL ≈ 370 false alarms)
+      </p>
+    </div>
+    <div class="card">
+      <h4>Perbandingan Z-score vs CUSUM</h4>
+      <table style="margin:0;">
+        <thead><tr><th></th><th>Z-score</th><th>CUSUM</th></tr></thead>
+        <tbody>
+          <tr><td>Deteksi</td><td>Spike tunggal besar</td><td>Drift kumulatif</td></tr>
+          <tr><td>Timing</td><td>Setelah lonjakan</td><td>2–4 hari lebih awal</td></tr>
+          <tr><td>Output</td><td>is_changepoint</td><td>is_alarm</td></tr>
+          <tr><td>Alert Level</td><td>Red</td><td>Yellow (early warn.)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Simulasi CUSUM chart -->
+  <div class="chart-wrap">
+    <div class="chart-title">Ilustrasi: CUSUM vs Z-score — Deteksi Drift Harga Cabai</div>
+    <svg viewBox="0 0 680 160" width="100%" style="display:block;">
+      <!-- Grid -->
+      <line x1="50" y1="10" x2="50" y2="140" stroke="#dee2e6" stroke-width="1"/>
+      <line x1="50" y1="140" x2="650" y2="140" stroke="#dee2e6" stroke-width="1"/>
+      <!-- Y labels -->
+      <text x="45" y="15"  fill="#6c757d" font-size="8" text-anchor="end">Tinggi</text>
+      <text x="45" y="80"  fill="#6c757d" font-size="8" text-anchor="end">Normal</text>
+      <text x="45" y="140" fill="#6c757d" font-size="8" text-anchor="end">Rendah</text>
+      <!-- Horizontal guide -->
+      <line x1="50" y1="75" x2="650" y2="75" stroke="#dee2e6" stroke-width="1" stroke-dasharray="4,3"/>
+      <!-- HET line -->
+      <line x1="50" y1="45" x2="650" y2="45" stroke="#e74c3c" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <text x="655" y="48" fill="#e74c3c" font-size="8">HET</text>
+      <!-- Harga actual line -->
+      <polyline points="50,95 100,93 150,90 200,87 250,83 300,79 350,74 400,68 450,62 500,55 550,49 600,44 650,40"
+        fill="none" stroke="#3b82f6" stroke-width="2"/>
+      <!-- CUSUM alarm zone (earlier) -->
+      <rect x="340" y="10" width="30" height="130" fill="#fef08a" opacity="0.5"/>
+      <text x="342" y="22" fill="#a16207" font-size="7.5" font-weight="bold">CUSUM⚡</text>
+      <!-- Z-score alarm zone (later) -->
+      <rect x="490" y="10" width="30" height="130" fill="#fca5a5" opacity="0.4"/>
+      <text x="492" y="22" fill="#b91c1c" font-size="7.5" font-weight="bold">Z-score🔴</text>
+      <!-- Labels -->
+      <text x="200" y="155" fill="#3b82f6" font-size="8">Harga aktual (drift gradual naik)</text>
+      <text x="490" y="155" fill="#b91c1c" font-size="8">Deteksi Z-score</text>
+      <text x="340" y="155" fill="#a16207" font-size="8">CUSUM</text>
+    </svg>
+    <div class="chart-note">CUSUM mendeteksi drift kumulatif lebih awal (kuning) sebelum harga melampaui HET dan sebelum Z-score aktif (merah). Selisih waktu deteksi: 2–4 hari.</div>
+  </div>
+
+  <h3 id="disparity">6.4 Disparity Scoring (Modul C)</h3>
+  <p>
+    Disparity score mengukur ketimpangan harga komoditas antar-kota menggunakan rasio harga terhadap rata-rata nasional (<code>harga_ratio_nasional</code> dari mart). Skor mendekati 1,0 mengindikasikan distribusi merata; skor tinggi mengindikasikan ada kota dengan surplus dan ada yang defisit — kandidat koordinasi stok antar-wilayah.
+  </p>
+
+  <pre><code>disparity_score = max_ratio - min_ratio
+<span class="cmt"># max_ratio = kota termahal / rata-rata nasional</span>
+<span class="cmt"># min_ratio = kota termurah / rata-rata nasional</span></code></pre>
+</section>
+
+<!-- ═══════════════════════ 7. LAPIS 3 ═══════════════════════ -->
+<section id="layer3">
+  <h2>7. Lapis 3 — Decision Engine (LLM ReAct Agent)</h2>
+  <p>
+    Lapis ketiga adalah inti pengambilan keputusan sistem. Sinyal dari Lapis 1 dan 2 disampaikan ke <strong>NVIDIA Llama 3.3 Nemotron Super 49B</strong> yang berjalan via NVIDIA NIM API. Model ini menggunakan pola <strong>ReAct</strong> — sebuah pendekatan multi-turn di mana LLM secara iteratif <em>berpikir</em> (Reason) lalu <em>mengambil tindakan</em> (Act) dengan memanggil tool pengambilan data kontekstual, sebelum menghasilkan keputusan final.
+  </p>
+
+  <h3 id="react">7.1 Pola ReAct (Reason + Act)</h3>
+
+  <div class="react-trace">
+    <div class="react-step think">
+      <div class="react-icon">🧠</div>
+      <div class="react-content">
+        <span class="react-tag">Think</span>
+        Harga Cabai Rawit Merah di Jakarta Pusat sudah Rp 78.500 (+30% di atas HET Rp 60.000). Prediksi P90 7-hari = Rp 86.871 (+44,8%). Ada changepoint dan CUSUM alarm. Saya perlu cek pola historis dan wilayah surplus terdekat.
+      </div>
+    </div>
+    <div class="react-step tool">
+      <div class="react-icon">🔧</div>
+      <div class="react-content">
+        <span class="react-tag">Tool Call → get_historical_pattern</span>
+        <code>{"komoditas_nama": "Cabai Rawit Merah", "bulan": 5}</code>
+      </div>
+    </div>
+    <div class="react-step result">
+      <div class="react-icon">📊</div>
+      <div class="react-content">
+        <span class="react-tag">Result</span>
+        rata_rata_historis_bulan_sama: Rp 55.200 | pct_change_vs_historis: +42,2% | interpretasi: "Di atas rata-rata historis"
+      </div>
+    </div>
+    <div class="react-step tool">
+      <div class="react-icon">🔧</div>
+      <div class="react-content">
+        <span class="react-tag">Tool Call → compare_regional_prices</span>
+        <code>{"komoditas_nama": "Cabai Rawit Merah", "tanggal": "2026-05-11"}</code>
+      </div>
+    </div>
+    <div class="react-step result">
+      <div class="react-icon">📊</div>
+      <div class="react-content">
+        <span class="react-tag">Result</span>
+        top3_surplus_terdekat: [{"kota": "Kota Bandung", "harga": 61.450, "status": "surplus", "proximity": "same_island"}] | kota_surplus_terdekat: "Kota Bandung"
+      </div>
+    </div>
+    <div class="react-step tool">
+      <div class="react-icon">🔧</div>
+      <div class="react-content">
+        <span class="react-tag">Tool Call → get_upcoming_events</span>
+        <code>{"tanggal_referensi": "2026-05-11"}</code>
+      </div>
+    </div>
+    <div class="react-step result">
+      <div class="react-icon">📊</div>
+      <div class="react-content">
+        <span class="react-tag">Result</span>
+        Tidak ada hari besar signifikan dalam 30 hari ke depan. Faktor musiman: akhir musim Lebaran, potensi normalisasi.
+      </div>
+    </div>
+    <div class="react-step final">
+      <div class="react-icon">✅</div>
+      <div class="react-content">
+        <span class="react-tag">Final Answer (JSON)</span>
+        <code>{"final_alert_level": "red", "intervention_priority": 2, "confidence": "high", "rekomendasi": "Koordinasikan stok Cabai Rawit Merah dari Kota Bandung (harga Rp 61.450) ke Kota Jakarta Pusat untuk menekan harga. Lakukan sidak harga di pasar lokal untuk mencegah spekulasi. Perkuat operasi pasar dengan memasok dari area surplus terdekat."}</code>
+      </div>
+    </div>
+  </div>
+
+  <h3 id="tools">7.2 Tools yang Tersedia</h3>
+  <p>Tool diimplementasikan sebagai query in-memory terhadap DataFrame Pandas yang sudah di-load saat startup. Tidak ada query database saat runtime — latensi sangat rendah (&lt;50ms per tool call).</p>
+
+  <table>
+    <thead><tr><th>Tool</th><th>Parameter</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>get_historical_pattern</code></td>
+        <td>komoditas_nama, bulan</td>
+        <td>Rata-rata, std, min, maks historis + % perbandingan vs historis + interpretasi</td>
+      </tr>
+      <tr>
+        <td><code>compare_regional_prices</code></td>
+        <td>komoditas_nama, tanggal</td>
+        <td>Semua kota terdekat: harga, status surplus/defisit, proximity, top3 surplus terdekat</td>
+      </tr>
+      <tr>
+        <td><code>get_upcoming_events</code></td>
+        <td>tanggal_referensi</td>
+        <td>Daftar event hari besar 30 hari ke depan + dampak historis ke harga</td>
+      </tr>
+      <tr>
+        <td><code>get_het_breach_history</code></td>
+        <td>komoditas_nama, kota_nama, lookback_days</td>
+        <td>Frekuensi pelanggaran HET N hari terakhir + pola berulang</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="proximity">7.3 Proximity Filtering — Mencegah Rekomendasi Kota Jauh</h3>
+  <p>
+    Tanpa filtering, LLM berpotensi merekomendasikan kota di pulau yang berbeda (mis. Makassar untuk masalah di Jakarta) yang tidak realistis secara logistik. Sistem menerapkan <em>proximity filter</em> berlapis:
+  </p>
+
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h4>Klasifikasi Proximity</h4>
+      <table style="margin:0;">
+        <thead><tr><th>Nilai</th><th>Arti</th><th>Diizinkan?</th></tr></thead>
+        <tbody>
+          <tr><td><code>same_island</code></td><td>Pulau yang sama</td><td><span class="badge-green">✓ Ya</span></td></tr>
+          <tr><td><code>neighboring</code></td><td>Pulau bertetangga</td><td><span class="badge-yellow">✓ Ya (kondisional)</span></td></tr>
+          <tr><td><code>far</code></td><td>Beda pulau jauh</td><td><span class="badge-red">✗ Tidak</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h4>Peta Tetangga Pulau</h4>
+      <ul style="font-size:8.5pt;padding-left:14px;">
+        <li><strong>Jawa</strong> ↔ Sumatra, Bali</li>
+        <li><strong>Sumatra</strong> ↔ Jawa, Kalimantan</li>
+        <li><strong>Kalimantan</strong> ↔ Sumatra, Sulawesi</li>
+        <li><strong>Sulawesi</strong> ↔ Kalimantan, Maluku</li>
+        <li><strong>Bali</strong> ↔ Jawa, NTB</li>
+      </ul>
+    </div>
+  </div>
+
+  <p>
+    Tool <code>compare_regional_prices</code> hanya mengembalikan kota dengan <code>proximity ∈ {same_island, neighboring}</code>. System prompt secara eksplisit melarang LLM menyebut kota di luar daftar yang dikembalikan tool, bahkan dalam frasa bersyarat ("jika logistik memungkinkan").
+  </p>
+
+  <h3 id="fallback">7.4 Rule-based Fallback</h3>
+  <p>
+    Jika LLM API tidak tersedia atau mengalami error, sistem beralih ke <em>rule-based scoring</em> otomatis. Keputusan dibuat berdasarkan kombinasi sinyal: tingkat HET breach, keberadaan changepoint, alarm CUSUM, dan disparity score. Fallback menghasilkan rekomendasi template tanpa menyebut kota spesifik. Tidak ada downtime sistem.
+  </p>
+</section>
+
+<!-- ═══════════════════════ 8. API ═══════════════════════ -->
+<section id="api">
+  <h2>8. API &amp; Integrasi</h2>
+  <p>
+    Seluruh fungsionalitas sistem diekspos melalui FastAPI yang berjalan di port 8001. Pipeline di-load ke memori satu kali saat startup, sehingga latensi inferensi per request sangat rendah.
+  </p>
+
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge-blue">GET</span></td><td><code>/health</code></td><td>Status pipeline: models loaded, data rows, LLM availability</td></tr>
+      <tr><td><span class="badge-red">POST</span></td><td><code>/api/v1/analyze</code></td><td>Analisis tunggal: komoditas × kota × tanggal → full 3-layer result</td></tr>
+      <tr><td><span class="badge-red">POST</span></td><td><code>/api/v1/batch</code></td><td>Batch analisis multiple kombinasi dalam satu request</td></tr>
+      <tr><td><span class="badge-blue">GET</span></td><td><code>/api/v1/alerts</code></td><td>Semua alert aktif (yellow/red), diurutkan prioritas</td></tr>
+      <tr><td><span class="badge-blue">GET</span></td><td><code>/api/v1/summary/{tanggal}</code></td><td>Ringkasan harian untuk dashboard</td></tr>
+      <tr><td><span class="badge-blue">GET</span></td><td><code>/api/v1/komoditas</code></td><td>Daftar komoditas tersedia di database</td></tr>
+      <tr><td><span class="badge-blue">GET</span></td><td><code>/api/v1/kota</code></td><td>Daftar kota tersedia di database</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Contoh Request &amp; Response</h3>
+  <pre><code><span class="cmt"># Analisis Cabai Rawit Merah di Jakarta Pusat</span>
+curl -X POST http://localhost:8001/api/v1/analyze \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"komoditas_nama": "Cabai Rawit Merah", "kota_nama": "Kota Jakarta Pusat", "tanggal": "2026-05-11"}'</span></code></pre>
+
+  <pre><code>{
+  <span class="key">"komoditas_nama"</span>: <span class="str">"Cabai Rawit Merah"</span>,
+  <span class="key">"kota_nama"</span>: <span class="str">"Kota Jakarta Pusat"</span>,
+  <span class="key">"tanggal"</span>: <span class="str">"2026-05-11"</span>,
+  <span class="key">"predictions"</span>: {
+    <span class="key">"p50_7d"</span>: <span class="num">78120</span>,  <span class="cmt">// median forecast 7 hari</span>
+    <span class="key">"p90_7d"</span>: <span class="num">86871</span>,  <span class="cmt">// upper-bound risk forecast 7 hari</span>
+    <span class="key">"p50_14d"</span>: <span class="num">79450</span>,
+    <span class="key">"p90_14d"</span>: <span class="num">91200</span>
+  },
+  <span class="key">"detection"</span>: {
+    <span class="key">"alert_level"</span>: <span class="str">"red"</span>,          <span class="cmt">// harga aktual ≥ HET</span>
+    <span class="key">"pred_alert_level"</span>: <span class="str">"red"</span>,     <span class="cmt">// prediksi P90 juga ≥ HET</span>
+    <span class="key">"is_changepoint"</span>: <span class="kw">true</span>,       <span class="cmt">// Z-score: spike mendadak</span>
+    <span class="key">"is_cusum_alarm"</span>: <span class="kw">true</span>,        <span class="cmt">// CUSUM: drift sustained</span>
+    <span class="key">"cusum_direction"</span>: <span class="str">"up"</span>,
+    <span class="key">"disparity_score"</span>: <span class="num">0.31</span>,
+    <span class="key">"jarak_ke_het_pct"</span>: <span class="num">30.8</span>,      <span class="cmt">// 30.8% di atas HET</span>
+    <span class="key">"het_harga"</span>: <span class="num">60000</span>
+  },
+  <span class="key">"decision"</span>: {
+    <span class="key">"final_alert_level"</span>: <span class="str">"red"</span>,
+    <span class="key">"intervention_priority"</span>: <span class="num">2</span>,
+    <span class="key">"confidence"</span>: <span class="str">"high"</span>,
+    <span class="key">"is_llm_generated"</span>: <span class="kw">true</span>,
+    <span class="key">"rekomendasi"</span>: <span class="str">"Koordinasikan stok Cabai Rawit Merah dari Kota Bandung (harga Rp 61.450) ke Kota Jakarta Pusat untuk menekan harga. Lakukan sidak harga di pasar lokal untuk mencegah spekulasi. Perkuat operasi pasar dengan memasok dari area surplus terdekat."</span>
+  }
+}</code></pre>
+
+  <h3>Opsi Integrasi Backend</h3>
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h4>Option A — Microservice (HTTP)</h4>
+      <pre style="font-size:8pt;margin:4px 0;"><code>response = httpx.post(
+  "http://ml-service:8001/api/v1/analyze",
+  json={<span class="str">"komoditas_nama"</span>: k,
+        <span class="str">"kota_nama"</span>: kota,
+        <span class="str">"tanggal"</span>: str(tanggal)}
+)</code></pre>
+      <p class="muted">Cocok untuk arsitektur terpisah / Docker Compose.</p>
+    </div>
+    <div class="card">
+      <h4>Option B — Direct Import (Monolith)</h4>
+      <pre style="font-size:8pt;margin:4px 0;"><code><span class="kw">from</span> ml.src.pipeline <span class="kw">import</span> RadarPipeline
+pipeline = RadarPipeline.from_config(...)
+result = pipeline.analyze(k, kota, tanggal)</code></pre>
+      <p class="muted">Cocok untuk deployment monolith — tidak perlu network hop.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 9. CONTOH KASUS ═══════════════════════ -->
+<section id="contoh">
+  <h2>9. Contoh Kasus Nyata</h2>
+  <p>
+    Berikut adalah rekonstruksi analisis nyata yang dijalankan sistem pada 11 Mei 2026 untuk komoditas <strong>Cabai Rawit Merah</strong> di <strong>Kota Jakarta Pusat</strong>. Kasus ini mendemonstrasikan semua komponen pipeline secara end-to-end.
+  </p>
+
+  <div class="card" style="border-left: 4px solid var(--primary);">
+    <div class="card-grid cols-3" style="gap:8px;">
+      <div>
+        <div class="muted">Komoditas</div>
+        <strong>Cabai Rawit Merah</strong>
+      </div>
+      <div>
+        <div class="muted">Kota</div>
+        <strong>Kota Jakarta Pusat</strong>
+      </div>
+      <div>
+        <div class="muted">Tanggal</div>
+        <strong>11 Mei 2026</strong>
+      </div>
+    </div>
+  </div>
+
+  <h3>Sinyal Lapis 1 &amp; 2</h3>
+  <table>
+    <thead><tr><th>Sinyal</th><th>Nilai</th><th>Interpretasi</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Harga Aktual</td>
+        <td><strong>Rp 78.500</strong></td>
+        <td>Di atas HET Rp 60.000</td>
+      </tr>
+      <tr>
+        <td>HET</td>
+        <td>Rp 60.000</td>
+        <td>Regulasi Bapanas 2023</td>
+      </tr>
+      <tr>
+        <td>Jarak ke HET</td>
+        <td><span class="badge-red">+30,8%</span></td>
+        <td>Pelanggaran HET → Alert RED</td>
+      </tr>
+      <tr>
+        <td>Prediksi P50 7d</td>
+        <td>Rp 78.120</td>
+        <td>Median forecast 7 hari</td>
+      </tr>
+      <tr>
+        <td>Prediksi P90 7d</td>
+        <td><strong>Rp 86.871</strong></td>
+        <td>+44,8% di atas HET — risiko tinggi</td>
+      </tr>
+      <tr>
+        <td>Z-score Changepoint</td>
+        <td><span class="badge-red">TRUE</span></td>
+        <td>Pergeseran mendadak &gt;2σ</td>
+      </tr>
+      <tr>
+        <td>CUSUM Alarm</td>
+        <td><span class="badge-red">TRUE (upward)</span></td>
+        <td>Drift sustained terkonfirmasi</td>
+      </tr>
+      <tr>
+        <td>Disparity Score</td>
+        <td>0,31</td>
+        <td>Ketimpangan antar-kota cukup tinggi</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Proses Lapis 3</h3>
+  <p>Agent memanggil 3 tool secara berurutan: (1) pola historis → kenaikan +42% di atas rata-rata historis Mei; (2) harga regional → Kota Bandung surplus harga Rp 61.450, di pulau yang sama (Jawa); (3) event mendatang → tidak ada hari besar signifikan dalam 30 hari.</p>
+
+  <div class="alert-red" style="border-radius:4px;margin-top:12px;">
+    <strong>🔴 FINAL ALERT: RED | Priority: 2 | Confidence: HIGH</strong><br/>
+    <em>"Koordinasikan stok Cabai Rawit Merah dari Kota Bandung (harga Rp 61.450) ke Kota Jakarta Pusat untuk menekan harga. Lakukan sidak harga di pasar lokal untuk mencegah spekulasi. Perkuat operasi pasar dengan memasok dari area surplus terdekat."</em>
+  </div>
+
+  <!-- Visualisasi harga vs HET -->
+  <div class="chart-wrap" style="margin-top:14px;">
+    <div class="chart-title">Harga Cabai Rawit Merah — Jakarta Pusat vs HET (April–Mei 2026)</div>
+    <svg viewBox="0 0 680 180" width="100%" style="display:block;">
+      <!-- Background -->
+      <rect x="50" y="10" width="600" height="140" fill="#fafafa" rx="4"/>
+      <!-- Grid lines -->
+      <line x1="50" y1="45"  x2="650" y2="45"  stroke="#fee2e2" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="50" y1="80"  x2="650" y2="80"  stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="50" y1="115" x2="650" y2="115" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="50" y1="150" x2="650" y2="150" stroke="#e5e7eb" stroke-width="1"/>
+      <line x1="50" y1="10"  x2="50"  y2="150" stroke="#e5e7eb" stroke-width="1"/>
+      <!-- Y axis labels -->
+      <text x="44" y="48"  fill="#6c757d" font-size="8" text-anchor="end">100K</text>
+      <text x="44" y="83"  fill="#6c757d" font-size="8" text-anchor="end">80K</text>
+      <text x="44" y="118" fill="#6c757d" font-size="8" text-anchor="end">60K</text>
+      <text x="44" y="153" fill="#6c757d" font-size="8" text-anchor="end">40K</text>
+      <!-- HET line at 60K (y=118) -->
+      <line x1="50" y1="118" x2="650" y2="118" stroke="#e74c3c" stroke-width="2" stroke-dasharray="8,4"/>
+      <text x="655" y="121" fill="#e74c3c" font-size="8" font-weight="bold">HET</text>
+      <!-- Actual price path (starts below HET, then breaches) -->
+      <polyline points="50,132 100,128 150,125 200,122 250,119 300,117 350,113 400,108 450,102 500,97 550,92 600,89 650,88"
+        fill="none" stroke="#3b82f6" stroke-width="2.5"/>
+      <!-- Above-HET shading -->
+      <polygon points="300,117 350,113 400,108 450,102 500,97 550,92 600,89 650,88 650,118 300,118"
+        fill="#fee2e2" opacity="0.6"/>
+      <!-- Breach point marker -->
+      <circle cx="300" cy="117" r="5" fill="#e74c3c"/>
+      <text x="292" y="110" fill="#e74c3c" font-size="8">Breach</text>
+      <!-- P90 forecast line -->
+      <line x1="600" y1="89" x2="650" y2="62" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="655" y="65" fill="#f59e0b" font-size="8">P90</text>
+      <!-- Kota Bandung reference -->
+      <line x1="50" y1="116" x2="650" y2="116" stroke="#22c55e" stroke-width="1" stroke-dasharray="4,2" opacity="0.7"/>
+      <text x="260" y="112" fill="#22c55e" font-size="8">Kota Bandung (Rp 61.450)</text>
+      <!-- X axis labels -->
+      <text x="50"  y="165" fill="#6c757d" font-size="8" text-anchor="middle">Apr-1</text>
+      <text x="200" y="165" fill="#6c757d" font-size="8" text-anchor="middle">Apr-15</text>
+      <text x="350" y="165" fill="#6c757d" font-size="8" text-anchor="middle">Mei-1</text>
+      <text x="500" y="165" fill="#6c757d" font-size="8" text-anchor="middle">Mei-8</text>
+      <text x="650" y="165" fill="#6c757d" font-size="8" text-anchor="middle">Mei-11</text>
+      <!-- Legend -->
+      <circle cx="55"  cy="175" r="4" fill="#3b82f6"/>
+      <text x="62" y="178" fill="#3b82f6" font-size="8">Harga aktual</text>
+      <line x1="130" y1="175" x2="148" y2="175" stroke="#e74c3c" stroke-width="2" stroke-dasharray="4,2"/>
+      <text x="152" y="178" fill="#e74c3c" font-size="8">HET</text>
+      <line x1="180" y1="175" x2="198" y2="175" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="202" y="178" fill="#f59e0b" font-size="8">P90 Forecast</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 10. KEAMANAN ═══════════════════════ -->
+<section id="keamanan">
+  <h2>10. Keamanan &amp; Keterbatasan</h2>
+
+  <h3>Aspek Keamanan</h3>
+  <table>
+    <thead><tr><th>Area</th><th>Implementasi</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Kredensial</td>
+        <td>Disimpan di <code>ml/.env</code> (gitignored). Tidak ada hardcoded secret. Template tersedia via <code>.env.example</code></td>
+      </tr>
+      <tr>
+        <td>Database</td>
+        <td>Supabase dengan <code>sslmode=require</code>. Koneksi via Supavisor pooler (tidak direct ke PostgreSQL primary)</td>
+      </tr>
+      <tr>
+        <td>API</td>
+        <td>CORS dikonfigurasi. Validasi input via Pydantic (tipe data, pattern)</td>
+      </tr>
+      <tr>
+        <td>LLM Prompt Injection</td>
+        <td>System prompt eksplisit melarang LLM mengikuti instruksi dari data tool. Tool output diformat sebagai JSON terstruktur, bukan teks bebas</td>
+      </tr>
+      <tr>
+        <td>SQL Injection</td>
+        <td>Semua query menggunakan parameterized query via SQLAlchemy (tidak ada string concatenation)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Keterbatasan Sistem (MVP)</h3>
+  <div class="card-grid cols-2">
+    <div class="card">
+      <h4>Cakupan Data Terbatas</h4>
+      <p style="font-size:9pt;">Data hanya tersedia untuk 10 kota Jawa Barat + DKI Jakarta. Banten dan Sulawesi Selatan belum ter-load. Cakupan nasional membutuhkan lebih banyak pengambilan data dari PIHPS.</p>
+    </div>
+    <div class="card">
+      <h4>Proxy Musiman Sederhana</h4>
+      <p style="font-size:9pt;">Ramadan diidentifikasi dengan proxy bulan 3–5, bukan kalender Hijriah aktual. Ini menyebabkan variasi kecil tiap tahun tidak terbaca dengan tepat.</p>
+    </div>
+    <div class="card">
+      <h4>Model Global Satu Ukuran</h4>
+      <p style="font-size:9pt;">Satu model LightGBM untuk semua komoditas dan kota. Komoditas dengan pola sangat unik (mis. ikan laut vs beras) mungkin kurang optimal.</p>
+    </div>
+    <div class="card">
+      <h4>Latensi LLM</h4>
+      <p style="font-size:9pt;">Panggilan ke NVIDIA NIM memerlukan 5–15 detik per analisis karena ukuran model (49B parameter). Batch processing diperlukan untuk volume besar.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 11. PENINGKATAN ═══════════════════════ -->
+<section id="peningkatan">
+  <h2>11. Peningkatan &amp; Saran Ke Depan</h2>
+
+  <h3>Peningkatan Jangka Pendek (1–3 Bulan)</h3>
+  <table>
+    <thead><tr><th>#</th><th>Peningkatan</th><th>Dampak</th><th>Kompleksitas</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Perluas cakupan data ke semua 34 provinsi via PIHPS API</td>
+        <td>Cakupan nasional penuh, rekomendasi lebih akurat</td>
+        <td><span class="badge-yellow">Sedang</span></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Ganti proxy Ramadan dengan kalender Hijriah akurat (<code>hijridate</code>)</td>
+        <td>Fitur musiman lebih presisi</td>
+        <td><span class="badge-green">Rendah</span></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Tambah notifikasi otomatis (Telegram/Email) untuk alert RED</td>
+        <td>Response time intervensi lebih cepat</td>
+        <td><span class="badge-yellow">Sedang</span></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Dashboard frontend interaktif (Alpine.js/HTMX) terhubung ke API</td>
+        <td>Aksesibilitas bagi non-teknis</td>
+        <td><span class="badge-yellow">Sedang</span></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Cache hasil analisis dengan Redis (TTL 1 jam)</td>
+        <td>Kurangi beban LLM untuk query berulang</td>
+        <td><span class="badge-yellow">Sedang</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Peningkatan Jangka Menengah (3–12 Bulan)</h3>
+  <table>
+    <thead><tr><th>#</th><th>Peningkatan</th><th>Dampak</th><th>Kompleksitas</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Tambah model Prophet sebagai ensemble kedua (multi-model averaging)</td>
+        <td>Akurasi prediksi lebih tinggi, robust terhadap outlier musiman</td>
+        <td><span class="badge-yellow">Sedang</span></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Integrasi data cuaca Open-Meteo ke fitur model ML</td>
+        <td>Prediksi lebih baik saat musim ekstrem (kekeringan, banjir)</td>
+        <td><span class="badge-yellow">Sedang</span></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Fine-tuning model LLM dengan dataset kasus intervensi historis</td>
+        <td>Rekomendasi lebih spesifik dan kontekstual</td>
+        <td><span class="badge-red">Tinggi</span></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Tambah analisis rantai pasokan (mapping produsen → distributor → pasar)</td>
+        <td>Identifikasi bottleneck logistik secara lebih akurat</td>
+        <td><span class="badge-red">Tinggi</span></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Real-time streaming dari PIHPS (WebSocket atau SSE) daripada polling harian</td>
+        <td>Near-real-time monitoring</td>
+        <td><span class="badge-red">Tinggi</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Visi Jangka Panjang</h3>
+  <div class="card-grid cols-3">
+    <div class="card">
+      <h4>🌐 Skala Nasional</h4>
+      <p style="font-size:9pt;">Integrasi dengan BPS, Bulog, dan sistem TPID untuk cakupan 514 kabupaten/kota. Migrasi storage ke BigQuery untuk volume data besar (10M+ rows).</p>
+    </div>
+    <div class="card">
+      <h4>🤝 Ekosistem API</h4>
+      <p style="font-size:9pt;">Publikasi API publik untuk digunakan kementerian, pemerintah daerah, dan peneliti. Standarisasi format data harga pangan Indonesia.</p>
+    </div>
+    <div class="card">
+      <h4>📱 Mobile Monitoring</h4>
+      <p style="font-size:9pt;">Aplikasi mobile untuk petugas lapangan: validasi harga pasar, foto struk, dan konfirmasi rekomendasi sistem secara langsung di lokasi.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 12. KESIMPULAN ═══════════════════════ -->
+<section id="kesimpulan">
+  <h2>12. Kesimpulan</h2>
+  <p>
+    RADAR Pangan adalah bukti konsep yang berhasil mengombinasikan tiga pendekatan komplementer — prediksi statistik, deteksi anomali multi-algoritma, dan penalaran LLM berbasis konteks — dalam satu pipeline yang terintegrasi dan siap produksi. Sistem ini menjawab kebutuhan nyata: mendeteksi risiko inflasi pangan secara dini, mengidentifikasi ketimpangan distribusi harga antar-wilayah, dan menghasilkan rekomendasi intervensi yang spesifik, berbasis data, dan dapat langsung ditindaklanjuti oleh pemangku kebijakan.
+  </p>
+  <p>
+    Dengan MAPE serendah 3,52%, coverage interval probabilistik 90,9%, dan kemampuan CUSUM untuk mendeteksi drift harga 2–4 hari lebih awal, sistem ini melampaui target KPI yang ditetapkan. Integrasi dengan NVIDIA Llama 3.3 Nemotron Super 49B menghasilkan rekomendasi yang kontekstual, akurat secara geografis (berkat proximity filtering), dan mudah dipahami oleh non-teknis.
+  </p>
+  <p>
+    Langkah selanjutnya adalah memperluas cakupan data ke level nasional, memperkuat frontend monitoring, dan mengintegrasikan sistem ke dalam ekosistem kebijakan TPID (Tim Pengendalian Inflasi Daerah) Bank Indonesia, sehingga RADAR Pangan dapat berkontribusi nyata dalam menjaga stabilitas harga pangan strategis Indonesia.
+  </p>
+
+  <div class="highlight-box" style="margin-top:14px;">
+    <strong>Rangkuman Pencapaian Teknis:</strong>
+    347.550 rekaman data historis ✓ &nbsp;|&nbsp;
+    4 model LightGBM terlatih ✓ &nbsp;|&nbsp;
+    MAPE ≤ 12% (semua model lulus) ✓ &nbsp;|&nbsp;
+    CUSUM early warning +2–4 hari ✓ &nbsp;|&nbsp;
+    LLM ReAct dengan proximity filter ✓ &nbsp;|&nbsp;
+    Zero-downtime fallback ✓ &nbsp;|&nbsp;
+    FastAPI REST API ✓
+  </div>
+</section>
+
+<hr class="section-div"/>
+
+<!-- ═══════════════════════ 13. ROADMAP ML ENGINE ═══════════════════════ -->
+<section id="roadmap-ml">
+  <h2>13. Status Implementasi &amp; Roadmap ML Engine</h2>
+  <p>
+    Bagian ini merangkum secara teknis komponen ML Engine yang telah selesai dibangun serta komponen yang masih perlu dikerjakan untuk mendukung penuh seluruh halaman MVP (Login, Dashboard, Peta Risiko, Alert Center, Admin Config). Fokus pengerjaan adalah pada <strong>core sistem ML</strong> — pipeline, model, dan API endpoint — bukan pada lapisan UI.
+  </p>
+
+  <!-- ── DONE ── -->
+  <h3 id="ml-done">13.1 Komponen yang Telah Selesai</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28%">Komponen</th>
+        <th style="width:18%">File / Modul</th>
+        <th>Deskripsi</th>
+        <th style="width:10%">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Lapis 1 — Forecast Engine</strong></td>
+        <td><code>ml/src/features.py</code><br/><code>ml/src/train.py</code></td>
+        <td>4 model LightGBM Quantile Regression (Q50/Q90 × T7/T14) dilatih pada 347K+ rekaman historis PIHPS. MAPE terbaik 3,52%, coverage interval 90,9%.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Lapis 2 — Detection Engine</strong></td>
+        <td><code>ml/src/detect.py</code></td>
+        <td>HET threshold check, Z-score online change point, CUSUM early warning (+2–4 hari deteksi lebih awal), dan disparity scoring antar-kota. Output: level alert <em>green / yellow / red</em>.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Lapis 3 — Decision Engine</strong></td>
+        <td><code>ml/src/decide.py</code></td>
+        <td>LLM ReAct Agent (NVIDIA Llama 3.3 Nemotron Super 49B via NIM) dengan proximity filtering, rule-based fallback, dan multi-criteria ranking. Menghasilkan rekomendasi intervensi dalam Bahasa Indonesia.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Orkestrasi Pipeline</strong></td>
+        <td><code>ml/src/pipeline.py</code></td>
+        <td>Kelas <code>RadarPipeline</code> mengintegrasikan ketiga lapis. Method <code>analyze()</code>, <code>analyze_all()</code>, dan <code>get_active_alerts()</code> siap dipanggil oleh API.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+      <tr>
+        <td><strong>FastAPI Inference Server</strong></td>
+        <td><code>ml/serve/api.py</code></td>
+        <td>7 endpoint aktif pada port 8001: <code>/health</code>, <code>/api/v1/analyze</code>, <code>/api/v1/batch</code>, <code>/api/v1/alerts</code>, <code>/api/v1/komoditas</code>, <code>/api/v1/kota</code>, <code>/api/v1/summary/{tanggal}</code>.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Referensi HET</strong></td>
+        <td><code>ml/data/het_reference.csv</code></td>
+        <td>Tabel HET per komoditas dimuat saat startup pipeline. Digunakan Lapis 2 untuk threshold check dan Lapis 3 untuk konteks rekomendasi.</td>
+        <td style="text-align:center;color:var(--green)"><strong>✓ Selesai</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── TODO ── -->
+  <h3 id="ml-todo" style="margin-top:18px">13.2 Komponen yang Masih Dibutuhkan</h3>
+  <p>Endpoint dan modul berikut belum ada namun diperlukan agar setiap halaman MVP dapat mengonsumsi data ML secara langsung tanpa logika tambahan di sisi frontend.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28%">Komponen / Endpoint</th>
+        <th style="width:18%">Dibutuhkan untuk Halaman</th>
+        <th>Deskripsi &amp; Data yang Dikembalikan</th>
+        <th style="width:12%">Estimasi Kompleksitas</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>GET /api/v1/trend/{komoditas}/{kota}</code></td>
+        <td>Dashboard (Hal. 2)</td>
+        <td>Mengembalikan array tanggal + harga historis + band prediksi P50/P90 untuk 7 dan 14 hari ke depan. Digunakan untuk merender <em>line chart</em> tren harga dengan confidence interval.</td>
+        <td style="text-align:center"><span style="color:var(--green)">Rendah</span></td>
+      </tr>
+      <tr>
+        <td><code>GET /api/v1/risk-map/{tanggal}</code></td>
+        <td>Peta Risiko (Hal. 3)</td>
+        <td>Mengagregasi level risiko (red/yellow/green) per provinsi dari semua kombinasi komoditas–kota aktif pada tanggal tersebut. Output: <code>[{ provinsi, risk_level, dominant_commodity, alert_count }]</code> untuk pewarnaan peta choropleth.</td>
+        <td style="text-align:center"><span style="color:var(--yellow)">Menengah</span></td>
+      </tr>
+      <tr>
+        <td><code>GET /api/v1/alerts</code> — filter &amp; paginasi</td>
+        <td>Alert Center (Hal. 4)</td>
+        <td>Endpoint <code>/alerts</code> sudah ada namun belum mendukung query parameter: <code>?komoditas=</code>, <code>?provinsi=</code>, <code>?level=</code>, <code>?page=</code>, <code>?limit=</code>. Diperlukan untuk tabel alert yang dapat disaring dan di-scroll.</td>
+        <td style="text-align:center"><span style="color:var(--green)">Rendah</span></td>
+      </tr>
+      <tr>
+        <td><code>POST /api/v1/simulate</code></td>
+        <td>Alert Center / Demo (Hal. 4)</td>
+        <td>Simulasi skenario "sebelum vs sesudah intervensi". Input: komoditas, kota, tanggal, jenis intervensi (operasi pasar / redistribusi stok), persentase penurunan harga target. Output: perbandingan prediksi harga dan perubahan level alert. <em>Diwajibkan oleh brief hackathon.</em></td>
+        <td style="text-align:center"><span style="color:var(--red)">Tinggi</span></td>
+      </tr>
+      <tr>
+        <td><code>GET /api/v1/config/het</code><br/><code>PUT /api/v1/config/het</code></td>
+        <td>Admin Config (Hal. 5)</td>
+        <td>Membaca dan memperbarui nilai HET per komoditas secara dinamis tanpa restart server. Saat ini nilai HET statis dari CSV yang dimuat saat startup. Endpoint ini memungkinkan admin mengubah threshold langsung dari UI.</td>
+        <td style="text-align:center"><span style="color:var(--yellow)">Menengah</span></td>
+      </tr>
+      <tr>
+        <td>Notifikasi Alert (email / webhook)</td>
+        <td>Alert Center (Hal. 4)</td>
+        <td>Dispatch notifikasi otomatis saat sistem mendeteksi alert <em>red</em> baru. Dapat diimplementasi sebagai background task FastAPI yang memanggil SMTP (Resend/SendGrid) atau webhook Telegram. Diperlukan untuk demo <em>in-app/email notification</em> sesuai brief.</td>
+        <td style="text-align:center"><span style="color:var(--yellow)">Menengah</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── PRIORITY ── -->
+  <h3 id="ml-priority" style="margin-top:18px">13.3 Urutan Prioritas Pengerjaan</h3>
+  <div class="card-grid cols-3">
+    <div class="card" style="border-top:3px solid var(--green)">
+      <h4>Prioritas 1 — Wajib</h4>
+      <ol style="padding-left:16px;font-size:9.5pt;">
+        <li><code>/api/v1/trend/{komoditas}/{kota}</code><br/><span style="color:var(--muted);font-size:8.5pt;">Unblocks Dashboard charts</span></li>
+        <li><code>/api/v1/risk-map/{tanggal}</code><br/><span style="color:var(--muted);font-size:8.5pt;">Unblocks halaman Peta Risiko</span></li>
+        <li>Filter &amp; paginasi <code>/alerts</code><br/><span style="color:var(--muted);font-size:8.5pt;">Alert Center fungsional</span></li>
+      </ol>
+    </div>
+    <div class="card" style="border-top:3px solid var(--yellow)">
+      <h4>Prioritas 2 — Penting</h4>
+      <ol style="padding-left:16px;font-size:9.5pt;">
+        <li><code>POST /api/v1/simulate</code><br/><span style="color:var(--muted);font-size:8.5pt;">Required oleh brief hackathon (demo skenario)</span></li>
+        <li><code>GET/PUT /api/v1/config/het</code><br/><span style="color:var(--muted);font-size:8.5pt;">Admin page — update HET dinamis</span></li>
+      </ol>
+    </div>
+    <div class="card" style="border-top:3px solid var(--red)">
+      <h4>Prioritas 3 — Nice to Have</h4>
+      <ol style="padding-left:16px;font-size:9.5pt;">
+        <li>Notifikasi email/webhook<br/><span style="color:var(--muted);font-size:8.5pt;">Demo in-app &amp; email alert</span></li>
+        <li><code>POST /api/v1/retrain</code><br/><span style="color:var(--muted);font-size:8.5pt;">Trigger retraining model dari Admin UI</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="highlight-box" style="margin-top:14px;">
+    <strong>Ringkasan:</strong> Dari 7 komponen ML Engine yang diperlukan, <strong>5 telah selesai</strong> (core pipeline + 7 endpoint dasar). Tersisa <strong>5 komponen baru</strong> yang perlu dibangun — semuanya berupa penambahan endpoint di <code>ml/serve/api.py</code> dan logika aggregasi di <code>ml/src/pipeline.py</code>, tanpa perlu mengubah arsitektur yang sudah ada.
+  </div>
+</section>
+
+<hr class="section-div"/>
+
+<!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+<footer>
+  <strong>RADAR Pangan</strong> — Laporan Teknis Sistem &nbsp;|&nbsp; BI Hackathon Group 1 &nbsp;|&nbsp;
+  Versi 1.0.0 &nbsp;|&nbsp; 11 Mei 2026<br/>
+  Data: BI PIHPS &nbsp;·&nbsp; Model: LightGBM &amp; NVIDIA Llama 3.3 Nemotron Super 49B &nbsp;·&nbsp; Database: Supabase PostgreSQL
+</footer>
+
+</div>
+</body>
+</html>

@@ -139,12 +139,18 @@ class RadarPipeline:
         llm_api_key: str | None = None,
         llm_base_url: str | None = None,
         llm_model: str | None = None,
+        llm_fallback_api_key: str | None = None,
+        llm_fallback_base_url: str | None = None,
+        llm_fallback_model: str | None = None,
     ):
         self.models_dir   = Path(models_dir)
         self.het_csv      = Path(het_csv)
         self.llm_api_key  = llm_api_key  or os.environ.get("LLM_API_KEY",  "")
         self.llm_base_url = llm_base_url or os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
         self.llm_model    = llm_model    or os.environ.get("LLM_MODEL",    "google/gemini-2.5-flash")
+        self.llm_fallback_api_key  = llm_fallback_api_key  or os.environ.get("LLM_FALLBACK_API_KEY",  "")
+        self.llm_fallback_base_url = llm_fallback_base_url or os.environ.get("LLM_FALLBACK_BASE_URL", "https://api.groq.com/openai/v1")
+        self.llm_fallback_model    = llm_fallback_model    or os.environ.get("LLM_FALLBACK_MODEL",    "llama-3.3-70b-versatile")
 
         # Loaded on .load()
         self._df: pd.DataFrame | None = None
@@ -161,6 +167,9 @@ class RadarPipeline:
         llm_api_key: str | None = None,
         llm_base_url: str | None = None,
         llm_model: str | None = None,
+        llm_fallback_api_key: str | None = None,
+        llm_fallback_base_url: str | None = None,
+        llm_fallback_model: str | None = None,
     ) -> "RadarPipeline":
         """Factory method: create pipeline dan langsung load data dari Supabase."""
         pipeline = cls(
@@ -169,6 +178,9 @@ class RadarPipeline:
             llm_api_key=llm_api_key,
             llm_base_url=llm_base_url,
             llm_model=llm_model,
+            llm_fallback_api_key=llm_fallback_api_key,
+            llm_fallback_base_url=llm_fallback_base_url,
+            llm_fallback_model=llm_fallback_model,
         )
         pipeline.load(pg_conn_string=pg_conn_string)
         return pipeline
@@ -220,13 +232,16 @@ class RadarPipeline:
             base_url=self.llm_base_url,
             model=self.llm_model,
             tool_context=tool_context,
+            fallback_api_key=self.llm_fallback_api_key,
+            fallback_base_url=self.llm_fallback_base_url,
+            fallback_model=self.llm_fallback_model,
         )
 
         self._loaded = True
         logger.info(
             f"Pipeline loaded: {len(self._models)} models | "
             f"{len(self._df):,} rows data | "
-            f"LLM={'on' if self._agent._client else 'fallback'}"
+            f"LLM={'on' if self._agent._client else ('groq-fallback' if self._agent._fallback_client else 'rule-based')}"
         )
 
     def _get_row(self, komoditas_nama: str, kota_nama: str, tanggal: date) -> pd.Series | None:
