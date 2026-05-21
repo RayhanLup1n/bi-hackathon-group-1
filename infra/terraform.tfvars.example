@@ -1,0 +1,22 @@
+# ============================================================================
+# Terraform Variables — EXAMPLE
+# ============================================================================
+# Copy this file to terraform.tfvars and fill in your values:
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# IMPORTANT: terraform.tfvars is gitignored — do NOT commit it.
+# ============================================================================
+#
+# Pre-requisites (run ONCE before terraform init):
+#   1. Install gcloud CLI: https://cloud.google.com/sdk/docs/install
+#   2. Login: gcloud auth login
+#   3. Login ADC: gcloud auth application-default login
+#   4. Set project: gcloud config set project radar-pangan-hackathon
+#   5. Update ADC quota: gcloud auth application-default set-quota-project radar-pangan-hackathon
+#   6. Enable BigQuery API: gcloud services enable bigquery.googleapis.com
+#
+# ============================================================================
+
+project_id  = "proejct-id-1"
+region      = "us"
+bq_location = "us"

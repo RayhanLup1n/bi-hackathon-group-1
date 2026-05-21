@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prediksi Harga — R.A.D.A.R Pangan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    /* -- Reset + Design tokens (inline fallback) -- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #EEF7F1; --bg2: #F0FBF4;
+      --surface: #FFFFFF; --surface2: #F0FBF4;
+      --border: #1a1a1a; --border2: #1a1a1a;
+      --accent: #2ECC88; --accent2: #1D7A56;
+      --warn: #FBBF24; --danger: #F87171; --success: #34D399;
+      --highlight: #A7F3D0; --info: #67E8F9;
+      --text: #1a1a1a; --text2: #3f3f46; --muted: #71717a;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', system-ui, sans-serif;
+      --radius: 16px; --radius-sm: 12px;
+      --shadow: 4px 4px 0px #1a1a1a; --shadow-lg: 6px 6px 0px #1a1a1a;
+      --bw: 2.5px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* -- App container -- */
+    .app {
+      position: relative; z-index: 1;
+      max-width: 900px; margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+
+    /* -- Header (inline fallback) -- */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; padding: 14px 20px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 44px; height: 44px;
+      border: var(--bw) solid var(--border); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
+      overflow: hidden; padding: 0;
+    }
+    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .header-title {
+      font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
+    }
+    .header-sub {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 2px; letter-spacing: 0.5px;
+    }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .nav-link {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
+      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
+    }
+    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .nav-link-default { background: var(--surface); color: var(--accent2); }
+    .nav-link-default:hover { background: #E0F5EA; }
+    .nav-link-active { background: var(--accent); color: #fff; }
+    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
+    .nav-link-danger:hover { background: #FECACA; }
+    .user-badge {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; background: var(--surface2);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .user-badge strong { color: var(--accent2); }
+
+    /* -- Cards (inline fallback) -- */
+    .card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 22px; margin-bottom: 20px;
+      position: relative; overflow: hidden; box-shadow: var(--shadow);
+    }
+    .card::after { display: none; }
+    .card-label {
+      font-family: var(--mono); font-size: 10px; color: var(--text);
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px; font-weight: 800;
+    }
+    .card-label::before {
+      content: ''; display: inline-block;
+      width: 4px; height: 12px; background: var(--accent);
+      border-radius: 2px; border: 1px solid var(--border);
+    }
+
+    /* -- Responsive header stacking -- */
+    @media (max-width: 640px) {
+      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .header-right { width: 100%; justify-content: flex-start; }
+    }
+
+    /* -- Prediksi page-specific styles -- */
+
+    /* -- Filter bar -- */
+    .filter-bar {
+      display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px;
+      align-items: end;
+    }
+    @media (max-width: 700px) { .filter-bar { grid-template-columns: 1fr; } }
+
+    .filter-group label {
+      display: block; font-family: var(--mono); font-size: 10px;
+      font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px;
+      margin-bottom: 6px;
+    }
+    .filter-input {
+      width: 100%; padding: 10px 12px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); font-family: var(--mono); font-size: 11px;
+      font-weight: 600; box-shadow: 3px 3px 0 var(--border);
+      outline: none; cursor: pointer;
+    }
+    .filter-input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+    /* -- Summary cards -- */
+    .summary-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 600px) { .summary-row { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow); text-align: center;
+    }
+    .stat-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .stat-value { font-size: 26px; font-weight: 900; letter-spacing: -1px; }
+    .stat-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+    /* -- ML Server Status -- */
+    .ml-status-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 16px 20px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .ml-status-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid var(--border); flex-shrink: 0;
+    }
+    .ml-status-dot.online { background: var(--success); }
+    .ml-status-dot.offline { background: var(--danger); }
+    .ml-status-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+    .ml-status-text { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+    .ml-status-detail { font-family: var(--mono); font-size: 10px; color: var(--muted); font-weight: 500; }
+
+    /* -- Alert level badges -- */
+    .alert-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 6px;
+      font-family: var(--mono); font-size: 11px; font-weight: 800;
+      text-transform: uppercase; border: 2px solid var(--border);
+    }
+    .alert-green { background: #D1FAE5; color: #065F46; }
+    .alert-yellow { background: #FEF3C7; color: #92400E; }
+    .alert-red { background: #FEE2E2; color: #991B1B; }
+    .alert-unknown { background: #F3F4F6; color: #6B7280; }
+
+    /* -- ML Result Card -- */
+    .ml-result-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      margin-bottom: 20px; overflow: hidden;
+    }
+    .ml-result-header {
+      padding: 16px 20px; background: var(--surface2);
+      border-bottom: var(--bw) solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ml-result-title { font-family: var(--mono); font-size: 12px; font-weight: 800; }
+    .ml-result-body { padding: 20px; }
+
+    .prediction-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 500px) { .prediction-grid { grid-template-columns: 1fr; } }
+    .pred-box {
+      padding: 16px; border: 2px solid var(--border); border-radius: var(--radius-sm);
+      text-align: center;
+    }
+    .pred-box-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .pred-box-value { font-size: 22px; font-weight: 900; }
+    .pred-box-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    /* -- Detection section -- */
+    .detection-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 600px) { .detection-row { grid-template-columns: 1fr; } }
+    .detect-item {
+      padding: 14px; border: 2px solid var(--border); border-radius: var(--radius-sm);
+      text-align: center;
+    }
+    .detect-label {
+      font-family: var(--mono); font-size: 9px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .detect-value { font-size: 14px; font-weight: 800; }
+
+    /* -- Recommendation card -- */
+    .reco-card {
+      padding: 16px 20px; border: 2px solid var(--border); border-radius: var(--radius-sm);
+      background: #FFFBEB;
+    }
+    .reco-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--accent2);
+      margin-bottom: 6px;
+    }
+    .reco-text { font-size: 13px; line-height: 1.6; }
+    .reco-meta {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 8px; font-weight: 500;
+    }
+
+    /* -- Prediction table -- */
+    .pred-table-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow: hidden; margin-bottom: 20px;
+    }
+    .pred-table-header {
+      padding: 16px 20px; background: var(--surface2);
+      border-bottom: var(--bw) solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .pred-table-title { font-family: var(--mono); font-size: 12px; font-weight: 800; }
+    .pred-count {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      padding: 3px 10px; border-radius: 6px;
+      background: #E0F5EA; color: var(--accent2);
+      border: 1.5px solid var(--border);
+    }
+
+    .pred-table {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+    }
+    .pred-table th {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1px;
+      padding: 10px 16px; text-align: left;
+      border-bottom: var(--bw) solid var(--border);
+      background: var(--surface2);
+    }
+    .pred-table td {
+      padding: 12px 16px; border-bottom: 1px solid #e5e5e5;
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+    }
+    .pred-table tbody tr:hover { background: #E0F5EA; }
+    .pred-table tbody tr:last-child td { border-bottom: none; }
+
+    /* -- Chart card -- */
+    .chart-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 22px; margin-bottom: 20px;
+    }
+    .chart-card canvas { max-height: 320px; }
+
+    .trend-up { color: #DC2626; font-weight: 800; }
+    .trend-down { color: #059669; font-weight: 800; }
+    .trend-neutral { color: var(--muted); }
+
+    .empty-state { padding: 50px 20px; font-weight: 600; }
+
+    .spinner { width: 18px; height: 18px; border: 3px solid rgba(46,204,136,0.2); border-top-color: var(--accent); }
+
+    /* -- Info banner -- */
+    .info-banner {
+      padding: 16px 20px; background: #DBEAFE;
+      border: var(--bw) solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 20px;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .info-icon { font-size: 22px; flex-shrink: 0; }
+    .info-text { font-size: 13px; color: #1e3a5f; line-height: 1.6; }
+    .info-text strong { font-weight: 800; }
+
+    /* -- Source tabs -- */
+    .source-tabs {
+      display: flex; gap: 0; margin-bottom: 20px;
+    }
+    .source-tab {
+      flex: 1; padding: 12px; text-align: center; cursor: pointer;
+      font-family: var(--mono); font-size: 11px; font-weight: 800;
+      border: var(--bw) solid var(--border);
+      transition: background 0.15s;
+    }
+    .source-tab:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    .source-tab:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; border-left: none; }
+    .source-tab.active { background: var(--accent); color: #fff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+    .source-tab:not(.active) { background: var(--surface); color: var(--text); }
+    .source-tab:not(.active):hover { background: #E0F5EA; }
+
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="app" x-data="prediksiPage()" x-cloak>
+
+  <!-- -- Header -- -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-icon"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
+      <div>
+        <div class="header-title">R.A.D.A.R Pangan</div>
+        <div class="header-sub">prediksi harga &nbsp;·&nbsp; machine learning &nbsp;·&nbsp; v0.5</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="user-badge">
+        <strong x-text="user?.username || '—'"></strong> · <span x-text="user?.role || ''"></span>
+      </span>
+      <a href="/" class="nav-link nav-link-default">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-default">Panduan</a>
+      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
+        <a href="/rca" class="nav-link nav-link-default">RCA</a>
+      </template>
+      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
+        <a href="/prediksi" class="nav-link nav-link-active">Prediksi</a>
+      </template>
+      <template x-if="user?.is_admin || user?.role === 'admin'">
+        <a href="/admin" class="nav-link nav-link-default">Admin</a>
+      </template>
+      <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
+    </div>
+  </header>
+
+  <!-- -- ML Server Status -- -->
+  <div class="ml-status-card">
+    <div class="ml-status-dot" :class="mlStatus"></div>
+    <div>
+      <div class="ml-status-text" x-text="mlStatusText"></div>
+      <div class="ml-status-detail" x-text="mlStatusDetail"></div>
+    </div>
+  </div>
+
+  <!-- -- Source Tabs -- -->
+  <div class="source-tabs">
+    <div class="source-tab" :class="{ active: source === 'ml', disabled: mlStatus === 'offline' }"
+         @click="mlStatus !== 'offline' && switchSource('ml')"
+         :style="mlStatus === 'offline' ? 'opacity:0.5;cursor:not-allowed;' : ''">
+      🤖 ML Inference (Real-time)
+    </div>
+    <div class="source-tab" :class="{ active: source === 'db' }" @click="switchSource('db')">
+      📊 Database (app.ml_predictions)
+    </div>
+  </div>
+
+  <!-- -- Filter Bar -- -->
+  <div class="card">
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Komoditas</label>
+        <template x-if="source === 'ml'">
+          <select class="filter-input" x-model="selectedMlKomoditas" @change="analyze()">
+            <option value="">Pilih Komoditas</option>
+            <template x-for="k in mlKomoditasList" :key="k">
+              <option :value="k" x-text="k"></option>
+            </template>
+          </select>
+        </template>
+        <template x-if="source === 'db'">
+          <select class="filter-input" x-model="selectedKey" @change="loadDbPredictions()">
+            <option value="">Semua Komoditas</option>
+            <template x-for="c in commodities" :key="c.key">
+              <option :value="c.comcat_id" x-text="c.name"></option>
+            </template>
+          </select>
+        </template>
+      </div>
+      <div class="filter-group">
+        <label>Kota</label>
+        <template x-if="source === 'ml'">
+          <select class="filter-input" x-model="selectedMlKota" @change="analyze()">
+            <option value="">Pilih Kota</option>
+            <template x-for="k in mlKotaList" :key="k.kota_nama">
+              <option :value="k.kota_nama" x-text="k.kota_nama + ' (' + k.provinsi_nama + ')'"></option>
+            </template>
+          </select>
+        </template>
+        <template x-if="source === 'db'">
+          <select class="filter-input" x-model="selectedKota" @change="loadDbPredictions()">
+            <option value="">Semua Kota</option>
+            <template x-for="k in cities" :key="k.id">
+              <option :value="k.id" x-text="k.name"></option>
+            </template>
+          </select>
+        </template>
+      </div>
+      <div class="filter-group">
+        <label x-text="source === 'ml' ? 'Tanggal' : 'Periode'"></label>
+        <template x-if="source === 'ml'">
+          <input type="date" class="filter-input" x-model="mlTanggal" @change="analyze()">
+        </template>
+        <template x-if="source === 'db'">
+          <select class="filter-input" x-model="period" @change="loadDbPredictions()">
+            <option value="7">7 Hari</option>
+            <option value="14">14 Hari</option>
+            <option value="30" selected>30 Hari</option>
+            <option value="90">90 Hari</option>
+          </select>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- ML SOURCE: Real-time inference results                                -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <template x-if="source === 'ml'">
+    <div>
+
+      <!-- Loading -->
+      <template x-if="mlLoading">
+        <div class="card" style="text-align:center;padding:40px;">
+          <div class="spinner" style="margin:0 auto 10px;display:block;"></div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--muted);">Menjalankan analisis 3-layer ML...</div>
+        </div>
+      </template>
+
+      <!-- No selection -->
+      <template x-if="!mlLoading && !mlResult && !mlError">
+        <div class="card" style="text-align:center;padding:40px;">
+          <div style="font-size:32px;margin-bottom:8px;">🤖</div>
+          <div style="font-family:var(--mono);font-size:12px;font-weight:700;">Pilih komoditas dan kota</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px;">
+            untuk menjalankan analisis ML 3-layer (Forecast + Detection + Decision)
+          </div>
+        </div>
+      </template>
+
+      <!-- Error -->
+      <template x-if="!mlLoading && mlError">
+        <div class="card" style="border-color:#DC2626;background:#FEF2F2;">
+          <div style="font-family:var(--mono);font-size:12px;font-weight:800;color:#DC2626;margin-bottom:6px;">ML Server Error</div>
+          <div style="font-family:var(--mono);font-size:11px;color:#991B1B;" x-text="mlError"></div>
+        </div>
+      </template>
+
+      <!-- ML Result -->
+      <template x-if="!mlLoading && mlResult">
+        <div>
+          <!-- Summary Cards -->
+          <div class="summary-row">
+            <div class="stat-card">
+              <div class="stat-label">Prediksi 7 Hari (P50)</div>
+              <template x-if="mlResult.predictions.p50_7d">
+                <div>
+                  <div class="stat-value" x-text="'Rp ' + Math.round(mlResult.predictions.p50_7d).toLocaleString('id-ID')"></div>
+                  <div class="stat-sub" x-text="'P90: Rp ' + Math.round(mlResult.predictions.p90_7d || 0).toLocaleString('id-ID')"></div>
+                </div>
+              </template>
+              <template x-if="!mlResult.predictions.p50_7d">
+                <div class="stat-value" style="color:var(--muted)">—</div>
+              </template>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Prediksi 14 Hari (P50)</div>
+              <template x-if="mlResult.predictions.p50_14d">
+                <div>
+                  <div class="stat-value" x-text="'Rp ' + Math.round(mlResult.predictions.p50_14d).toLocaleString('id-ID')"></div>
+                  <div class="stat-sub" x-text="'P90: Rp ' + Math.round(mlResult.predictions.p90_14d || 0).toLocaleString('id-ID')"></div>
+                </div>
+              </template>
+              <template x-if="!mlResult.predictions.p50_14d">
+                <div class="stat-value" style="color:var(--muted)">—</div>
+              </template>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Alert Level</div>
+              <div>
+                <span class="alert-badge" :class="'alert-' + (mlResult.decision?.final_alert_level || mlResult.detection?.alert_level || 'unknown')"
+                      x-text="(mlResult.decision?.final_alert_level || mlResult.detection?.alert_level || 'unknown').toUpperCase()"></span>
+                <div class="stat-sub" x-text="'Priority: ' + (mlResult.decision?.intervention_priority || '—')"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detection Details -->
+          <div class="ml-result-card" x-show="mlResult.detection && Object.keys(mlResult.detection).length > 0">
+            <div class="ml-result-header">
+              <span class="ml-result-title">LAPIS 2 — Detection Signals</span>
+              <span class="alert-badge" :class="'alert-' + (mlResult.detection?.alert_level || 'unknown')"
+                    x-text="'HET: ' + (mlResult.detection?.alert_level || '—').toUpperCase()"></span>
+            </div>
+            <div class="ml-result-body">
+              <div class="detection-row">
+                <div class="detect-item">
+                  <div class="detect-label">Changepoint</div>
+                  <div class="detect-value" :style="mlResult.detection?.is_changepoint ? 'color:#DC2626' : 'color:var(--success)'"
+                       x-text="mlResult.detection?.is_changepoint ? 'TERDETEKSI' : 'Tidak ada'"></div>
+                </div>
+                <div class="detect-item">
+                  <div class="detect-label">CUSUM Drift</div>
+                  <div class="detect-value" :style="mlResult.detection?.is_cusum_alarm ? 'color:#F59E0B' : 'color:var(--success)'"
+                       x-text="mlResult.detection?.is_cusum_alarm ? (mlResult.detection?.cusum_direction || 'up').toUpperCase() : 'Stabil'"></div>
+                </div>
+                <div class="detect-item">
+                  <div class="detect-label">Jarak ke HET</div>
+                  <div class="detect-value" x-text="mlResult.detection?.jarak_ke_het_pct != null ? (mlResult.detection.jarak_ke_het_pct > 0 ? '+' : '') + mlResult.detection.jarak_ke_het_pct.toFixed(1) + '%' : '—'"></div>
+                </div>
+              </div>
+              <template x-if="mlResult.detection?.disparity_score != null">
+                <div style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;margin-top:4px;">
+                  Disparity Score: <strong x-text="mlResult.detection.disparity_score.toFixed(3)"></strong>
+                  (ketimpangan harga antar kota)
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- LLM Recommendation -->
+          <template x-if="mlResult.decision && mlResult.decision.rekomendasi">
+            <div class="ml-result-card">
+              <div class="ml-result-header">
+                <span class="ml-result-title">LAPIS 3 — Rekomendasi Intervensi</span>
+                <span class="alert-badge" :class="'alert-' + mlResult.decision.final_alert_level"
+                      x-text="mlResult.decision.final_alert_level.toUpperCase()"></span>
+              </div>
+              <div class="ml-result-body">
+                <div class="reco-card">
+                  <div class="reco-label">Rekomendasi</div>
+                  <div class="reco-text" x-text="mlResult.decision.rekomendasi"></div>
+                  <div class="reco-meta">
+                    Confidence: <strong x-text="mlResult.decision.confidence"></strong>
+                    &middot; <span x-text="mlResult.decision.is_llm_generated ? 'LLM-generated' : 'Rule-based fallback'"></span>
+                    &middot; Priority: <strong x-text="mlResult.decision.intervention_priority"></strong>/5
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+        </div>
+      </template>
+
+    </div>
+  </template>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- DB SOURCE: Data from app.ml_predictions table                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <template x-if="source === 'db'">
+    <div>
+      <!-- Summary Cards -->
+      <div class="summary-row">
+        <div class="stat-card">
+          <div class="stat-label">Harga Aktual</div>
+          <template x-if="currentPrice">
+            <div>
+              <div class="stat-value" x-text="'Rp ' + currentPrice.toLocaleString('id-ID')"></div>
+              <div class="stat-sub">/kg (rata-rata)</div>
+            </div>
+          </template>
+          <template x-if="!currentPrice">
+            <div class="stat-value" style="color:var(--muted)">—</div>
+          </template>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Prediksi Besok</div>
+          <template x-if="nextPrediction">
+            <div>
+              <div class="stat-value" :class="nextPrediction.trend > 0 ? 'trend-up' : (nextPrediction.trend < 0 ? 'trend-down' : '')"
+                   x-text="'Rp ' + nextPrediction.price.toLocaleString('id-ID')"></div>
+              <div class="stat-sub">
+                <span x-text="'CI: ' + nextPrediction.lower.toLocaleString('id-ID') + ' — ' + nextPrediction.upper.toLocaleString('id-ID')"></span>
+              </div>
+            </div>
+          </template>
+          <template x-if="!nextPrediction">
+            <div class="stat-value" style="color:var(--muted)">—</div>
+          </template>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Model</div>
+          <template x-if="modelInfo">
+            <div>
+              <div class="stat-value" style="font-size:20px;" x-text="modelInfo.version"></div>
+              <div class="stat-sub" x-text="modelInfo.predictions + ' prediksi'"></div>
+            </div>
+          </template>
+          <template x-if="!modelInfo">
+            <div class="stat-value" style="color:var(--muted);font-size:20px;">Belum ada</div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Price Chart: Historical + Predicted -->
+      <div class="chart-card" x-show="selectedKey">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:14px;display:flex;align-items:center;gap:6px;">
+          <span style="display:inline-block;width:4px;height:12px;background:var(--accent);border-radius:2px;border:1px solid var(--border);"></span>
+          Grafik Harga &amp; Prediksi
+        </div>
+        <canvas id="priceChart"></canvas>
+        <div x-show="!chartReady && selectedKey" style="text-align:center;padding:20px;font-family:var(--mono);font-size:11px;color:var(--muted);">
+          <div class="spinner" style="margin:0 auto 8px;display:block;"></div>
+          Memuat data historis...
+        </div>
+      </div>
+
+      <!-- Prediction Table -->
+      <div class="pred-table-card">
+        <div class="pred-table-header">
+          <span class="pred-table-title">Prediksi dari Database</span>
+          <span class="pred-count" x-text="dbPredictions.length + ' prediksi'"></span>
+        </div>
+        <template x-if="dbPredictions.length > 0">
+          <div style="overflow-x:auto;">
+            <table class="pred-table">
+              <thead>
+                <tr>
+                  <th>Target Date</th>
+                  <th>Komoditas</th>
+                  <th>Kota</th>
+                  <th>Prediksi</th>
+                  <th>Confidence</th>
+                  <th>Model</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="(p, i) in dbPredictions" :key="i">
+                  <tr>
+                    <td x-text="p.target_date"></td>
+                    <td x-text="p.komoditas_id"></td>
+                    <td x-text="p.kota_id"></td>
+                    <td>
+                      <span :class="p.predicted_price > (currentPrice || 0) ? 'trend-up' : 'trend-down'"
+                            x-text="'Rp ' + p.predicted_price.toLocaleString('id-ID')"></span>
+                    </td>
+                    <td>
+                      <span style="font-family:var(--mono);font-size:10px;color:var(--muted);"
+                            x-text="(p.confidence_lower||0).toLocaleString('id-ID') + ' — ' + (p.confidence_upper||0).toLocaleString('id-ID')"></span>
+                    </td>
+                    <td style="color:var(--muted);" x-text="p.model_version || '—'"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+        <template x-if="dbPredictions.length === 0 && !dbLoading">
+          <div class="empty-state" style="padding:40px;">
+            <div style="font-size:28px;margin-bottom:8px;">🤖</div>
+            <div style="font-weight:700;margin-bottom:4px;">Belum ada data prediksi</div>
+            <div>ML model belum meng-INSERT ke tabel app.ml_predictions</div>
+          </div>
+        </template>
+        <template x-if="dbLoading">
+          <div class="empty-state" style="padding:30px;">
+            <div class="spinner" style="margin:0 auto 10px;display:block;"></div>
+            <div>Memuat data prediksi...</div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <!-- -- Info Banner -- -->
+  <div class="info-banner">
+    <span class="info-icon">💡</span>
+    <div class="info-text">
+      <strong>Arsitektur 3 Lapis:</strong>
+      Lapis 1 (LightGBM Quantile) memprediksi harga 7 & 14 hari ke depan.
+      Lapis 2 (Detection) mendeteksi changepoint dan pelanggaran HET.
+      Lapis 3 (LLM Agent) memberikan rekomendasi intervensi.
+      <br>
+      <strong>ML = Predictor</strong> (mempersiapkan) · <strong>RCA = Validator</strong> (mengkonfirmasi real-time)
+    </div>
+  </div>
+
+</div>
+
+<script>
+function prediksiPage() {
+  return {
+    // Auth
+    token: localStorage.getItem('rca_token'),
+    user: JSON.parse(localStorage.getItem('rca_user') || 'null'),
+
+    // Source toggle: 'ml' (real-time inference) or 'db' (app.ml_predictions table)
+    source: 'ml',
+
+    // -- ML source state --
+    mlStatus: 'loading',         // 'online', 'offline', 'loading'
+    mlStatusText: 'Memeriksa ML Server...',
+    mlStatusDetail: '',
+    mlKomoditasList: [],         // komoditas names from ML server
+    mlKotaList: [],              // kota objects from ML server
+    selectedMlKomoditas: '',
+    selectedMlKota: '',
+    mlTanggal: new Date().toISOString().split('T')[0],
+    mlResult: null,              // FullAnalysisResult
+    mlLoading: false,
+    mlError: null,
+
+    // -- DB source state --
+    commodities: [],
+    cities: [],
+    dbPredictions: [],
+    selectedKey: '',
+    selectedKota: '',
+    period: '30',
+    currentPrice: null,
+    nextPrediction: null,
+    modelInfo: null,
+    dbLoading: false,
+    chartReady: false,
+    priceChart: null,  // Chart.js instance
+
+    async init() {
+      // Auth guard - analyst+ only
+      if (!this.token) { window.location.replace('/login'); return; }
+      try {
+        const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + this.token } });
+        if (!r.ok) throw new Error();
+        const me = await r.json();
+        this.user = me;
+        if (!me.is_admin && !me.is_analyst) {
+          window.location.replace('/');
+          return;
+        }
+      } catch {
+        window.location.replace('/login');
+        return;
+      }
+
+      // Load commodities for DB source
+      try {
+        const r = await fetch('/api/commodities/detail', this._authOpts());
+        if (r.ok) this.commodities = await r.json();
+      } catch {}
+
+      // Check ML server health
+      await this.checkMlHealth();
+    },
+
+    _authOpts() {
+      return { headers: this.token ? { Authorization: 'Bearer ' + this.token } : {} };
+    },
+
+    // ── ML Server Methods ──────────────────────────────────────────────
+
+    async checkMlHealth() {
+      try {
+        const r = await fetch('/api/ml/health', this._authOpts());
+        if (r.ok) {
+          const data = await r.json();
+          if (data.status === 'ok') {
+            this.mlStatus = 'online';
+            this.mlStatusText = 'ML Server Online';
+            this.mlStatusDetail = `${data.models_loaded} model loaded · ${(data.data_rows || 0).toLocaleString('id-ID')} rows data · LLM: ${data.llm_available ? 'aktif' : 'fallback'}`;
+            // Load komoditas and kota lists
+            await this.loadMlLists();
+          } else {
+            this.mlStatus = 'loading';
+            this.mlStatusText = 'ML Server Loading...';
+            this.mlStatusDetail = 'Pipeline sedang memuat data dan model';
+          }
+        } else {
+          throw new Error('Not OK');
+        }
+      } catch {
+        this.mlStatus = 'offline';
+        this.mlStatusText = 'ML Server Offline';
+        this.mlStatusDetail = 'Server prediksi ML belum aktif — menampilkan data dari database';
+        // Auto-switch to DB source if ML is offline
+        this.source = 'db';
+        await this.loadDbPredictions();
+      }
+    },
+
+    async loadMlLists() {
+      try {
+        const [komR, kotaR] = await Promise.all([
+          fetch('/api/ml/komoditas', this._authOpts()),
+          fetch('/api/ml/kota', this._authOpts()),
+        ]);
+        if (komR.ok) {
+          const data = await komR.json();
+          this.mlKomoditasList = data.komoditas || [];
+        }
+        if (kotaR.ok) {
+          const data = await kotaR.json();
+          this.mlKotaList = data.kota || [];
+        }
+      } catch (e) {
+        console.error('Failed to load ML lists:', e);
+      }
+    },
+
+    async analyze() {
+      if (!this.selectedMlKomoditas || !this.selectedMlKota) {
+        this.mlResult = null;
+        this.mlError = null;
+        return;
+      }
+
+      this.mlLoading = true;
+      this.mlError = null;
+      this.mlResult = null;
+
+      try {
+        const r = await fetch('/api/ml/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(this.token ? { Authorization: 'Bearer ' + this.token } : {}),
+          },
+          body: JSON.stringify({
+            komoditas_nama: this.selectedMlKomoditas,
+            kota_nama: this.selectedMlKota,
+            tanggal: this.mlTanggal,
+          }),
+        });
+
+        if (r.ok) {
+          this.mlResult = await r.json();
+        } else {
+          const err = await r.json().catch(() => ({ detail: 'Unknown error' }));
+          this.mlError = err.detail || `Error ${r.status}`;
+        }
+      } catch (e) {
+        this.mlError = 'Gagal terhubung ke ML server: ' + e.message;
+      }
+
+      this.mlLoading = false;
+    },
+
+    // ── DB Methods (existing functionality) ────────────────────────────
+
+    async loadDbPredictions() {
+      this.dbLoading = true;
+      this.dbPredictions = [];
+      this.nextPrediction = null;
+      this.modelInfo = null;
+
+      try {
+        const params = new URLSearchParams();
+        if (this.selectedKey) params.set('komoditas_id', this.selectedKey);
+        if (this.selectedKota) params.set('kota_id', this.selectedKota);
+        params.set('limit', this.period);
+
+        const r = await fetch(`/api/predictions?${params}`, this._authOpts());
+        if (r.ok) {
+          const data = await r.json();
+          this.dbPredictions = data.predictions || [];
+
+          // Derive summary
+          if (this.dbPredictions.length > 0) {
+            const first = this.dbPredictions[0];
+            this.nextPrediction = {
+              price: first.predicted_price,
+              lower: first.confidence_lower || first.predicted_price * 0.9,
+              upper: first.confidence_upper || first.predicted_price * 1.1,
+              trend: first.predicted_price > (this.currentPrice || 0) ? 1 : -1,
+            };
+            const versions = [...new Set(this.dbPredictions.map(p => p.model_version).filter(Boolean))];
+            this.modelInfo = {
+              version: versions[0] || 'v1',
+              predictions: this.dbPredictions.length,
+            };
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load DB predictions:', e);
+      }
+
+      // Load current price for comparison
+      if (this.selectedKey) {
+        try {
+          const comKey = this.commodities.find(c => c.comcat_id === this.selectedKey)?.key;
+          if (comKey) {
+            const r = await fetch(`/api/commodity/${comKey}`, this._authOpts());
+            if (r.ok) {
+              const d = await r.json();
+              this.currentPrice = d.price_now;
+            }
+          }
+        } catch {}
+      }
+
+      this.dbLoading = false;
+
+      // Build chart if we have a selected komoditas
+      if (this.selectedKey) {
+        await this.buildPriceChart();
+      }
+    },
+
+    // ── Chart.js Price Chart ─────────────────────────────────────────
+
+    async buildPriceChart() {
+      this.chartReady = false;
+
+      // Resolve comcat_id for the selected commodity
+      const comcatId = this.selectedKey;
+      if (!comcatId) return;
+
+      // Fetch historical prices
+      let historyData = [];
+      try {
+        const r = await fetch(
+          `/api/prices/${comcatId}/history?n_days=30`,
+          this._authOpts()
+        );
+        if (r.ok) historyData = await r.json();
+      } catch (e) {
+        console.error('Failed to fetch price history:', e);
+      }
+
+      // Prepare labels and data
+      const histLabels = historyData.map(d => d.tanggal);
+      const histPrices = historyData.map(d => d.avg_harga);
+
+      // Prediction data (from DB predictions, sorted by target_date)
+      const predSorted = [...this.dbPredictions]
+        .sort((a, b) => a.target_date.localeCompare(b.target_date));
+      const predLabels = predSorted.map(p => p.target_date);
+      const predPrices = predSorted.map(p => p.predicted_price);
+      const predLower = predSorted.map(p => p.confidence_lower || p.predicted_price * 0.9);
+      const predUpper = predSorted.map(p => p.confidence_upper || p.predicted_price * 1.1);
+
+      // Merge labels: historical + future predictions (no overlap)
+      const allLabels = [...histLabels];
+      for (const l of predLabels) {
+        if (!allLabels.includes(l)) allLabels.push(l);
+      }
+      allLabels.sort();
+
+      // Build datasets: historical prices (full line), prediction (dashed)
+      const histDataset = allLabels.map(l => {
+        const idx = histLabels.indexOf(l);
+        return idx >= 0 ? histPrices[idx] : null;
+      });
+
+      const predDataset = allLabels.map(l => {
+        const idx = predLabels.indexOf(l);
+        // Connect prediction line to last historical point
+        if (idx >= 0) return predPrices[idx];
+        // Bridge: last historical date also gets prediction start
+        if (histLabels.length > 0 && l === histLabels[histLabels.length - 1] && predPrices.length > 0) {
+          return histPrices[histPrices.length - 1];
+        }
+        return null;
+      });
+
+      const upperDataset = allLabels.map(l => {
+        const idx = predLabels.indexOf(l);
+        return idx >= 0 ? predUpper[idx] : null;
+      });
+      const lowerDataset = allLabels.map(l => {
+        const idx = predLabels.indexOf(l);
+        return idx >= 0 ? predLower[idx] : null;
+      });
+
+      // Wait for next tick so canvas is rendered
+      await this.$nextTick();
+      const canvas = document.getElementById('priceChart');
+      if (!canvas) return;
+
+      // Destroy existing chart
+      if (this.priceChart) {
+        this.priceChart.destroy();
+        this.priceChart = null;
+      }
+
+      // Format labels to short date (DD/MM)
+      const shortLabels = allLabels.map(l => {
+        const parts = l.split('-');
+        return parts[2] + '/' + parts[1];
+      });
+
+      this.priceChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: shortLabels,
+          datasets: [
+            {
+              label: 'Harga Aktual',
+              data: histDataset,
+              borderColor: '#1D7A56',
+              backgroundColor: 'rgba(46,204,136,0.1)',
+              borderWidth: 2.5,
+              pointRadius: 2,
+              pointHoverRadius: 5,
+              tension: 0.3,
+              fill: false,
+              spanGaps: false,
+            },
+            {
+              label: 'Prediksi',
+              data: predDataset,
+              borderColor: '#2ECC88',
+              borderWidth: 2.5,
+              borderDash: [6, 4],
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              pointBackgroundColor: '#2ECC88',
+              tension: 0.3,
+              fill: false,
+              spanGaps: false,
+            },
+            {
+              label: 'Batas Atas (CI)',
+              data: upperDataset,
+              borderColor: 'rgba(46,204,136,0.3)',
+              borderWidth: 1,
+              borderDash: [3, 3],
+              pointRadius: 0,
+              fill: '+1',
+              backgroundColor: 'rgba(46,204,136,0.08)',
+              tension: 0.3,
+              spanGaps: false,
+            },
+            {
+              label: 'Batas Bawah (CI)',
+              data: lowerDataset,
+              borderColor: 'rgba(46,204,136,0.3)',
+              borderWidth: 1,
+              borderDash: [3, 3],
+              pointRadius: 0,
+              fill: false,
+              tension: 0.3,
+              spanGaps: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index',
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                font: { family: "'JetBrains Mono', monospace", size: 10, weight: '600' },
+                boxWidth: 14,
+                padding: 16,
+                // Hide CI lower from legend
+                filter: (item) => item.text !== 'Batas Bawah (CI)',
+              },
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: "'JetBrains Mono', monospace", size: 11 },
+              bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                label: function(ctx) {
+                  if (ctx.dataset.label.includes('Batas')) return null;
+                  const val = ctx.parsed.y;
+                  if (val == null) return null;
+                  return ctx.dataset.label + ': Rp ' + Math.round(val).toLocaleString('id-ID');
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                font: { family: "'JetBrains Mono', monospace", size: 9 },
+                maxTicksLimit: 12,
+              },
+            },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.06)' },
+              ticks: {
+                font: { family: "'JetBrains Mono', monospace", size: 10 },
+                callback: function(val) {
+                  return 'Rp ' + (val / 1000).toFixed(0) + 'k';
+                },
+              },
+            },
+          },
+        },
+      });
+
+      this.chartReady = true;
+    },
+
+    // ── Source Toggle ──────────────────────────────────────────────────
+
+    async switchSource(src) {
+      this.source = src;
+      if (src === 'db' && this.dbPredictions.length === 0) {
+        await this.loadDbPredictions();
+      }
+    },
+
+    // ── Auth ───────────────────────────────────────────────────────────
+
+    logout() {
+      localStorage.removeItem('rca_token');
+      localStorage.removeItem('rca_user');
+      window.location.replace('/login');
+    },
+  };
+}
+</script>
+</body>
+</html>

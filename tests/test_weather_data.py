@@ -1,10 +1,10 @@
 """
 Tests for weather data layer (src/data/weather_data.py).
 
-Uses mock db_cursor to avoid needing real database connection.
+Uses mock db_cursor to avoid needing real Supabase connection.
 Tests all extreme weather detection paths:
   - Heavy rain (>100mm)
-  - Extreme heat (>38°C)
+  - Extreme heat (>38 C)
   - Damaging winds (>60 km/h)
   - Drought (>14 dry days)
   - Normal weather
@@ -12,6 +12,7 @@ Tests all extreme weather detection paths:
 """
 from datetime import date
 from unittest.mock import patch, MagicMock
+from contextlib import contextmanager
 
 import pytest
 
@@ -30,20 +31,26 @@ def _make_weather_rows(overrides: list[dict]) -> list[dict]:
     return [{**base, **row} for row in overrides]
 
 
+def _mock_db_cursor(rows: list[dict]):
+    """Create a mock db_cursor context manager that returns given rows."""
+    mock_cursor = MagicMock()
+    mock_cursor.fetchall.return_value = rows
+
+    @contextmanager
+    def fake_cursor():
+        yield mock_cursor
+
+    return fake_cursor
+
+
 @patch("src.data.weather_data.db_cursor")
-def test_extreme_heavy_rain(mock_cursor):
+def test_extreme_heavy_rain(mock_db):
     """Heavy rain >100mm should trigger extreme weather."""
     rows = _make_weather_rows([
         {"precipitation_sum": 120.0, "tanggal": date(2026, 5, 5)},
         {"precipitation_sum": 10.0, "tanggal": date(2026, 5, 4)},
     ])
-
-    # Setup mock
-    ctx = MagicMock()
-    ctx.__enter__ = MagicMock(return_value=ctx)
-    ctx.__exit__ = MagicMock(return_value=False)
-    ctx.fetchall.return_value = rows
-    mock_cursor.return_value = ctx
+    mock_db.side_effect = _mock_db_cursor(rows)
 
     result = get_weather_for_rca(12, tanggal=date(2026, 5, 5))
 
@@ -53,17 +60,12 @@ def test_extreme_heavy_rain(mock_cursor):
 
 
 @patch("src.data.weather_data.db_cursor")
-def test_extreme_temperature(mock_cursor):
-    """Temperature >38°C should trigger extreme weather."""
+def test_extreme_temperature(mock_db):
+    """Temperature >38 C should trigger extreme weather."""
     rows = _make_weather_rows([
         {"temperature_max": 39.5, "precipitation_sum": 0},
     ])
-
-    ctx = MagicMock()
-    ctx.__enter__ = MagicMock(return_value=ctx)
-    ctx.__exit__ = MagicMock(return_value=False)
-    ctx.fetchall.return_value = rows
-    mock_cursor.return_value = ctx
+    mock_db.side_effect = _mock_db_cursor(rows)
 
     result = get_weather_for_rca(12, tanggal=date(2026, 5, 5))
 
@@ -73,17 +75,12 @@ def test_extreme_temperature(mock_cursor):
 
 
 @patch("src.data.weather_data.db_cursor")
-def test_extreme_wind(mock_cursor):
+def test_extreme_wind(mock_db):
     """Wind >60 km/h should trigger extreme weather."""
     rows = _make_weather_rows([
         {"wind_speed_max": 75.0, "precipitation_sum": 0, "temperature_max": 28.0},
     ])
-
-    ctx = MagicMock()
-    ctx.__enter__ = MagicMock(return_value=ctx)
-    ctx.__exit__ = MagicMock(return_value=False)
-    ctx.fetchall.return_value = rows
-    mock_cursor.return_value = ctx
+    mock_db.side_effect = _mock_db_cursor(rows)
 
     result = get_weather_for_rca(12, tanggal=date(2026, 5, 5))
 
@@ -93,7 +90,7 @@ def test_extreme_wind(mock_cursor):
 
 
 @patch("src.data.weather_data.db_cursor")
-def test_drought_detection(mock_cursor):
+def test_drought_detection(mock_db):
     """14+ consecutive dry days should trigger drought."""
     # 15 days with <1mm precipitation (newest first)
     rows = _make_weather_rows([
@@ -101,12 +98,7 @@ def test_drought_detection(mock_cursor):
          "temperature_max": 30.0, "wind_speed_max": 10.0}
         for i in range(15, 0, -1)
     ])
-
-    ctx = MagicMock()
-    ctx.__enter__ = MagicMock(return_value=ctx)
-    ctx.__exit__ = MagicMock(return_value=False)
-    ctx.fetchall.return_value = rows
-    mock_cursor.return_value = ctx
+    mock_db.side_effect = _mock_db_cursor(rows)
 
     result = get_weather_for_rca(12, tanggal=date(2026, 5, 15), lookback_days=20)
 
@@ -115,18 +107,13 @@ def test_drought_detection(mock_cursor):
 
 
 @patch("src.data.weather_data.db_cursor")
-def test_normal_weather(mock_cursor):
+def test_normal_weather(mock_db):
     """Normal weather (all within bounds) should not trigger."""
     rows = _make_weather_rows([
         {"precipitation_sum": 10.0, "temperature_max": 30.0, "wind_speed_max": 15.0},
         {"precipitation_sum": 5.0, "temperature_max": 28.0, "wind_speed_max": 10.0},
     ])
-
-    ctx = MagicMock()
-    ctx.__enter__ = MagicMock(return_value=ctx)
-    ctx.__exit__ = MagicMock(return_value=False)
-    ctx.fetchall.return_value = rows
-    mock_cursor.return_value = ctx
+    mock_db.side_effect = _mock_db_cursor(rows)
 
     result = get_weather_for_rca(12, tanggal=date(2026, 5, 5))
 
@@ -135,13 +122,9 @@ def test_normal_weather(mock_cursor):
 
 
 @patch("src.data.weather_data.db_cursor")
-def test_no_data_fallback(mock_cursor):
+def test_no_data_fallback(mock_db):
     """No weather data should return non-extreme with appropriate message."""
-    ctx = MagicMock()
-    ctx.__enter__ = MagicMock(return_value=ctx)
-    ctx.__exit__ = MagicMock(return_value=False)
-    ctx.fetchall.return_value = []
-    mock_cursor.return_value = ctx
+    mock_db.side_effect = _mock_db_cursor([])
 
     result = get_weather_for_rca(99, tanggal=date(2026, 5, 5))
 
@@ -150,20 +133,37 @@ def test_no_data_fallback(mock_cursor):
 
 
 @patch("src.data.weather_data.db_cursor")
-def test_rain_priority_over_heat(mock_cursor):
+def test_rain_priority_over_heat(mock_db):
     """Heavy rain should be detected before heat (check order matters)."""
     rows = _make_weather_rows([
         {"precipitation_sum": 150.0, "temperature_max": 40.0},  # both extreme
     ])
-
-    ctx = MagicMock()
-    ctx.__enter__ = MagicMock(return_value=ctx)
-    ctx.__exit__ = MagicMock(return_value=False)
-    ctx.fetchall.return_value = rows
-    mock_cursor.return_value = ctx
+    mock_db.side_effect = _mock_db_cursor(rows)
 
     result = get_weather_for_rca(12, tanggal=date(2026, 5, 5))
 
     assert result.ekstrem is True
     # Rain should be detected first (higher priority)
     assert "150" in result.desc or "hujan" in result.desc.lower()
+
+
+@patch("src.data.weather_data.db_cursor")
+def test_drought_with_aggregated_rows(mock_db):
+    """Drought detection works correctly with aggregated data.
+
+    The SQL query groups by tanggal with MAX(), so each row
+    represents one date even if there are multiple weather stations.
+    This test verifies the drought counter works with aggregated data.
+    """
+    # Simulate aggregated rows: one row per date, 15 dry days
+    rows = _make_weather_rows([
+        {"precipitation_sum": 0.5, "tanggal": date(2026, 5, i),
+         "temperature_max": 32.0, "wind_speed_max": 12.0}
+        for i in range(15, 0, -1)
+    ])
+    mock_db.side_effect = _mock_db_cursor(rows)
+
+    result = get_weather_for_rca(12, tanggal=date(2026, 5, 15), lookback_days=20)
+
+    assert result.ekstrem is True
+    assert "kekeringan" in result.desc.lower() or "Kekeringan" in result.desc

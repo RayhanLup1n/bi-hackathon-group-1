@@ -3,17 +3,18 @@ version: 2
 sources:
   - name: raw
     description: "Data mentah hasil extraction dari BI PIHPS dan sumber lainnya"
+    database: "{{ env_var('GCP_PROJECT', 'radar-pangan-hackathon') }}"
     schema: raw
     tables:
       - name: harga_pangan
         description: "Tabel harga pangan harian per komoditas, kota, dan pasar"
+        # Note: source-level tests disabled because require_partition_filter=true
+        # in BigQuery prevents full table scans. Tests are enforced in staging models.
         columns:
           - name: tanggal
             description: "Tanggal pencatatan harga"
-            tests: [not_null]
           - name: comcat_id
             description: "ID kategori komoditas dari API PIHPS (format: cat_1, cat_2, ...)"
-            tests: [not_null]
           - name: komoditas_nama
             description: "Nama komoditas"
           - name: pasar_tipe

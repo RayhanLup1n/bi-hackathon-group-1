@@ -9,12 +9,12 @@ HARI_RAYA_POST_WINDOW_DAYS = 3        # H+N setelah hari H masih dalam window
 # ── Kalender Hari Raya ────────────────────────────────────────────────────
 # Format: (nama, "YYYY-MM-DD")
 # Tambah tahun baru setiap tahun, atau sambungkan ke API kalender
-HARI_RAYA_CALENDAR: list[tuple[str, str]] = [
-    ("Idul Fitri",  "2025-03-30"),
-    ("Idul Adha",   "2025-06-06"),
-    ("Idul Fitri",  "2026-03-20"),
-    ("Idul Adha",   "2026-05-27"),
-]
+# HARI_RAYA_CALENDAR: list[tuple[str, str]] = [
+#     ("Idul Fitri",  "2025-03-30"),
+#     ("Idul Adha",   "2025-06-06"),
+#     ("Idul Fitri",  "2026-03-20"),
+#     ("Idul Adha",   "2026-05-27"),
+# ]
 
 # ── Rule Engine Thresholds ────────────────────────────────────────────────
 KOTA_SPREAD_THRESHOLD = 0.60          # 60% kota naik = supply nasional

@@ -12,25 +12,25 @@ WITH source AS (
 cleaned AS (
     SELECT
         -- Primary identifiers
-        tanggal::DATE                                   AS tanggal,
+        CAST(tanggal AS DATE)                                   AS tanggal,
         comcat_id,
-        TRIM(komoditas_nama)                            AS komoditas_nama,
-        pasar_tipe::INTEGER                             AS pasar_tipe,
+        TRIM(komoditas_nama)                                    AS komoditas_nama,
+        CAST(pasar_tipe AS INT64)                               AS pasar_tipe,
 
         -- Dimensi wilayah
-        provinsi_id::INTEGER                            AS provinsi_id,
-        TRIM(provinsi_nama)                             AS provinsi_nama,
-        kota_id::INTEGER                                AS kota_id,
-        TRIM(kota_nama)                                 AS kota_nama,
-        TRIM(pasar_nama)                                AS pasar_nama,
+        CAST(provinsi_id AS INT64)                              AS provinsi_id,
+        TRIM(provinsi_nama)                                     AS provinsi_nama,
+        CAST(kota_id AS INT64)                                  AS kota_id,
+        TRIM(kota_nama)                                         AS kota_nama,
+        TRIM(pasar_nama)                                        AS pasar_nama,
 
         -- Harga: filter nilai negatif atau nol yang tidak wajar
         CASE
             WHEN harga <= 0 THEN NULL
-            ELSE harga::DOUBLE PRECISION
-        END                                             AS harga,
+            ELSE CAST(harga AS FLOAT64)
+        END                                                     AS harga,
 
-        LOWER(TRIM(satuan))                             AS satuan,
+        LOWER(TRIM(satuan))                                     AS satuan,
 
         -- Label tipe pasar
         CASE pasar_tipe
@@ -39,15 +39,15 @@ cleaned AS (
             WHEN 3 THEN 'Pedagang Besar'
             WHEN 4 THEN 'Produsen'
             ELSE 'Tidak Diketahui'
-        END                                             AS pasar_tipe_label,
+        END                                                     AS pasar_tipe_label,
 
         -- Dimensi waktu turunan
-        EXTRACT(YEAR FROM tanggal)::INTEGER             AS tahun,
-        EXTRACT(MONTH FROM tanggal)::INTEGER            AS bulan,
-        EXTRACT(QUARTER FROM tanggal)::INTEGER          AS kuartal,
-        EXTRACT(DOW FROM tanggal)::INTEGER              AS hari_dalam_minggu,
-        DATE_TRUNC('week', tanggal)::DATE               AS minggu,
-        DATE_TRUNC('month', tanggal)::DATE              AS bulan_pertama,
+        CAST(EXTRACT(YEAR FROM tanggal) AS INT64)               AS tahun,
+        CAST(EXTRACT(MONTH FROM tanggal) AS INT64)              AS bulan,
+        CAST(EXTRACT(QUARTER FROM tanggal) AS INT64)            AS kuartal,
+        CAST(EXTRACT(DAYOFWEEK FROM tanggal) AS INT64)          AS hari_dalam_minggu,
+        CAST(DATE_TRUNC(tanggal, WEEK) AS DATE)                 AS minggu,
+        CAST(DATE_TRUNC(tanggal, MONTH) AS DATE)                AS bulan_pertama,
 
         -- Audit
         _extracted_at,
@@ -55,6 +55,7 @@ cleaned AS (
 
     FROM source
     WHERE tanggal IS NOT NULL
+      AND tanggal >= '2020-01-01'  -- partition filter required by BigQuery
       AND comcat_id IS NOT NULL
       AND comcat_id != ''
 ),
@@ -70,7 +71,6 @@ deduped AS (
     FROM cleaned
 )
 
--- PostgreSQL: explicit column select instead of EXCLUDE (rn)
 SELECT
     tanggal,
     comcat_id,

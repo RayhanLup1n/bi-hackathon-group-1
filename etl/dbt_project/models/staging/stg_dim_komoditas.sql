@@ -19,4 +19,5 @@ FROM {{ source('raw', 'harga_pangan') }}
 WHERE comcat_id IS NOT NULL
   AND comcat_id != ''
   AND komoditas_nama IS NOT NULL
+  AND tanggal >= '2020-01-01'  -- partition filter required by BigQuery
 ORDER BY comcat_id

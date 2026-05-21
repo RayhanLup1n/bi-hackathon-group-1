@@ -1,12 +1,12 @@
 /*
-  Custom schema name macro untuk dbt-postgres.
+  Custom schema name macro untuk dbt-bigquery.
 
   Default dbt behavior: schema = {target_schema}_{custom_schema}
-  Contoh: target=main, custom=staging → "main_staging"
+  Contoh: target=raw, custom=staging -> "raw_staging"
 
-  Macro ini override agar schema yang kita definisikan di dbt_project.yml
-  digunakan ASIS tanpa prefix.
-  Contoh: custom=staging → "staging" (bukan "main_staging")
+  Macro ini override agar schema (dataset) yang kita definisikan di dbt_project.yml
+  digunakan AS-IS tanpa prefix.
+  Contoh: custom=staging -> "staging" (bukan "raw_staging")
 
   Referensi: https://docs.getdbt.com/docs/build/custom-schemas
 */

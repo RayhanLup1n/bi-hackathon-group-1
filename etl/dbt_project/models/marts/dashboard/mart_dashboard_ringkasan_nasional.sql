@@ -23,12 +23,12 @@ WITH daily_national AS (
         pasar_tipe_label,
 
         -- Agregasi nasional
-        ROUND(AVG(harga_hari_ini)::NUMERIC, 2)               AS rata_harga_nasional,
-        ROUND(MIN(harga_hari_ini)::NUMERIC, 2)               AS harga_min,
-        ROUND(MAX(harga_hari_ini)::NUMERIC, 2)               AS harga_maks,
-        ROUND(STDDEV(harga_hari_ini)::NUMERIC, 2)            AS std_harga,
-        COUNT(DISTINCT kota_id)                     AS jumlah_kota,
-        COUNT(DISTINCT provinsi_id)                 AS jumlah_provinsi,
+        ROUND(CAST(AVG(harga_hari_ini) AS NUMERIC), 2)               AS rata_harga_nasional,
+        ROUND(CAST(MIN(harga_hari_ini) AS NUMERIC), 2)               AS harga_min,
+        ROUND(CAST(MAX(harga_hari_ini) AS NUMERIC), 2)               AS harga_maks,
+        ROUND(CAST(STDDEV_SAMP(harga_hari_ini) AS NUMERIC), 2)       AS std_harga,
+        COUNT(DISTINCT kota_id)                                       AS jumlah_kota,
+        COUNT(DISTINCT provinsi_id)                                   AS jumlah_provinsi,
 
         -- Jumlah kota dengan alert harga tinggi
         SUM(CASE WHEN is_harga_tinggi_alert THEN 1 ELSE 0 END)
@@ -43,8 +43,8 @@ WITH daily_national AS (
                                                     AS kota_harga_stabil,
 
         -- Harga rata-rata kemarin (untuk delta nasional)
-        ROUND(AVG(harga_kemarin)::NUMERIC, 2)                AS rata_harga_kemarin,
-        ROUND(AVG(harga_minggu_lalu)::NUMERIC, 2)            AS rata_harga_minggu_lalu,
+        ROUND(CAST(AVG(harga_kemarin) AS NUMERIC), 2)                AS rata_harga_kemarin,
+        ROUND(CAST(AVG(harga_minggu_lalu) AS NUMERIC), 2)            AS rata_harga_minggu_lalu,
 
         tahun,
         bulan,
@@ -59,12 +59,12 @@ WITH daily_national AS (
 SELECT
     *,
     -- Delta nasional
-    ROUND((rata_harga_nasional - rata_harga_kemarin)::NUMERIC, 2)
+    ROUND(CAST(rata_harga_nasional - rata_harga_kemarin AS NUMERIC), 2)
                                                     AS delta_nasional_1d,
     CASE
         WHEN rata_harga_kemarin > 0
         THEN ROUND(
-            ((rata_harga_nasional - rata_harga_kemarin) / rata_harga_kemarin * 100)::NUMERIC, 2
+            CAST((rata_harga_nasional - rata_harga_kemarin) / rata_harga_kemarin * 100 AS NUMERIC), 2
         )
     END                                             AS pct_change_nasional_1d,
 

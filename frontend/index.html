@@ -6,105 +6,125 @@
   <title>R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
   <!-- Alpine.js CDN -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
+    /* -- Reset + Design tokens (inline fallback) -- */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg:        #F3EEFF;
-      --bg2:       #FFFBEB;
-      --surface:   #FFFFFF;
-      --surface2:  #FFFBEB;
-      --border:    #1a1a1a;
-      --border2:   #1a1a1a;
-      --accent:    #818CF8;
-      --accent2:   #6366f1;
-      --warn:      #FBBF24;
-      --danger:    #F87171;
-      --success:   #34D399;
-      --highlight: #F9A8D4;
-      --info:      #67E8F9;
-      --text:      #1a1a1a;
-      --text2:     #3f3f46;
-      --muted:     #71717a;
-      --mono:      'JetBrains Mono', monospace;
-      --sans:      'Inter', system-ui, sans-serif;
-      --radius:    16px;
-      --radius-sm: 12px;
-      --shadow:    4px 4px 0px #1a1a1a;
-      --shadow-lg: 6px 6px 0px #1a1a1a;
-      --bw:        2.5px;
+      --bg: #EEF7F1; --bg2: #F0FBF4;
+      --surface: #FFFFFF; --surface2: #F0FBF4;
+      --border: #1a1a1a; --border2: #1a1a1a;
+      --accent: #2ECC88; --accent2: #1D7A56;
+      --warn: #FBBF24; --danger: #F87171; --success: #34D399;
+      --highlight: #A7F3D0; --info: #67E8F9;
+      --text: #1a1a1a; --text2: #3f3f46; --muted: #71717a;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', system-ui, sans-serif;
+      --radius: 16px; --radius-sm: 12px;
+      --shadow: 4px 4px 0px #1a1a1a; --shadow-lg: 6px 6px 0px #1a1a1a;
+      --bw: 2.5px;
     }
-
     html { scroll-behavior: smooth; }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      min-height: 100vh;
-      overflow-x: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
     }
-
-    /* ── Background — subtle pattern instead of gradient mesh ── */
     body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
+      content: ''; position: fixed; inset: 0;
       background-image:
-        radial-gradient(circle at 20% 50%, rgba(129,140,248,0.12) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(249,168,212,0.10) 0%, transparent 50%),
+        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
         radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
-      pointer-events: none;
-      z-index: 0;
+      pointer-events: none; z-index: 0;
     }
 
+    /* -- App container (inline fallback) -- */
     .app {
-      position: relative;
-      z-index: 1;
-      max-width: 1100px;
-      margin: 0 auto;
+      position: relative; z-index: 1;
+      max-width: 1100px; margin: 0 auto;
       padding: 24px 20px 48px;
     }
 
-    /* ── Header ── */
+    /* -- Header (inline fallback) -- */
     .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 28px;
-      padding: 14px 20px;
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; padding: 14px 20px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
     }
     .header-left { display: flex; align-items: center; gap: 14px; }
     .logo-icon {
       width: 44px; height: 44px;
-      background: var(--accent);
-      border: var(--bw) solid var(--border);
-      border-radius: 12px;
+      border: var(--bw) solid var(--border); border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
-      box-shadow: 3px 3px 0 var(--border);
+      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
+      overflow: hidden; padding: 0;
     }
+    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
     .header-title {
-      font-size: 18px; font-weight: 900; letter-spacing: -0.5px;
-      color: var(--text);
+      font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
     }
-    .header-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
-    .header-right { display: flex; align-items: center; gap: 8px; }
-    .status-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--success);
-      border: 1.5px solid var(--border);
-      animation: pulse-dot 2s ease-in-out infinite;
+    .header-sub {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 2px; letter-spacing: 0.5px;
     }
-    .status-text { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .nav-link {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
+      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
+    }
+    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .nav-link-default { background: var(--surface); color: var(--accent2); }
+    .nav-link-default:hover { background: #E0F5EA; }
+    .nav-link-active { background: var(--accent); color: #fff; }
+    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
+    .nav-link-danger:hover { background: #FECACA; }
+    .user-badge {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 7px 13px; background: var(--surface2);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .user-badge strong { color: var(--accent2); }
 
-    /* ── Main layout ── */
+    /* -- Cards (inline fallback) -- */
+    .card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 18px;
+      position: relative; overflow: hidden; box-shadow: var(--shadow);
+    }
+    .card::after {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 5px;
+      background: var(--accent); border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .card + .card { margin-top: 14px; }
+    .card-label {
+      font-family: var(--mono); font-size: 10px; color: var(--text);
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px; font-weight: 800;
+    }
+    .card-label::before {
+      content: ''; display: inline-block;
+      width: 4px; height: 12px; background: var(--accent);
+      border-radius: 2px; border: 1px solid var(--border);
+    }
+
+    /* -- Responsive header stacking -- */
+    @media (max-width: 640px) {
+      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .header-right { width: 100%; justify-content: flex-start; }
+    }
+
+    /* -- Dashboard page-specific styles -- */
+
+    /* -- Main layout -- */
     .main-grid {
       display: grid;
       grid-template-columns: 340px 1fr;
@@ -115,45 +135,7 @@
       .main-grid { grid-template-columns: 1fr; }
     }
 
-    /* ── Cards — neobrutalist ── */
-    .card {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: var(--shadow);
-    }
-    .card::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 5px;
-      background: var(--accent);
-      border-radius: var(--radius) var(--radius) 0 0;
-    }
-    .card + .card { margin-top: 14px; }
-    .card-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 12px;
-      display: flex; align-items: center; gap: 6px;
-      font-weight: 800;
-    }
-    .card-label::before {
-      content: '';
-      display: inline-block;
-      width: 4px; height: 12px;
-      background: var(--accent);
-      border-radius: 2px;
-      border: 1px solid var(--border);
-    }
-
-    /* ── Commodity selector ── */
+    /* -- Cards (page overrides) -- */
     .commodity-select {
       width: 100%;
       background: var(--surface);
@@ -276,7 +258,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #EDE9FE;
+      background: #E0F5EA;
     }
     .rca-header-title {
       font-family: var(--mono);
@@ -326,7 +308,7 @@
     .check-item.clear::before { background: var(--success); }
 
     .check-item.active {
-      background: #EDE9FE;
+      background: #E0F5EA;
       box-shadow: 3px 3px 0 var(--border);
     }
     .check-item.triggered {
@@ -396,7 +378,7 @@
       border: 2px solid var(--border);
       text-transform: uppercase;
     }
-    .badge-checking { background: #EDE9FE; color: var(--accent2); }
+    .badge-checking { background: #E0F5EA; color: var(--accent2); }
     .badge-triggered { background: #FEF3C7; color: #92400E; }
     .badge-clear { background: #D1FAE5; color: #065F46; }
     .badge-skip { background: #F4F4F5; color: var(--muted); border-color: #a1a1aa; }
@@ -434,7 +416,7 @@
     .result-supply { background: #FEF3C7; }
     .result-supply::before { background: var(--warn); }
     .result-supply::after { background: var(--danger); }
-    .result-distribusi { background: #EDE9FE; }
+    .result-distribusi { background: #E0F5EA; }
     .result-distribusi::before { background: var(--accent); }
     .result-distribusi::after { background: var(--highlight); }
     .result-unknown { background: #F4F4F5; }
@@ -445,7 +427,7 @@
     .result-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.2; }
     .result-demand .result-title { color: #065F46; }
     .result-supply .result-title { color: #92400E; }
-    .result-distribusi .result-title { color: #4338CA; }
+    .result-distribusi .result-title { color: #1D7A56; }
     .result-unknown .result-title { color: var(--muted); }
     .result-type-badge {
       font-family: var(--mono);
@@ -461,7 +443,7 @@
     }
     .result-demand .result-type-badge { background: #A7F3D0; color: #065F46; }
     .result-supply .result-type-badge { background: #FDE68A; color: #92400E; }
-    .result-distribusi .result-type-badge { background: #C4B5FD; color: #4338CA; }
+    .result-distribusi .result-type-badge { background: #A7F3D0; color: #1D7A56; }
     .result-unknown .result-type-badge { background: #E4E4E7; color: var(--muted); }
 
     .result-desc { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 14px; }
@@ -526,7 +508,7 @@
       box-shadow: 2px 2px 0 var(--border);
       transition: transform 0.1s, box-shadow 0.1s;
     }
-    .sim-reset:hover { background: #EDE9FE; }
+    .sim-reset:hover { background: #E0F5EA; }
     .sim-reset:active {
       transform: translate(2px, 2px);
       box-shadow: 0 0 0 var(--border);
@@ -628,6 +610,27 @@
       transition: all 0.3s ease;
     }
 
+    /* ── Price Trend Chart ── */
+    .chart-mini-card {
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 18px;
+      margin-bottom: 14px;
+    }
+    .chart-mini-card canvas { max-height: 200px; }
+    .chart-mini-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .chart-mini-label::before {
+      content: ''; display: inline-block;
+      width: 4px; height: 12px; background: var(--accent);
+      border-radius: 2px; border: 1px solid var(--border);
+    }
+
     /* ── Animations ── */
     @keyframes pulse-dot {
       0%, 100% { opacity: 1; transform: scale(1); }
@@ -635,7 +638,7 @@
     }
     @keyframes spin-check {
       0% { box-shadow: 2px 2px 0 var(--border); }
-      50% { box-shadow: 3px 3px 0 var(--border), 0 0 0 3px rgba(129,140,248,0.3); }
+      50% { box-shadow: 3px 3px 0 var(--border), 0 0 0 3px rgba(46,204,136,0.3); }
       100% { box-shadow: 2px 2px 0 var(--border); }
     }
     @keyframes slide-up {
@@ -644,11 +647,6 @@
     }
     .animate-in { animation: slide-up 0.35s ease both; }
 
-    /* ── Header buttons neobrutalist ── */
-    .header-right a, .header-right button, .header-right span:first-child {
-      border-radius: var(--radius-sm) !important;
-      font-weight: 700 !important;
-    }
   </style>
 </head>
 <body>
@@ -656,48 +654,33 @@
 <!-- ════════════════════════════════════════════════════════════════════════════
      ALPINE.JS APP — Single reactive component
      ════════════════════════════════════════════════════════════════════════════ -->
-<div class="app" x-data="radar()" x-init="init()">
+<div class="app" x-data="radar()">
 
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-left">
-      <div class="logo-icon">📡</div>
+      <div class="logo-icon"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">root cause analysis engine &nbsp;·&nbsp; v0.4</div>
+        <div class="header-sub">monitoring &amp; rca engine &nbsp;&middot;&nbsp; v0.5</div>
       </div>
     </div>
     <div class="header-right">
-      <span style="
-        font-family:var(--mono); font-size:11px; color:var(--text2);
-        padding:6px 12px; background:var(--surface2);
-        border:1px solid var(--border); border-radius:var(--radius-sm);
-      ">
-        <template x-if="user">
-          <span><strong x-text="user.username" style="color:var(--accent)"></strong> · <span x-text="user.role"></span></span>
-        </template>
-        <template x-if="!user"><span>—</span></template>
+      <span class="user-badge">
+        <strong x-text="user?.username || '—'"></strong> &middot; <span x-text="user?.role || ''"></span>
       </span>
-      <a x-show="user && user.role === 'admin'" href="/admin" style="
-        font-family:var(--mono); font-size:11px; font-weight:600;
-        color:var(--accent); text-decoration:none;
-        border:1.5px solid var(--border2); border-radius:var(--radius-sm);
-        padding:6px 12px; background:rgba(99,102,241,0.06);
-      ">👥 Users</a>
-      <a href="/static/debug.html" style="
-        font-family:var(--mono); font-size:11px; font-weight:600;
-        color:var(--accent); text-decoration:none;
-        border:1.5px solid var(--border2); border-radius:var(--radius-sm);
-        padding:6px 12px; background:rgba(99,102,241,0.06);
-      ">DB Debug</a>
-      <button @click="logout()" style="
-        font-family:var(--mono); font-size:11px; font-weight:600;
-        color:#dc2626; cursor:pointer;
-        border:1.5px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm);
-        padding:6px 12px; background:rgba(239,68,68,0.05);
-      ">Keluar</button>
-      <div class="status-dot"></div>
-      <span class="status-text">API online</span>
+      <a href="/" class="nav-link nav-link-active">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-default">Panduan</a>
+      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
+        <a href="/rca" class="nav-link nav-link-default">RCA</a>
+      </template>
+      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
+        <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
+      </template>
+      <template x-if="user?.is_admin || user?.role === 'admin'">
+        <a href="/admin" class="nav-link nav-link-default">Admin</a>
+      </template>
+      <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
     </div>
   </header>
 
@@ -844,6 +827,12 @@
         </div>
       </div>
 
+      <!-- Price Trend Mini Chart -->
+      <div class="chart-mini-card" x-show="currentData">
+        <div class="chart-mini-label">Tren Harga 30 Hari</div>
+        <canvas id="dashPriceChart"></canvas>
+      </div>
+
       <!-- RCA checklist -->
       <div class="rca-panel">
         <div class="rca-header">
@@ -924,6 +913,7 @@ function radar() {
     rcaRunning: false,
     rcaProgress: 0,
     rcaBadge: 'belum dijalankan',
+    dashChart: null,  // Chart.js instance for dashboard mini chart
 
     // Default RCA check items (before any analysis)
     checks: [
@@ -1053,6 +1043,9 @@ function radar() {
           .then(data => { this.hetData = data; })
           .catch(() => { this.hetData = null; });
 
+        // Build price trend mini chart
+        this.buildDashChart();
+
         // Reset RCA state
         this.rcaResult = null;
         this.resetChecks();
@@ -1069,6 +1062,104 @@ function radar() {
       if (this.rcaResult) {
         await this.runRCA();
       }
+    },
+
+    // ── Dashboard Mini Chart ─────────────────────────────────────────────
+
+    async buildDashChart() {
+      if (!this.selectedKey) return;
+
+      // Resolve comcat_id from selected commodity key
+      const commodity = this.commodities.find(c => c.key === this.selectedKey);
+      const comcatId = commodity?.comcat_id || this.selectedKey;
+      const sim = this.simDate ? `&sim_date=${this.simDate}` : '';
+
+      let historyData = [];
+      try {
+        const data = await this.fetchJSON(`/api/prices/${comcatId}/history?n_days=30${sim}`);
+        if (data) historyData = data;
+      } catch (e) {
+        console.error('Failed to fetch price history:', e);
+        return;
+      }
+
+      if (historyData.length === 0) return;
+
+      // Wait for canvas to render
+      await this.$nextTick();
+      const canvas = document.getElementById('dashPriceChart');
+      if (!canvas) return;
+
+      // Destroy existing chart
+      if (this.dashChart) {
+        this.dashChart.destroy();
+        this.dashChart = null;
+      }
+
+      const labels = historyData.map(d => {
+        const parts = d.tanggal.split('-');
+        return parts[2] + '/' + parts[1];
+      });
+      const prices = historyData.map(d => d.avg_harga);
+
+      // Determine color based on trend (last vs first)
+      const trendUp = prices[prices.length - 1] > prices[0];
+      const lineColor = trendUp ? '#DC2626' : '#1D7A56';
+      const fillColor = trendUp ? 'rgba(220,38,38,0.06)' : 'rgba(46,204,136,0.08)';
+
+      this.dashChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Harga Rata-rata',
+            data: prices,
+            borderColor: lineColor,
+            backgroundColor: fillColor,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.4,
+            fill: true,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: "'JetBrains Mono', monospace", size: 10 },
+              bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
+              padding: 8,
+              cornerRadius: 6,
+              callbacks: {
+                label: function(ctx) {
+                  return 'Rp ' + Math.round(ctx.parsed.y).toLocaleString('id-ID');
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                font: { family: "'JetBrains Mono', monospace", size: 8 },
+                maxTicksLimit: 8,
+              },
+            },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.04)' },
+              ticks: {
+                font: { family: "'JetBrains Mono', monospace", size: 9 },
+                callback: function(val) { return 'Rp ' + (val / 1000).toFixed(0) + 'k'; },
+              },
+            },
+          },
+        },
+      });
     },
 
     // ── RCA ──────────────────────────────────────────────────────────────────

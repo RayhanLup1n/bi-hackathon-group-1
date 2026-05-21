@@ -1,8 +1,12 @@
 """
-Data layer: weather data from raw.cuaca_harian (Open-Meteo).
+Data layer: weather data from Supabase PostgreSQL app.cuaca_harian (Open-Meteo).
 
 Provides weather context for RCA engine by querying historical
-weather data and detecting extreme conditions.
+weather data from Supabase PostgreSQL and detecting extreme conditions.
+
+Architecture:
+    BigQuery -> raw.cuaca_harian (Bronze, ETL only)
+    Supabase -> app.cuaca_harian (Gold, synced from BigQuery, served to UI)
 
 Integration:
     commodity_data.py calls get_weather_for_rca() to populate
@@ -33,10 +37,10 @@ def get_weather_for_rca(
     Check weather conditions for a province over the past N days.
 
     Checks (in order of severity):
-    1. Heavy rain (>100mm/day) → flood risk, crop damage
-    2. Extreme heat (>38°C) → crop stress
-    3. Damaging winds (>60 km/h) → crop/logistics damage
-    4. Drought (>14 consecutive dry days) → water stress
+    1. Heavy rain (>100mm/day) -> flood risk, crop damage
+    2. Extreme heat (>38 C) -> crop stress
+    3. Damaging winds (>60 km/h) -> crop/logistics damage
+    4. Drought (>14 consecutive dry days) -> water stress
 
     Args:
         provinsi_id: PIHPS province ID (11=Banten, 12=Jabar, etc.)
@@ -55,14 +59,15 @@ def get_weather_for_rca(
             SELECT
                 tanggal,
                 lokasi_label,
-                precipitation_sum,
-                temperature_max,
-                wind_speed_max
-            FROM raw.cuaca_harian
+                MAX(precipitation_sum) AS precipitation_sum,
+                MAX(temperature_max) AS temperature_max,
+                MAX(wind_speed_max) AS wind_speed_max
+            FROM app.cuaca_harian
             WHERE provinsi_id = %s
               AND tanggal BETWEEN %s AND %s
+            GROUP BY tanggal, lokasi_label
             ORDER BY tanggal DESC
-        """, [provinsi_id, start, target])
+        """, (provinsi_id, start, target))
         rows = cur.fetchall()
 
     if not rows:
@@ -83,22 +88,22 @@ def get_weather_for_rca(
                 daerah=row["lokasi_label"],
                 detail=(
                     f"Curah hujan {precip:.0f}mm/hari di {row['lokasi_label']} "
-                    f"melebihi ambang batas {WEATHER_PRECIP_EXTREME_MM:.0f}mm — "
+                    f"melebihi ambang batas {WEATHER_PRECIP_EXTREME_MM:.0f}mm -- "
                     f"risiko banjir dan gangguan distribusi"
                 ),
             )
 
-    # Check 2: Extreme heat (>38°C)
+    # Check 2: Extreme heat (>38 C)
     for row in rows:
         temp = row["temperature_max"] or 0
         if temp > WEATHER_TEMP_EXTREME_C:
             return CuacaInfo(
                 ekstrem=True,
-                desc=f"Suhu ekstrem ({temp:.1f}°C) pada {row['tanggal']}",
+                desc=f"Suhu ekstrem ({temp:.1f}C) pada {row['tanggal']}",
                 daerah=row["lokasi_label"],
                 detail=(
-                    f"Suhu maksimum {temp:.1f}°C di {row['lokasi_label']} "
-                    f"melebihi {WEATHER_TEMP_EXTREME_C:.0f}°C — "
+                    f"Suhu maksimum {temp:.1f}C di {row['lokasi_label']} "
+                    f"melebihi {WEATHER_TEMP_EXTREME_C:.0f}C -- "
                     f"risiko heat stress pada tanaman"
                 ),
             )
@@ -113,7 +118,7 @@ def get_weather_for_rca(
                 daerah=row["lokasi_label"],
                 detail=(
                     f"Kecepatan angin {wind:.0f} km/h di {row['lokasi_label']} "
-                    f"melebihi {WEATHER_WIND_EXTREME_KMH:.0f} km/h — "
+                    f"melebihi {WEATHER_WIND_EXTREME_KMH:.0f} km/h -- "
                     f"risiko kerusakan tanaman dan gangguan logistik"
                 ),
             )
@@ -134,7 +139,7 @@ def get_weather_for_rca(
             daerah=rows[0]["lokasi_label"],
             detail=(
                 f"Lebih dari {WEATHER_DROUGHT_DAYS} hari berturut-turut "
-                f"curah hujan <1mm di {rows[0]['lokasi_label']} — "
+                f"curah hujan <1mm di {rows[0]['lokasi_label']} -- "
                 f"risiko kekurangan air untuk irigasi"
             ),
         )
@@ -145,7 +150,7 @@ def get_weather_for_rca(
     temp = latest["temperature_max"] or 0
     return CuacaInfo(
         ekstrem=False,
-        desc=f"Normal (hujan {precip:.0f}mm, suhu {temp:.0f}°C)",
+        desc=f"Normal (hujan {precip:.0f}mm, suhu {temp:.0f}C)",
         daerah=latest["lokasi_label"],
         detail=(
             f"Tidak ada cuaca ekstrem terdeteksi dalam {days_back} hari terakhir "
@@ -177,11 +182,11 @@ def get_weather_summary(
                 temperature_max,
                 temperature_min,
                 wind_speed_max
-            FROM raw.cuaca_harian
+            FROM app.cuaca_harian
             WHERE provinsi_id = %s
               AND tanggal BETWEEN %s AND %s
             ORDER BY tanggal DESC
-        """, [provinsi_id, start, target])
+        """, (provinsi_id, start, target))
         rows = cur.fetchall()
 
     return [dict(row) for row in rows]

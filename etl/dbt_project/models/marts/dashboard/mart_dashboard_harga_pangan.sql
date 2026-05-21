@@ -40,7 +40,7 @@ WITH base AS (
       {% endif %}
 ),
 
--- ── Harga terkini per komoditas-kota ─────────────────────────────────────────
+-- Harga terkini per komoditas-kota
 latest_per_kota AS (
     SELECT
         tanggal,
@@ -80,21 +80,21 @@ latest_per_kota AS (
     FROM base
 ),
 
--- ── Rata-rata nasional per komoditas per tanggal ──────────────────────────────
+-- Rata-rata nasional per komoditas per tanggal
 avg_nasional AS (
     SELECT
         tanggal,
         comcat_id,
         pasar_tipe,
-        ROUND(AVG(harga)::NUMERIC, 2)                              AS harga_rata_nasional,
-        ROUND(MIN(harga)::NUMERIC, 2)                              AS harga_min_nasional,
-        ROUND(MAX(harga)::NUMERIC, 2)                              AS harga_maks_nasional,
+        ROUND(CAST(AVG(harga) AS NUMERIC), 2)                  AS harga_rata_nasional,
+        ROUND(CAST(MIN(harga) AS NUMERIC), 2)                  AS harga_min_nasional,
+        ROUND(CAST(MAX(harga) AS NUMERIC), 2)                  AS harga_maks_nasional,
         COUNT(DISTINCT kota_id)                                 AS jumlah_kota_dilaporkan
     FROM base
     GROUP BY tanggal, comcat_id, pasar_tipe
 ),
 
--- ── Gabungkan & hitung derived metrics ───────────────────────────────────────
+-- Gabungkan & hitung derived metrics
 combined AS (
     SELECT
         lk.*,
@@ -104,31 +104,31 @@ combined AS (
         an.jumlah_kota_dilaporkan,
 
         -- Delta & persentase perubahan
-        ROUND((lk.harga_hari_ini - lk.harga_kemarin)::NUMERIC, 2)
+        ROUND(CAST(lk.harga_hari_ini - lk.harga_kemarin AS NUMERIC), 2)
                                                                 AS delta_1d,
-        ROUND((lk.harga_hari_ini - lk.harga_minggu_lalu)::NUMERIC, 2)
+        ROUND(CAST(lk.harga_hari_ini - lk.harga_minggu_lalu AS NUMERIC), 2)
                                                                 AS delta_7d,
-        ROUND((lk.harga_hari_ini - lk.harga_bulan_lalu)::NUMERIC, 2)
+        ROUND(CAST(lk.harga_hari_ini - lk.harga_bulan_lalu AS NUMERIC), 2)
                                                                 AS delta_30d,
 
         CASE
             WHEN lk.harga_kemarin > 0
             THEN ROUND(
-                ((lk.harga_hari_ini - lk.harga_kemarin) / lk.harga_kemarin * 100)::NUMERIC, 2
+                CAST((lk.harga_hari_ini - lk.harga_kemarin) / lk.harga_kemarin * 100 AS NUMERIC), 2
             )
         END                                                     AS pct_change_1d,
 
         CASE
             WHEN lk.harga_minggu_lalu > 0
             THEN ROUND(
-                ((lk.harga_hari_ini - lk.harga_minggu_lalu) / lk.harga_minggu_lalu * 100)::NUMERIC, 2
+                CAST((lk.harga_hari_ini - lk.harga_minggu_lalu) / lk.harga_minggu_lalu * 100 AS NUMERIC), 2
             )
         END                                                     AS pct_change_7d,
 
         -- Rasio harga lokal vs nasional (>1 = lebih mahal dari rata-rata)
         CASE
             WHEN an.harga_rata_nasional > 0
-            THEN ROUND((lk.harga_hari_ini / an.harga_rata_nasional)::NUMERIC, 4)
+            THEN ROUND(CAST(lk.harga_hari_ini / an.harga_rata_nasional AS NUMERIC), 4)
         END                                                     AS rasio_vs_nasional,
 
         -- Status harga dibanding kemarin
@@ -163,7 +163,7 @@ combined AS (
 )
 
 SELECT
-    -- ── Identifiers ──────────────────────────────────────────────────────
+    -- Identifiers
     tanggal,
     comcat_id,
     komoditas_nama,
@@ -175,32 +175,32 @@ SELECT
     pasar_tipe,
     pasar_tipe_label,
 
-    -- ── Harga ────────────────────────────────────────────────────────────
+    -- Harga
     harga_hari_ini,
     harga_kemarin,
     harga_minggu_lalu,
     harga_bulan_lalu,
 
-    -- ── Delta ─────────────────────────────────────────────────────────────
+    -- Delta
     delta_1d,
     delta_7d,
     delta_30d,
     pct_change_1d,
     pct_change_7d,
 
-    -- ── Benchmark Nasional ────────────────────────────────────────────────
+    -- Benchmark Nasional
     harga_rata_nasional,
     harga_min_nasional,
     harga_maks_nasional,
     jumlah_kota_dilaporkan,
     rasio_vs_nasional,
 
-    -- ── Status & Alert ───────────────────────────────────────────────────
+    -- Status & Alert
     status_harga_harian,
     status_harga_mingguan,
     is_harga_tinggi_alert,
 
-    -- ── Waktu ─────────────────────────────────────────────────────────────
+    -- Waktu
     tahun,
     bulan,
     kuartal

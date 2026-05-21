@@ -254,17 +254,166 @@ def get_cuaca_all_provinces(
     sim_date: Optional[date] = Query(None),
 ) -> list[dict]:
     """Get weather summary for all target provinces."""
-    from etl.config.constants import TARGET_PROVINCE_IDS, PROVINCE_NAMES
+    # Target provinces for MVP (inline to avoid cross-layer import from etl/)
+    target_provinces = {
+        11: "Banten",
+        12: "Jawa Barat",
+        13: "DKI Jakarta",
+        26: "Sulawesi Selatan",
+    }
 
     results = []
-    for prov_id in TARGET_PROVINCE_IDS:
+    for prov_id, prov_nama in target_provinces.items():
         rca_cuaca = get_weather_for_rca(prov_id, tanggal=sim_date)
         results.append({
             "provinsi_id": prov_id,
-            "provinsi_nama": PROVINCE_NAMES.get(prov_id, f"Provinsi {prov_id}"),
+            "provinsi_nama": prov_nama,
             "ekstrem": rca_cuaca.ekstrem,
             "ringkasan": rca_cuaca.desc,
             "daerah": rca_cuaca.daerah,
         })
     return results
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ML PREDICTIONS — Read from app.ml_predictions
+# ─────────────────────────────────────────────────────────────────────────────
+
+predictions_router = APIRouter(prefix="/api/predictions", tags=["ML Predictions"])
+
+
+@predictions_router.get(
+    "",
+    summary="Ambil prediksi ML dari tabel app.ml_predictions",
+)
+def get_predictions(
+    komoditas_id: Optional[str] = Query(None),
+    kota_id: Optional[int] = Query(None),
+    limit: int = Query(default=30, ge=1, le=365),
+) -> dict:
+    """Read ML predictions from database. Returns empty if no data yet."""
+    from src.data.database import db_cursor
+
+    conditions = []
+    params = []
+
+    if komoditas_id:
+        conditions.append("komoditas_id = %s")
+        params.append(komoditas_id)
+    if kota_id:
+        conditions.append("kota_id = %s")
+        params.append(kota_id)
+
+    where_clause = ""
+    if conditions:
+        where_clause = "WHERE " + " AND ".join(conditions)
+
+    try:
+        with db_cursor() as cur:
+            cur.execute(f"""
+                SELECT komoditas_id, kota_id, prediction_date, target_date,
+                       predicted_price, confidence_lower, confidence_upper,
+                       model_version, created_at
+                FROM app.ml_predictions
+                {where_clause}
+                ORDER BY target_date ASC
+                LIMIT %s
+            """, params + [limit])  # noqa: S608
+            rows = cur.fetchall()
+
+        predictions = [dict(r) for r in rows]
+        # Convert date/datetime to string for JSON serialization
+        for p in predictions:
+            for key in ("prediction_date", "target_date", "created_at"):
+                if p.get(key):
+                    p[key] = str(p[key])
+
+        return {"predictions": predictions, "total": len(predictions)}
+    except Exception:
+        # Return empty if table doesn't exist yet or any error
+        return {"predictions": [], "total": 0}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DATA QUALITY — Validation checks on raw.harga_pangan
+# ─────────────────────────────────────────────────────────────────────────────
+
+data_quality_router = APIRouter(prefix="/api/data-quality", tags=["Data Quality"])
+
+
+@data_quality_router.get(
+    "",
+    summary="Full data quality report (coverage + missing + outliers + duplicates)",
+)
+def get_quality_report() -> dict:
+    """Run all data quality checks and return combined summary.
+
+    Uses MVP komoditas filter by default. Queries BigQuery.
+    """
+    from src.data.data_quality import get_quality_summary
+
+    try:
+        return get_quality_summary()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Data quality check failed: {e}")
+
+
+@data_quality_router.get(
+    "/coverage",
+    summary="Data coverage summary (row counts, date range per komoditas)",
+)
+def get_coverage() -> dict:
+    from src.data.data_quality import get_data_coverage
+
+    try:
+        return get_data_coverage()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Coverage check failed: {e}")
+
+
+@data_quality_router.get(
+    "/outliers",
+    summary="Price outliers (z-score > 3 from 30-day rolling mean)",
+)
+def get_outliers(
+    z_threshold: float = Query(default=3.0, ge=1.0, le=10.0),
+    last_n_days: int = Query(default=90, ge=7, le=365),
+) -> dict:
+    from src.data.data_quality import check_outliers
+
+    try:
+        items = check_outliers(z_threshold=z_threshold, last_n_days=last_n_days)
+        return {"count": len(items), "z_threshold": z_threshold, "items": items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Outlier check failed: {e}")
+
+
+@data_quality_router.get(
+    "/missing",
+    summary="Missing price dates in last N days",
+)
+def get_missing_dates(
+    last_n_days: int = Query(default=30, ge=7, le=365),
+) -> dict:
+    from src.data.data_quality import check_missing_dates
+
+    try:
+        items = check_missing_dates(last_n_days=last_n_days)
+        return {"count": len(items), "last_n_days": last_n_days, "items": items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Missing dates check failed: {e}")
+
+
+@data_quality_router.get(
+    "/duplicates",
+    summary="Duplicate rows (same comcat_id + kota_id + tanggal)",
+)
+def get_duplicates() -> dict:
+    from src.data.data_quality import check_duplicates
+
+    try:
+        items = check_duplicates()
+        return {"count": len(items), "items": items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Duplicates check failed: {e}")
 

@@ -15,18 +15,19 @@
 
 WITH cleaned AS (
     SELECT
-        tanggal::DATE                   AS tanggal,
+        CAST(tanggal AS DATE)                   AS tanggal,
         comcat_id,
-        kota_id::INTEGER                AS kota_id,
-        pasar_tipe::INTEGER             AS pasar_tipe,
-        TRIM(pasar_nama)                AS pasar_nama,
+        CAST(kota_id AS INT64)                  AS kota_id,
+        CAST(pasar_tipe AS INT64)               AS pasar_tipe,
+        TRIM(pasar_nama)                        AS pasar_nama,
         CASE
             WHEN harga <= 0 THEN NULL
-            ELSE harga::DOUBLE PRECISION
-        END                             AS harga,
+            ELSE CAST(harga AS FLOAT64)
+        END                                     AS harga,
         _extracted_at
     FROM {{ source('raw', 'harga_pangan') }}
     WHERE tanggal IS NOT NULL
+      AND tanggal >= '2020-01-01'  -- partition filter required by BigQuery
       AND comcat_id IS NOT NULL
       AND comcat_id != ''
 ),

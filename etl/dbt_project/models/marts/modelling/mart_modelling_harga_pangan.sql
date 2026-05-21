@@ -13,6 +13,11 @@
     - Fitur statistik rolling (rata-rata, std dev, min, max)
     - Fitur kalender (musiman, hari libur, dll)
     - Target variable: harga hari ini
+
+  BigQuery notes:
+  - DAYOFWEEK: 1=Sunday, 7=Saturday (beda dari PostgreSQL DOW 0=Sunday)
+  - STDDEV_SAMP() instead of STDDEV()
+  - CAST(... AS NUMERIC) instead of ::NUMERIC
 */
 
 WITH base AS (
@@ -38,39 +43,34 @@ WITH base AS (
       {% endif %}
 ),
 
--- ── Lag features ─────────────────────────────────────────────────────────────
+-- Lag features
 with_lags AS (
     SELECT
         *,
         -- Harga sebelumnya
-        LAG(harga, 1)  OVER w  AS harga_lag_1d,    -- kemarin
-        LAG(harga, 7)  OVER w  AS harga_lag_7d,    -- seminggu lalu
-        LAG(harga, 14) OVER w  AS harga_lag_14d,   -- 2 minggu lalu
-        LAG(harga, 30) OVER w  AS harga_lag_30d,   -- sebulan lalu
+        LAG(harga, 1)  OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal)  AS harga_lag_1d,
+        LAG(harga, 7)  OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal)  AS harga_lag_7d,
+        LAG(harga, 14) OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal)  AS harga_lag_14d,
+        LAG(harga, 30) OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal)  AS harga_lag_30d,
 
         -- Perubahan harga
-        harga - LAG(harga, 1)  OVER w              AS delta_harga_1d,
-        harga - LAG(harga, 7)  OVER w              AS delta_harga_7d,
+        harga - LAG(harga, 1) OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal) AS delta_harga_1d,
+        harga - LAG(harga, 7) OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal) AS delta_harga_7d,
 
         -- Perubahan % harga
         CASE
-            WHEN LAG(harga, 1) OVER w > 0
-            THEN ROUND(((harga - LAG(harga, 1) OVER w) / LAG(harga, 1) OVER w * 100)::NUMERIC, 4)
+            WHEN LAG(harga, 1) OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal) > 0
+            THEN ROUND(CAST((harga - LAG(harga, 1) OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal)) / LAG(harga, 1) OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal) * 100 AS NUMERIC), 4)
         END                                         AS pct_change_1d,
         CASE
-            WHEN LAG(harga, 7) OVER w > 0
-            THEN ROUND(((harga - LAG(harga, 7) OVER w) / LAG(harga, 7) OVER w * 100)::NUMERIC, 4)
+            WHEN LAG(harga, 7) OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal) > 0
+            THEN ROUND(CAST((harga - LAG(harga, 7) OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal)) / LAG(harga, 7) OVER (PARTITION BY comcat_id, kota_id ORDER BY tanggal) * 100 AS NUMERIC), 4)
         END                                         AS pct_change_7d
 
     FROM base
-    WINDOW w AS (
-        PARTITION BY comcat_id, kota_id
-        ORDER BY tanggal
-        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    )
 ),
 
--- ── Rolling statistics ────────────────────────────────────────────────────────
+-- Rolling statistics
 with_rolling AS (
     SELECT
         *,
@@ -81,7 +81,7 @@ with_rolling AS (
             ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
         )                                           AS rolling_avg_7d,
 
-        STDDEV(harga) OVER (
+        STDDEV_SAMP(harga) OVER (
             PARTITION BY comcat_id, kota_id
             ORDER BY tanggal
             ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
@@ -94,7 +94,7 @@ with_rolling AS (
             ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
         )                                           AS rolling_avg_30d,
 
-        STDDEV(harga) OVER (
+        STDDEV_SAMP(harga) OVER (
             PARTITION BY comcat_id, kota_id
             ORDER BY tanggal
             ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
@@ -120,40 +120,39 @@ with_rolling AS (
     FROM with_lags
 ),
 
--- ── Fitur kalender tambahan ───────────────────────────────────────────────────
+-- Fitur kalender tambahan
 with_calendar AS (
     SELECT
         *,
-        -- Apakah hari kerja (1=hari kerja, 0=akhir pekan)
-        CASE WHEN hari_dalam_minggu NOT IN (0, 6) THEN 1 ELSE 0 END
-                                                    AS is_weekday,  -- PostgreSQL: DOW 0=Sunday, 6=Saturday
+        -- Apakah hari kerja (BigQuery: DAYOFWEEK 1=Sunday, 7=Saturday)
+        CASE WHEN hari_dalam_minggu NOT IN (1, 7) THEN 1 ELSE 0 END
+                                                    AS is_weekday,
 
-        -- Bulan Ramadan/Lebaran (harga cenderung naik) — April/Maret/Mei (variasi tiap tahun)
-        -- Sebagai proxy sederhana: tandai bulan ke-3, 4, 5 sebagai musim tinggi
+        -- Bulan Ramadan/Lebaran proxy
         CASE WHEN bulan IN (3, 4, 5) THEN 1 ELSE 0 END
                                                     AS is_ramadan_season,
 
-        -- Akhir tahun (Desember-Januari: natal, tahun baru)
+        -- Akhir tahun (Desember-Januari)
         CASE WHEN bulan IN (12, 1) THEN 1 ELSE 0 END
                                                     AS is_year_end_season,
 
         -- Harga dinormalisasi (z-score per komoditas-kota)
         CASE
             WHEN rolling_std_30d > 0
-            THEN ROUND(((harga - rolling_avg_30d) / rolling_std_30d)::NUMERIC, 4)
+            THEN ROUND(CAST((harga - rolling_avg_30d) / rolling_std_30d AS NUMERIC), 4)
         END                                         AS harga_zscore_30d,
 
         -- Rasio harga terhadap rata-rata nasional
         CASE
             WHEN avg_harga_nasional > 0
-            THEN ROUND((harga / avg_harga_nasional)::NUMERIC, 4)
+            THEN ROUND(CAST(harga / avg_harga_nasional AS NUMERIC), 4)
         END                                         AS harga_ratio_nasional
 
     FROM with_rolling
 )
 
 SELECT
-    -- ── Natural Key ──────────────────────────────────────────────────────
+    -- Natural Key
     tanggal,
     comcat_id,
     komoditas_nama,
@@ -163,31 +162,31 @@ SELECT
     kota_nama,
     satuan,
 
-    -- ── Target Variable ──────────────────────────────────────────────────
+    -- Target Variable
     harga                                           AS harga_aktual,
 
-    -- ── Lag Features ─────────────────────────────────────────────────────
+    -- Lag Features
     harga_lag_1d,
     harga_lag_7d,
     harga_lag_14d,
     harga_lag_30d,
     delta_harga_1d,
     delta_harga_7d,
-    ROUND(pct_change_1d::NUMERIC, 4)                         AS pct_change_1d,
-    ROUND(pct_change_7d::NUMERIC, 4)                         AS pct_change_7d,
+    ROUND(CAST(pct_change_1d AS NUMERIC), 4)                         AS pct_change_1d,
+    ROUND(CAST(pct_change_7d AS NUMERIC), 4)                         AS pct_change_7d,
 
-    -- ── Rolling Stats ─────────────────────────────────────────────────────
-    ROUND(rolling_avg_7d::NUMERIC, 2)                        AS rolling_avg_7d,
-    ROUND(rolling_std_7d::NUMERIC, 2)                        AS rolling_std_7d,
-    ROUND(rolling_avg_30d::NUMERIC, 2)                       AS rolling_avg_30d,
-    ROUND(rolling_std_30d::NUMERIC, 2)                       AS rolling_std_30d,
+    -- Rolling Stats
+    ROUND(CAST(rolling_avg_7d AS NUMERIC), 2)                        AS rolling_avg_7d,
+    ROUND(CAST(rolling_std_7d AS NUMERIC), 2)                        AS rolling_std_7d,
+    ROUND(CAST(rolling_avg_30d AS NUMERIC), 2)                       AS rolling_avg_30d,
+    ROUND(CAST(rolling_std_30d AS NUMERIC), 2)                       AS rolling_std_30d,
     rolling_min_30d,
     rolling_max_30d,
-    ROUND(avg_harga_nasional::NUMERIC, 2)                    AS avg_harga_nasional,
+    ROUND(CAST(avg_harga_nasional AS NUMERIC), 2)                    AS avg_harga_nasional,
     harga_zscore_30d,
     harga_ratio_nasional,
 
-    -- ── Calendar Features ────────────────────────────────────────────────
+    -- Calendar Features
     tahun,
     bulan,
     kuartal,
