@@ -1,6 +1,16 @@
 # ============================================================
-# Docker Compose — R.A.D.A.R Pangan (All Services)
-# DB: Supabase PostgreSQL (cloud, external)
+# Docker Compose - R.A.D.A.R Pangan
+#
+# Services:
+#   app          - FastAPI backend + frontend (always runs)
+#   ml-model     - ML inference server (profile: ml)
+#   airflow-*    - ETL pipeline (profile: etl)
+#
+# Usage:
+#   docker compose up app                    # App only
+#   docker compose --profile ml up           # App + ML model
+#   docker compose --profile etl up          # App + Airflow ETL
+#   docker compose --profile ml --profile etl up  # Everything
 # ============================================================
 
 services:
@@ -18,19 +28,61 @@ services:
       - .envs/.env
     environment:
       - PYTHONUNBUFFERED=1
+      # BigQuery config (override via .env if needed)
+      - GCP_PROJECT=${GCP_PROJECT:-radar-pangan-hackathon}
+      - BQ_LOCATION=${BQ_LOCATION:-asia-southeast2}
     volumes:
+      # Credentials (read-only)
       - ./.envs:/app/.envs:ro
+      # GCP Application Default Credentials for BigQuery access
+      # Windows: %APPDATA%/gcloud/application_default_credentials.json
+      # Linux/macOS: ~/.config/gcloud/application_default_credentials.json
+      - ${GOOGLE_APPLICATION_CREDENTIALS_DIR:-~/.config/gcloud}:/root/.config/gcloud:ro
+      # Frontend hot-reload during development (remove in production)
       - ./frontend:/app/frontend:ro
+    networks:
+      - radar-network
     restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # ML Inference Server (teammate managed)
+  #
+  # Activate with: docker compose --profile ml up
+  #
+  # Contract:
+  #   - Expose port 8001
+  #   - POST /predict -> predictions
+  #   - GET  /health  -> {"status": "ok"}
+  #   - FastAPI proxies via /api/ml/*
+  # ─────────────────────────────────────────
+  ml-model:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    container_name: radar-pangan-ml
+    ports:
+      - "8001:8001"
+    env_file:
+      - .envs/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MODEL_PORT=8001
+    volumes:
+      - ./ml/models:/app/models:ro
+    networks:
+      - radar-network
+    restart: unless-stopped
+    profiles:
+      - ml
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8000/docs"]
+      test: ["CMD", "curl", "--fail", "http://localhost:8001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 30s
 
   # ─────────────────────────────────────────
-  # Airflow PostgreSQL (metadata only, bukan data)
+  # Airflow PostgreSQL (metadata only)
   # ─────────────────────────────────────────
   airflow-postgres:
     image: postgres:16-alpine
@@ -46,6 +98,8 @@ services:
       interval: 10s
       retries: 5
       start_period: 5s
+    networks:
+      - radar-network
     restart: unless-stopped
     profiles:
       - etl
@@ -84,6 +138,8 @@ services:
     depends_on:
       airflow-postgres:
         condition: service_healthy
+    networks:
+      - radar-network
     restart: "no"
     profiles:
       - etl
@@ -125,6 +181,8 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+    networks:
+      - radar-network
     restart: unless-stopped
     profiles:
       - etl
@@ -164,9 +222,15 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+    networks:
+      - radar-network
     restart: unless-stopped
     profiles:
       - etl
+
+networks:
+  radar-network:
+    driver: bridge
 
 volumes:
   airflow-postgres-db:

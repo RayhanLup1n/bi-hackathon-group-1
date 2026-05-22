@@ -1,17 +1,52 @@
-.venv/
+# ========================================
+# .dockerignore - R.A.D.A.R Pangan
+# Exclude files not needed in Docker build context
+# ========================================
+
+# Version control
 .git/
 .gitignore
+
+# Python caches
+.venv/
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
 .ruff_cache/
+
+# Legacy data files
 /data/
 *.duckdb
 *.db
-etl/
-docs/
+
+# Tests and docs (not needed in production container)
 tests/
-*.md
+docs/
+
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude config
+.claude/
+CLAUDE.md
+
+# Secrets (mounted at runtime, never baked into image)
 .envs/.env
+
+# Infrastructure (Terraform, not needed in app container)
+infra/
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Python version manager
 .python-version
+
+# OS files
+Thumbs.db
+.DS_Store
