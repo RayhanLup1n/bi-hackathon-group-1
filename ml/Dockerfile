@@ -1,28 +1,38 @@
 # ========================================
 # Dockerfile - R.A.D.A.R Pangan ML Model
-# Inference server for price prediction
-#
-# TEMPLATE: ML teammate should customize this
+# 3-layer ML inference server:
+#   Lapis 1: LightGBM Quantile Forecast
+#   Lapis 2: Bayesian Changepoint + HET Detection
+#   Lapis 3: LLM Reasoning Agent
 #
 # Contract:
 #   - Expose port 8001
-#   - POST /predict -> price predictions
-#   - GET  /health  -> {"status": "ok"}
+#   - GET  /health            -> pipeline status
+#   - POST /api/v1/analyze    -> single analysis
+#   - POST /api/v1/batch      -> batch analysis
+#   - GET  /api/v1/alerts     -> active alerts
+#   - GET  /api/v1/summary/*  -> daily summary
+#   - GET  /api/v1/komoditas  -> available commodities
+#   - GET  /api/v1/kota       -> available cities
 # ========================================
 
 FROM python:3.11-slim
 
+# Install system dependencies (curl for healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# WORKDIR is one level above ml/ so that `from ml.src.*` imports resolve
 WORKDIR /app
 
-# Install ML dependencies
-# TODO: ML teammate - update requirements as needed
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies
+COPY requirements.txt /app/ml/requirements.txt
+RUN pip install --no-cache-dir -r /app/ml/requirements.txt
 
-# Copy model files and inference code
-COPY . .
+# Copy ML package into /app/ml/
+COPY . /app/ml/
 
 EXPOSE 8001
 
-# TODO: ML teammate - update entrypoint to match your server
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8001"]
+# Entry point: uvicorn with module path ml.serve.api
+CMD ["uvicorn", "ml.serve.api:app", "--host", "0.0.0.0", "--port", "8001"]

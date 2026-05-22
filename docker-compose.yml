@@ -31,6 +31,8 @@ services:
       # BigQuery config (override via .env if needed)
       - GCP_PROJECT=${GCP_PROJECT:-radar-pangan-hackathon}
       - BQ_LOCATION=${BQ_LOCATION:-asia-southeast2}
+      # ML server URL (Docker service name for inter-container communication)
+      - ML_SERVER_URL=http://ml-model:8001
     volumes:
       # Credentials (read-only)
       - ./.envs:/app/.envs:ro
@@ -51,9 +53,14 @@ services:
   #
   # Contract:
   #   - Expose port 8001
-  #   - POST /predict -> predictions
-  #   - GET  /health  -> {"status": "ok"}
-  #   - FastAPI proxies via /api/ml/*
+  #   - GET  /health            -> pipeline status
+  #   - POST /api/v1/analyze    -> single analysis
+  #   - POST /api/v1/batch      -> batch analysis
+  #   - GET  /api/v1/alerts     -> active alerts
+  #   - GET  /api/v1/summary/*  -> daily summary
+  #   - GET  /api/v1/komoditas  -> available commodities
+  #   - GET  /api/v1/kota       -> available cities
+  #   - FastAPI app proxies via /api/ml/*
   # ─────────────────────────────────────────
   ml-model:
     build:
@@ -67,8 +74,15 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - MODEL_PORT=8001
+      # Paths relative to WORKDIR (/app) - ml code is at /app/ml/
+      - ML_MODELS_DIR=ml/models
+      - ML_HET_CSV=ml/data/het_reference.csv
+      # LLM config (override via .env or docker-compose override)
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://openrouter.ai/api/v1}
+      - LLM_MODEL=${LLM_MODEL:-google/gemini-2.5-flash}
     volumes:
-      - ./ml/models:/app/models:ro
+      - ./ml/models:/app/ml/models:ro
     networks:
       - radar-network
     restart: unless-stopped

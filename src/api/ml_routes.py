@@ -24,10 +24,21 @@ from pydantic import BaseModel, Field
 
 from src.api.auth_routes import _current_user
 
-# ML server base URL — only localhost allowed to prevent SSRF
+# ML server base URL — allow localhost and Docker service names (internal network)
 _raw_url = os.environ.get("ML_SERVER_URL", "http://localhost:8001")
-if not _raw_url.startswith(("http://localhost", "http://127.0.0.1")):
-    raise ValueError(f"ML_SERVER_URL must point to localhost, got: {_raw_url}")
+
+# Allow localhost, 127.0.0.1, and internal Docker service names (e.g. http://ml-model:8001)
+_ALLOWED_PREFIXES = ("http://localhost", "http://127.0.0.1")
+_ALLOWED_DOCKER_HOSTS = ("ml-model",)
+
+_is_allowed = (
+    _raw_url.startswith(_ALLOWED_PREFIXES)
+    or any(_raw_url.startswith(f"http://{h}") for h in _ALLOWED_DOCKER_HOSTS)
+)
+if not _is_allowed:
+    raise ValueError(
+        f"ML_SERVER_URL must point to localhost or allowed Docker service, got: {_raw_url}"
+    )
 ML_SERVER_URL = _raw_url.rstrip("/")
 
 ml_router = APIRouter(prefix="/api/ml", tags=["ML Predictions"])
