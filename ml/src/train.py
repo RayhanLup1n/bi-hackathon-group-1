@@ -266,13 +266,14 @@ def run_training_pipeline(
             )
 
             # Evaluate on all splits
-            val_metrics  = evaluate(model, df_val,  feature_cols, target_col, q, "val")
-            test_metrics = evaluate(model, df_test, feature_cols, target_col, q, "test")
+            val_metrics = evaluate(model, df_val, feature_cols, target_col, q, "val")
+            combined_metrics = {f"val_{k}": v for k, v in val_metrics.items()}
 
-            combined_metrics = {
-                **{f"val_{k}": v for k, v in val_metrics.items()},
-                **{f"test_{k}": v for k, v in test_metrics.items()},
-            }
+            if not df_test.empty:
+                test_metrics = evaluate(model, df_test, feature_cols, target_col, q, "test")
+                combined_metrics.update({f"test_{k}": v for k, v in test_metrics.items()})
+            else:
+                logger.warning(f"[{model_name}] Test split is empty — skipping test evaluation.")
             all_metrics[model_name] = combined_metrics
 
             model_path = models_dir / f"{model_name}.pkl"

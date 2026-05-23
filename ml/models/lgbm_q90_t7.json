@@ -25,20 +25,18 @@
     "is_year_end_season",
     "het_pct_utilization",
     "jarak_ke_het_pct",
+    "precip_7d_avg",
+    "temp_max_7d",
     "comcat_id_encoded",
     "kota_id",
     "provinsi_id"
   ],
   "metrics": {
-    "val_mape": 7.405415863017034,
-    "val_pinball_loss": 527.038978399352,
-    "val_mae": 3270.737035613454,
-    "val_coverage_pct": 90.93014280200696,
-    "test_mape": 7.815736180198704,
-    "test_pinball_loss": 612.6972603581984,
-    "test_mae": 3306.7646834889347,
-    "test_coverage_pct": 87.21904761904761
+    "val_mape": 20.521054104651444,
+    "val_pinball_loss": 1255.302709093424,
+    "val_mae": 7834.5538740875945,
+    "val_coverage_pct": 87.36949614162506
   },
-  "trained_at": "2026-04-26T07:06:28.201014",
-  "best_iteration": 371
+  "trained_at": "2026-05-23T13:53:16.539255",
+  "best_iteration": 81
 }
