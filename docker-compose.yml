@@ -4,13 +4,15 @@
 # Services:
 #   app          - FastAPI backend + frontend (always runs)
 #   ml-model     - ML inference server (profile: ml)
-#   airflow-*    - ETL pipeline (profile: etl)
+#   kestra       - ETL orchestrator + UI (profile: etl)
 #
 # Usage:
 #   docker compose up app                    # App only
 #   docker compose --profile ml up           # App + ML model
-#   docker compose --profile etl up          # App + Airflow ETL
+#   docker compose --profile etl up          # App + Kestra ETL
 #   docker compose --profile ml --profile etl up  # Everything
+#
+# Kestra UI: http://localhost:8080 (admin / kestra)
 # ============================================================
 
 services:
@@ -96,19 +98,19 @@ services:
       start_period: 30s
 
   # ─────────────────────────────────────────
-  # Airflow PostgreSQL (metadata only)
+  # Kestra PostgreSQL (metadata store)
   # ─────────────────────────────────────────
-  airflow-postgres:
+  kestra-postgres:
     image: postgres:16-alpine
-    container_name: radar-airflow-postgres
+    container_name: radar-kestra-postgres
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: kestra
+      POSTGRES_DB: kestra
     volumes:
-      - airflow-postgres-db:/var/lib/postgresql/data
+      - kestra-postgres-db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
+      test: ["CMD", "pg_isready", "-U", "kestra"]
       interval: 10s
       retries: 5
       start_period: 5s
@@ -119,123 +121,69 @@ services:
       - etl
 
   # ─────────────────────────────────────────
-  # Airflow Init
+  # Kestra Orchestrator (server + worker + UI)
+  #
+  # Activate with: docker compose --profile etl up
+  #
+  # Custom image: Kestra + Python 3.11 + dbt-bigquery
+  # Process runner: scripts run inside this container
+  # UI: http://localhost:8080
+  #
+  # Import flows after startup:
+  #   curl -X POST http://localhost:8080/api/v1/flows/import \
+  #     -F "fileUpload=@etl/kestra/flows/radar_pangan_full_pipeline.yml"
+  #   curl -X POST http://localhost:8080/api/v1/flows/import \
+  #     -F "fileUpload=@etl/kestra/flows/radar_pangan_daily.yml"
   # ─────────────────────────────────────────
-  airflow-init:
+  kestra:
     build:
-      context: ./etl
+      context: ./etl/kestra
       dockerfile: Dockerfile
-    container_name: radar-airflow-init
-    env_file:
-      - etl/.env
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
-      PYTHONPATH: /opt/airflow
-      PATH: /home/airflow/.local/bin:/usr/local/bin:/usr/bin:/bin
-      SUPABASE_HOST: ${SUPABASE_HOST:-localhost}
-      SUPABASE_PORT: ${SUPABASE_PORT:-5432}
-      SUPABASE_DB: ${SUPABASE_DB:-postgres}
-      SUPABASE_USER: ${SUPABASE_USER:-postgres}
-      SUPABASE_PASSWORD: ${SUPABASE_PASSWORD:-}
-    entrypoint: /bin/bash
-    command:
-      - -c
-      - |
-        set -e
-        airflow db migrate
-        airflow users create \
-          --username admin --firstname Admin --lastname PIHPS \
-          --role Admin --email admin@pihps.local --password admin || true
-        echo "Airflow initialized."
-    depends_on:
-      airflow-postgres:
-        condition: service_healthy
-    networks:
-      - radar-network
-    restart: "no"
-    profiles:
-      - etl
-
-  # ─────────────────────────────────────────
-  # Airflow Webserver
-  # ─────────────────────────────────────────
-  airflow-webserver:
-    build:
-      context: ./etl
-      dockerfile: Dockerfile
-    container_name: radar-airflow-webserver
-    env_file:
-      - etl/.env
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
-      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
-      PYTHONPATH: /opt/airflow
-      PATH: /home/airflow/.local/bin:/usr/local/bin:/usr/bin:/bin
-      SUPABASE_HOST: ${SUPABASE_HOST:-localhost}
-      SUPABASE_PORT: ${SUPABASE_PORT:-5432}
-      SUPABASE_DB: ${SUPABASE_DB:-postgres}
-      SUPABASE_USER: ${SUPABASE_USER:-postgres}
-      SUPABASE_PASSWORD: ${SUPABASE_PASSWORD:-}
-    command: webserver
+    container_name: radar-kestra
+    user: "root"
+    command: server standalone --worker-thread=128
     ports:
       - "8080:8080"
-    volumes:
-      - ./etl/dags:/opt/airflow/dags
-      - ./etl/extractors:/opt/airflow/extractors
-      - ./etl/loaders:/opt/airflow/loaders
-      - ./etl/dbt_project:/opt/airflow/dbt_project
-      - ./etl/config:/opt/airflow/config
-      - airflow-logs:/opt/airflow/logs
-    depends_on:
-      airflow-postgres:
-        condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
-    networks:
-      - radar-network
-    restart: unless-stopped
-    profiles:
-      - etl
-
-  # ─────────────────────────────────────────
-  # Airflow Scheduler
-  # ─────────────────────────────────────────
-  airflow-scheduler:
-    build:
-      context: ./etl
-      dockerfile: Dockerfile
-    container_name: radar-airflow-scheduler
     env_file:
-      - etl/.env
+      - .envs/.env
     environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
-      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
-      PYTHONPATH: /opt/airflow
-      PATH: /home/airflow/.local/bin:/usr/local/bin:/usr/bin:/bin
-      SUPABASE_HOST: ${SUPABASE_HOST:-localhost}
-      SUPABASE_PORT: ${SUPABASE_PORT:-5432}
-      SUPABASE_DB: ${SUPABASE_DB:-postgres}
-      SUPABASE_USER: ${SUPABASE_USER:-postgres}
-      SUPABASE_PASSWORD: ${SUPABASE_PASSWORD:-}
-    command: scheduler
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://kestra-postgres:5432/kestra
+            driver-class-name: org.postgresql.Driver
+            username: kestra
+            password: kestra
+        kestra:
+          server:
+            basic-auth:
+              username: admin
+              password: kestra
+          repository:
+            type: postgres
+          storage:
+            type: local
+            local:
+              base-path: "/app/storage"
+          queue:
+            type: postgres
+      # BigQuery config
+      GCP_PROJECT: ${GCP_PROJECT:-radar-pangan-hackathon}
+      BQ_LOCATION: ${BQ_LOCATION:-asia-southeast2}
+      PYTHONUNBUFFERED: "1"
     volumes:
-      - ./etl/dags:/opt/airflow/dags
-      - ./etl/extractors:/opt/airflow/extractors
-      - ./etl/loaders:/opt/airflow/loaders
-      - ./etl/dbt_project:/opt/airflow/dbt_project
-      - ./etl/config:/opt/airflow/config
-      - airflow-logs:/opt/airflow/logs
+      - kestra-data:/app/storage
+      # Mount entire project for Process runner access
+      - .:/app/project:ro
+      # Kestra working directory
+      - /tmp/kestra-wd:/tmp/kestra-wd
+      # GCP Application Default Credentials for BigQuery
+      # Windows: set GOOGLE_APPLICATION_CREDENTIALS_DIR=%APPDATA%/gcloud
+      # Linux/macOS: uses default ~/.config/gcloud
+      - ${GOOGLE_APPLICATION_CREDENTIALS_DIR:-~/.config/gcloud}:/root/.config/gcloud:ro
     depends_on:
-      airflow-postgres:
+      kestra-postgres:
         condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
     networks:
       - radar-network
     restart: unless-stopped
@@ -247,7 +195,7 @@ networks:
     driver: bridge
 
 volumes:
-  airflow-postgres-db:
+  kestra-postgres-db:
     driver: local
-  airflow-logs:
+  kestra-data:
     driver: local

@@ -1,14 +1,14 @@
 """
-Load historical PIHPS data ke Supabase PostgreSQL.
+Load historical PIHPS data ke BigQuery raw.harga_pangan.
 
 Batch strategy: per kota per tahun agar aman dari OOM.
-Insert strategy: bulk executemany (bukan row-by-row) agar cepat.
+Load strategy: BigQuery batch load via load_table_from_dataframe (FREE).
 
 Usage:
-    cd etl
-    python -X utf8 scripts/load_historical.py
-    python -X utf8 scripts/load_historical.py --start-year 2023    # mulai dari 2023
-    python -X utf8 scripts/load_historical.py --resume              # lanjut dari checkpoint terakhir
+    cd bi-hackathon-group-1
+    python -X utf8 etl/scripts/load_historical.py
+    python -X utf8 etl/scripts/load_historical.py --start-year 2023
+    python -X utf8 etl/scripts/load_historical.py --resume
 """
 from __future__ import annotations
 
@@ -16,115 +16,129 @@ import argparse
 import os
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
-# Ensure project root is in path
+# Ensure etl/ is in path for relative imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Load Supabase credentials from .envs/.env
+# Load credentials from .envs/.env
 from dotenv import load_dotenv
 _project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv(os.path.join(_project_root, ".envs", ".env"))
 
-import psycopg2
-import psycopg2.extras
+import pandas as pd
+from google.cloud import bigquery
 from loguru import logger
 
 from extractors.pihps_extractor import PihpsExtractor
-from loaders.postgres_loader import PostgresLoader, _get_dsn
-
-
-# ── Config ────────────────────────────────────────────────────────────────────
-
-# Import from centralized config
 from config.constants import TARGET_PROVINCE_IDS
+
+
+# -- Config --------------------------------------------------------------------
+
 DEFAULT_START_YEAR = 2020
 DEFAULT_END_YEAR = 2026
 
-INSERT_SQL = """
-    INSERT INTO raw.harga_pangan
-        (tanggal, comcat_id, komoditas_nama, pasar_tipe,
-         provinsi_id, provinsi_nama, kota_id, kota_nama,
-         pasar_nama, harga, satuan, _source)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-"""
+GCP_PROJECT = os.getenv("GCP_PROJECT", "radar-pangan-hackathon")
+BQ_LOCATION = os.getenv("BQ_LOCATION", "asia-southeast2")
+BQ_TABLE_HARGA = f"{GCP_PROJECT}.raw.harga_pangan"
+BQ_TABLE_LOG = f"{GCP_PROJECT}.raw.pipeline_log"
 
 
-def _load_master_data(
-    extractor: PihpsExtractor,
-    loader: PostgresLoader,
-    province_ids: list[int] | None = None,
-) -> dict:
-    """Load master data provinsi + kota, return mapping {prov_id: [kota_ids]}."""
-    target_ids = province_ids or TARGET_PROVINCE_IDS
-
-    df_prov = extractor.get_master_provinsi()
-    if not df_prov.empty:
-        loader.upsert_provinsi(df_prov)
-        logger.info(f"Provinsi loaded: {len(df_prov)}")
-
-    prov_kota_map = {}
-    for prov_id in target_ids:
-        df_kota = extractor.get_master_kota(province_id=str(prov_id))
-        if not df_kota.empty:
-            df_kota["provinsi_id"] = prov_id
-            df_kota = df_kota.rename(columns={"id": "kota_id", "name": "kota_nama"})
-            loader.upsert_kota(df_kota)
-            prov_kota_map[prov_id] = list(df_kota["kota_id"])
-            logger.info(f"  Prov {prov_id}: {len(df_kota)} kota")
-
-    return prov_kota_map
+def _get_bq_client() -> bigquery.Client:
+    """Create BigQuery client with project config."""
+    return bigquery.Client(project=GCP_PROJECT, location=BQ_LOCATION)
 
 
-def _get_checkpoint(conn) -> tuple[int, int, int] | None:
-    """Get last successful checkpoint (year, prov_id, kota_id)."""
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT
-            EXTRACT(YEAR FROM tanggal_selesai)::INTEGER as tahun,
-            0 as prov_id,
-            0 as kota_id
-        FROM raw.pipeline_log
-        WHERE pipeline_name = 'historical_load'
-          AND status = 'success'
-        ORDER BY tanggal_selesai DESC
-        LIMIT 1
-    """)
-    result = cur.fetchone()
-    cur.close()
-    return result
+def _get_next_id(client: bigquery.Client, table_ref: str) -> int:
+    """Get next available ID for a BigQuery table."""
+    # pipeline_log is partitioned by started_at, need partition filter
+    if "pipeline_log" in table_ref:
+        query = f"SELECT COALESCE(MAX(id), 0) + 1 FROM `{table_ref}` WHERE started_at >= '2020-01-01'"
+    elif "harga_pangan" in table_ref:
+        query = f"SELECT COALESCE(MAX(id), 0) + 1 FROM `{table_ref}` WHERE tanggal >= '2020-01-01'"
+    else:
+        query = f"SELECT COALESCE(MAX(id), 0) + 1 FROM `{table_ref}`"
+    result = client.query(query).result()
+    row = next(iter(result))
+    return row[0]
 
 
-def _bulk_insert(conn, records: list[tuple]) -> int:
-    """Bulk insert records using executemany. Returns count inserted."""
-    if not records:
+def _load_to_bigquery(
+    client: bigquery.Client,
+    df: pd.DataFrame,
+    table_ref: str,
+) -> int:
+    """Load DataFrame into BigQuery using batch load (FREE).
+
+    Uses WRITE_APPEND to add new data incrementally.
+    dbt staging layer handles deduplication.
+    """
+    if df.empty:
         return 0
 
-    cur = conn.cursor()
+    job_config = bigquery.LoadJobConfig(
+        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
+    )
+
+    load_job = client.load_table_from_dataframe(
+        df,
+        table_ref,
+        job_config=job_config,
+    )
+
+    # Wait for job to complete
+    load_job.result()
+    return load_job.output_rows
+
+
+def _log_pipeline_run(
+    client: bigquery.Client,
+    run_id: str,
+    pipeline_name: str,
+    tanggal_mulai: date | None,
+    tanggal_selesai: date | None,
+    records_inserted: int,
+    status: str,
+    error_message: str | None = None,
+) -> None:
+    """Log pipeline run to BigQuery raw.pipeline_log."""
     try:
-        # Use execute_batch for better performance than executemany
-        psycopg2.extras.execute_batch(cur, INSERT_SQL, records, page_size=500)
-        conn.commit()
-        n = len(records)
-        return n
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        cur.close()
+        next_id = _get_next_id(client, BQ_TABLE_LOG)
+        now = datetime.utcnow()
+        df_log = pd.DataFrame([{
+            "id": next_id,
+            "run_id": run_id,
+            "pipeline_name": pipeline_name,
+            "tanggal_mulai": tanggal_mulai,
+            "tanggal_selesai": tanggal_selesai,
+            "records_inserted": records_inserted,
+            "status": status,
+            "error_message": error_message,
+            "started_at": now,
+            "finished_at": now,
+        }])
+
+        # Fix dtypes for BigQuery
+        df_log["id"] = df_log["id"].astype("Int64")
+        df_log["records_inserted"] = df_log["records_inserted"].astype("Int64")
+
+        _load_to_bigquery(client, df_log, BQ_TABLE_LOG)
+    except Exception as e:
+        logger.warning(f"Failed to log pipeline run: {e}")
 
 
 def _extract_prov_year(
     extractor: PihpsExtractor,
     prov_id: int,
     year: int,
-) -> list[tuple]:
-    """Extract data for one province, one year. Returns list of tuples for insert."""
+) -> pd.DataFrame:
+    """Extract data for one province, one year. Returns DataFrame."""
     tanggal_mulai = date(year, 1, 1)
     tanggal_selesai = min(date(year, 12, 31), date.today() - timedelta(days=1))
 
     if tanggal_mulai > tanggal_selesai:
-        return []
+        return pd.DataFrame()
 
     df = extractor.extract_harga_per_wilayah(
         tanggal_mulai=tanggal_mulai,
@@ -133,7 +147,7 @@ def _extract_prov_year(
     )
 
     if df.empty:
-        return []
+        return pd.DataFrame()
 
     # Deduplicate
     df = df.drop_duplicates(
@@ -141,29 +155,50 @@ def _extract_prov_year(
         keep="last",
     )
 
-    # Convert to list of tuples for bulk insert
-    records = []
-    for _, row in df.iterrows():
-        records.append((
-            row.get("tanggal"),
-            row.get("comcat_id"),
-            row.get("komoditas_nama"),
-            row.get("pasar_tipe"),
-            row.get("provinsi_id"),
-            row.get("provinsi_nama"),
-            row.get("kota_id"),
-            row.get("kota_nama"),
-            row.get("pasar_nama"),
-            row.get("harga"),
-            row.get("satuan"),
-            "bi_pihps",
-        ))
+    return df
 
-    return records
+
+def _prepare_dataframe(df: pd.DataFrame, start_id: int) -> pd.DataFrame:
+    """Prepare DataFrame for BigQuery load with proper dtypes."""
+    if df.empty:
+        return df
+
+    # Add required columns
+    df = df.copy()
+    df["id"] = range(start_id, start_id + len(df))
+    df["_source"] = "bi_pihps"
+    df["_extracted_at"] = datetime.utcnow()
+
+    # Ensure column order matches BigQuery schema
+    columns = [
+        "id", "tanggal", "comcat_id", "komoditas_nama", "pasar_tipe",
+        "provinsi_id", "provinsi_nama", "kota_id", "kota_nama",
+        "pasar_nama", "harga", "satuan", "_extracted_at", "_source",
+    ]
+
+    # Only keep columns that exist
+    columns = [c for c in columns if c in df.columns]
+    df = df[columns]
+
+    # Fix dtypes
+    df["tanggal"] = pd.to_datetime(df["tanggal"]).dt.date
+    df["id"] = df["id"].astype("Int64")
+
+    int_cols = ["pasar_tipe", "provinsi_id", "kota_id"]
+    for col in int_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+
+    float_cols = ["harga"]
+    for col in float_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    return df
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Load historical PIHPS data")
+    parser = argparse.ArgumentParser(description="Load historical PIHPS data to BigQuery")
     parser.add_argument("--start-year", type=int, default=DEFAULT_START_YEAR)
     parser.add_argument("--end-year", type=int, default=DEFAULT_END_YEAR)
     parser.add_argument("--resume", action="store_true", help="Resume from last checkpoint")
@@ -176,26 +211,15 @@ def main():
     # Determine which provinces to load
     province_ids = args.provinces or TARGET_PROVINCE_IDS
 
-    # Init
-    conn = psycopg2.connect(_get_dsn())
+    # Init BigQuery client
+    client = _get_bq_client()
 
-    with PostgresLoader() as loader:
-        loader.init_schema()
-
-    # Check resume
-    start_year = args.start_year
-    if args.resume:
-        checkpoint = _get_checkpoint(conn)
-        if checkpoint:
-            start_year = max(checkpoint[0], start_year)
-            logger.info(f"Resuming from year {start_year}")
-
-    # Load master data
-    with PihpsExtractor() as extractor:
-        with PostgresLoader() as loader:
-            prov_kota_map = _load_master_data(extractor, loader, province_ids)
+    # Get next available ID for auto-increment
+    current_id = _get_next_id(client, BQ_TABLE_HARGA)
+    logger.info(f"Starting ID: {current_id}")
 
     # Build batch list: (year, prov_id)
+    start_year = args.start_year
     batches = []
     for year in range(start_year, args.end_year + 1):
         for prov_id in province_ids:
@@ -208,6 +232,7 @@ def main():
     logger.info(f"Total batches: {total_batches} (year x province)")
     logger.info(f"Years: {start_year}-{args.end_year}")
     logger.info(f"Provinces: {province_ids}")
+    logger.info(f"Target: BigQuery {BQ_TABLE_HARGA}")
     print()
 
     # Process per-province per-year
@@ -216,15 +241,18 @@ def main():
             batch_label = f"[{i}/{total_batches}] Year={year} Prov={prov_id}"
 
             try:
-                records = _extract_prov_year(extractor, prov_id, year)
+                df = _extract_prov_year(extractor, prov_id, year)
 
-                if records:
-                    n = _bulk_insert(conn, records)
+                if not df.empty:
+                    # Prepare DataFrame with proper dtypes and IDs
+                    df = _prepare_dataframe(df, current_id)
+                    n = _load_to_bigquery(client, df, BQ_TABLE_HARGA)
+                    current_id += len(df)
                     total_inserted += n
                     elapsed = time.time() - t_start
                     rate = total_inserted / elapsed if elapsed > 0 else 0
                     logger.success(
-                        f"{batch_label}: {n:,} rows inserted "
+                        f"{batch_label}: {n:,} rows loaded "
                         f"(total: {total_inserted:,}, "
                         f"{rate:.0f} rows/sec, "
                         f"elapsed: {elapsed/60:.1f}min)"
@@ -233,60 +261,43 @@ def main():
                     logger.warning(f"{batch_label}: no data")
 
                 # Log success checkpoint
-                cur = conn.cursor()
-                cur.execute("""
-                    INSERT INTO raw.pipeline_log
-                        (run_id, pipeline_name, tanggal_mulai, tanggal_selesai,
-                         records_inserted, status)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, [
-                    f"hist_{year}_{prov_id}",
-                    "historical_load",
-                    date(year, 1, 1),
-                    min(date(year, 12, 31), date.today()),
-                    len(records),
-                    "success",
-                ])
-                conn.commit()
-                cur.close()
+                _log_pipeline_run(
+                    client,
+                    run_id=f"hist_{year}_{prov_id}",
+                    pipeline_name="historical_load",
+                    tanggal_mulai=date(year, 1, 1),
+                    tanggal_selesai=min(date(year, 12, 31), date.today()),
+                    records_inserted=len(df) if not df.empty else 0,
+                    status="success",
+                )
 
             except Exception as e:
                 logger.error(f"{batch_label}: FAILED - {e}")
-                # Log failure and continue to next batch
-                try:
-                    cur = conn.cursor()
-                    cur.execute("""
-                        INSERT INTO raw.pipeline_log
-                            (run_id, pipeline_name, tanggal_mulai, tanggal_selesai,
-                             records_inserted, status, error_message)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """, [
-                        f"hist_{year}_{prov_id}",
-                        "historical_load",
-                        date(year, 1, 1),
-                        date(year, 12, 31),
-                        0,
-                        "failed",
-                        str(e)[:500],
-                    ])
-                    conn.commit()
-                    cur.close()
-                except Exception:
-                    pass
+                _log_pipeline_run(
+                    client,
+                    run_id=f"hist_{year}_{prov_id}",
+                    pipeline_name="historical_load",
+                    tanggal_mulai=date(year, 1, 1),
+                    tanggal_selesai=date(year, 12, 31),
+                    records_inserted=0,
+                    status="failed",
+                    error_message=str(e)[:500],
+                )
                 continue
 
     elapsed_total = time.time() - t_start
-    conn.close()
 
     # Final summary
     print()
     print("=" * 60)
     print("HISTORICAL LOAD COMPLETE")
     print("=" * 60)
+    print(f"  Target:         BigQuery {BQ_TABLE_HARGA}")
     print(f"  Years:          {start_year}-{args.end_year}")
-    print(f"  Total inserted: {total_inserted:,} rows")
+    print(f"  Total loaded:   {total_inserted:,} rows")
     print(f"  Duration:       {elapsed_total/60:.1f} minutes")
-    print(f"  Avg rate:       {total_inserted/elapsed_total:.0f} rows/sec")
+    if elapsed_total > 0:
+        print(f"  Avg rate:       {total_inserted/elapsed_total:.0f} rows/sec")
     print("=" * 60)
 
 

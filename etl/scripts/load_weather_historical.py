@@ -1,14 +1,14 @@
 """
-Load historical weather data from Open-Meteo into raw.cuaca_harian.
+Load historical weather data from Open-Meteo into BigQuery raw.cuaca_harian.
 
 Open-Meteo supports wide date ranges per request, so this is fast:
-- 5 locations × 6 years = ~5 API calls = ~3 minutes total.
-- Estimated DB size: ~5-10 MB (very small compared to PIHPS data).
+- 5 locations x 6 years = ~5 API calls = ~3 minutes total.
+- Load via BigQuery batch load (FREE).
 
 Usage:
-    cd etl
-    python -X utf8 scripts/load_weather_historical.py
-    python -X utf8 scripts/load_weather_historical.py --start-year 2024  # recent only
+    cd bi-hackathon-group-1
+    python etl/scripts/load_weather_historical.py
+    python etl/scripts/load_weather_historical.py --start-year 2024
 """
 from __future__ import annotations
 
@@ -16,66 +16,105 @@ import argparse
 import os
 import sys
 import time
-from datetime import date
+from datetime import date, datetime
 
-# Ensure project root is in path
+# Ensure etl/ is in path for relative imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Load Supabase credentials from .envs/.env
+# Load credentials from .envs/.env
 from dotenv import load_dotenv
 _project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv(os.path.join(_project_root, ".envs", ".env"))
 
-import psycopg2
-import psycopg2.extras
+import pandas as pd
+from google.cloud import bigquery
 from loguru import logger
 
 from config.constants import WEATHER_LOCATIONS
 from extractors.openmeteo_extractor import OpenMeteoExtractor
-from loaders.postgres_loader import PostgresLoader, _get_dsn
 
+
+# -- Config --------------------------------------------------------------------
 
 DEFAULT_START_YEAR = 2020
 DEFAULT_END_YEAR = 2026
 
-UPSERT_SQL = """
-    INSERT INTO raw.cuaca_harian
-        (tanggal, lokasi_label, provinsi_id, latitude, longitude,
-         precipitation_sum, rain_sum, temperature_max, temperature_min,
-         wind_speed_max, et0_evapotranspiration, sunshine_duration)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    ON CONFLICT (tanggal, latitude, longitude) DO UPDATE SET
-        precipitation_sum     = EXCLUDED.precipitation_sum,
-        rain_sum              = EXCLUDED.rain_sum,
-        temperature_max       = EXCLUDED.temperature_max,
-        temperature_min       = EXCLUDED.temperature_min,
-        wind_speed_max        = EXCLUDED.wind_speed_max,
-        et0_evapotranspiration = EXCLUDED.et0_evapotranspiration,
-        sunshine_duration     = EXCLUDED.sunshine_duration,
-        _extracted_at         = CURRENT_TIMESTAMP
-"""
+GCP_PROJECT = os.getenv("GCP_PROJECT", "radar-pangan-hackathon")
+BQ_LOCATION = os.getenv("BQ_LOCATION", "asia-southeast2")
+BQ_TABLE = f"{GCP_PROJECT}.raw.cuaca_harian"
+
+
+def _get_bq_client() -> bigquery.Client:
+    """Create BigQuery client with project config."""
+    return bigquery.Client(project=GCP_PROJECT, location=BQ_LOCATION)
+
+
+def _get_next_id(client: bigquery.Client) -> int:
+    """Get next available ID for cuaca_harian table."""
+    query = f"SELECT COALESCE(MAX(id), 0) + 1 FROM `{BQ_TABLE}` WHERE tanggal >= '2020-01-01'"
+    result = client.query(query).result()
+    row = next(iter(result))
+    return row[0]
+
+
+def _prepare_dataframe(df: pd.DataFrame, start_id: int) -> pd.DataFrame:
+    """Prepare DataFrame for BigQuery load with proper dtypes."""
+    if df.empty:
+        return df
+
+    df = df.copy()
+
+    # Add required columns
+    df["id"] = range(start_id, start_id + len(df))
+    df["_source"] = "open_meteo"
+    df["_extracted_at"] = datetime.utcnow()
+
+    # Ensure column order matches BigQuery schema
+    columns = [
+        "id", "tanggal", "lokasi_label", "provinsi_id", "latitude", "longitude",
+        "precipitation_sum", "rain_sum", "temperature_max", "temperature_min",
+        "wind_speed_max", "et0_evapotranspiration", "sunshine_duration",
+        "_extracted_at", "_source",
+    ]
+
+    # Only keep columns that exist
+    columns = [c for c in columns if c in df.columns]
+    df = df[columns]
+
+    # Fix dtypes
+    df["tanggal"] = pd.to_datetime(df["tanggal"]).dt.date
+    df["id"] = df["id"].astype("Int64")
+    df["provinsi_id"] = pd.to_numeric(df["provinsi_id"], errors="coerce").astype("Int64")
+
+    float_cols = [
+        "latitude", "longitude", "precipitation_sum", "rain_sum",
+        "temperature_max", "temperature_min", "wind_speed_max",
+        "et0_evapotranspiration", "sunshine_duration",
+    ]
+    for col in float_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    return df
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Load historical weather data from Open-Meteo")
+    parser = argparse.ArgumentParser(description="Load historical weather data from Open-Meteo to BigQuery")
     parser.add_argument("--start-year", type=int, default=DEFAULT_START_YEAR)
     parser.add_argument("--end-year", type=int, default=DEFAULT_END_YEAR)
     args = parser.parse_args()
 
-    # Ensure schema + table exist
-    with PostgresLoader() as loader:
-        loader.init_schema()
-
-    # Connect to database
-    conn = psycopg2.connect(_get_dsn())
+    # Init BigQuery client
+    client = _get_bq_client()
 
     t_start = time.time()
     start_date = date(args.start_year, 1, 1)
     end_date = min(date(args.end_year, 12, 31), date.today())
 
-    logger.info(f"Loading weather data: {start_date} → {end_date}")
+    logger.info(f"Loading weather data: {start_date} to {end_date}")
     logger.info(f"Locations: {sum(len(v) for v in WEATHER_LOCATIONS.values())} points "
                 f"across {len(WEATHER_LOCATIONS)} provinces")
+    logger.info(f"Target: BigQuery {BQ_TABLE}")
 
     # Extract from Open-Meteo
     with OpenMeteoExtractor(request_delay=0.5) as extractor:
@@ -87,52 +126,39 @@ def main():
 
     if df.empty:
         logger.warning("No weather data extracted!")
-        conn.close()
         return
 
-    logger.info(f"Extracted {len(df):,} weather records. Inserting into DB...")
+    logger.info(f"Extracted {len(df):,} weather records. Loading into BigQuery...")
 
-    # Bulk upsert into raw.cuaca_harian
-    cur = conn.cursor()
-    records = []
-    for _, row in df.iterrows():
-        records.append((
-            row["tanggal"],
-            row["lokasi_label"],
-            row["provinsi_id"],
-            row["latitude"],
-            row["longitude"],
-            row.get("precipitation_sum"),
-            row.get("rain_sum"),
-            row.get("temperature_max"),
-            row.get("temperature_min"),
-            row.get("wind_speed_max"),
-            row.get("et0_evapotranspiration"),
-            row.get("sunshine_duration"),
-        ))
+    # Get next available ID
+    next_id = _get_next_id(client)
 
-    try:
-        psycopg2.extras.execute_batch(cur, UPSERT_SQL, records, page_size=500)
-        conn.commit()
-        logger.success(f"Inserted/updated {len(records):,} weather records")
-    except Exception as e:
-        conn.rollback()
-        logger.error(f"Failed to insert weather data: {e}")
-        raise
-    finally:
-        cur.close()
+    # Prepare DataFrame for BigQuery
+    df = _prepare_dataframe(df, next_id)
+
+    # Load to BigQuery (batch load = FREE)
+    job_config = bigquery.LoadJobConfig(
+        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
+    )
+    load_job = client.load_table_from_dataframe(
+        df, BQ_TABLE, job_config=job_config,
+    )
+    load_job.result()  # Wait for completion
 
     elapsed = time.time() - t_start
-    conn.close()
+    n_loaded = load_job.output_rows
+
+    logger.success(f"Loaded {n_loaded:,} weather records to BigQuery")
 
     # Summary
     print()
     print("=" * 60)
     print("WEATHER DATA LOAD COMPLETE")
     print("=" * 60)
+    print(f"  Target:      BigQuery {BQ_TABLE}")
     print(f"  Period:      {start_date} to {end_date}")
     print(f"  Locations:   {sum(len(v) for v in WEATHER_LOCATIONS.values())}")
-    print(f"  Records:     {len(records):,}")
+    print(f"  Records:     {n_loaded:,}")
     print(f"  Duration:    {elapsed:.1f} seconds")
     print("=" * 60)
 

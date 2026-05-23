@@ -77,3 +77,6 @@ docs/Draf Proposal Sub Topic Pemantauan Inflasi.pdf
 
 # Update Sprint
 progress-report-*.html
+
+# Excel File
+*.xlsx
