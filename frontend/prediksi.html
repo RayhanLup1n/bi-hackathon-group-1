@@ -452,9 +452,76 @@
 
       <!-- Loading -->
       <template x-if="mlLoading">
-        <div class="card" style="text-align:center;padding:40px;">
-          <div class="spinner" style="margin:0 auto 10px;display:block;"></div>
-          <div style="font-family:var(--mono);font-size:12px;color:var(--muted);">Menjalankan analisis 3-layer ML...</div>
+        <div class="ml-result-card">
+          <!-- Header -->
+          <div class="ml-result-header">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="spinner" style="flex-shrink:0;animation:spin 0.8s linear infinite;"></div>
+              <span class="ml-result-title">ANALISIS ML SEDANG BERJALAN</span>
+            </div>
+            <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--muted);"
+                  x-text="'⏱ ' + mlElapsed + 's'"></span>
+          </div>
+
+          <!-- Phase steps using detection-row layout -->
+          <div class="ml-result-body">
+            <div class="detection-row">
+
+              <!-- Phase 1: Forecast -->
+              <div class="detect-item"
+                   :style="mlPhase > 1 ? 'background:#F0FDF4;border-color:var(--accent);' : mlPhase === 1 ? 'background:#FFFBEB;border-color:var(--warn);' : 'opacity:0.45;'">
+                <div class="detect-label">LAPIS 1</div>
+                <div class="detect-value" style="font-size:18px;margin:6px 0;"
+                     x-text="mlPhase > 1 ? '✅' : mlPhase === 1 ? '⚙️' : '○'"></div>
+                <div style="font-family:var(--mono);font-size:11px;font-weight:800;margin-bottom:2px;">Forecast</div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.4;">LightGBM Quantile<br>T+7 & T+14</div>
+                <div style="margin-top:6px;">
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;border:1.5px solid var(--border);"
+                        :style="mlPhase > 1 ? 'background:var(--accent);color:#fff;' : mlPhase === 1 ? 'background:var(--warn);color:#fff;' : 'background:var(--surface2);color:var(--muted);'"
+                        x-text="mlPhase > 1 ? 'SELESAI' : mlPhase === 1 ? 'PROSES...' : 'MENUNGGU'"></span>
+                </div>
+              </div>
+
+              <!-- Phase 2: Detection -->
+              <div class="detect-item"
+                   :style="mlPhase > 2 ? 'background:#F0FDF4;border-color:var(--accent);' : mlPhase === 2 ? 'background:#FFFBEB;border-color:var(--warn);' : 'opacity:0.45;'">
+                <div class="detect-label">LAPIS 2</div>
+                <div class="detect-value" style="font-size:18px;margin:6px 0;"
+                     x-text="mlPhase > 2 ? '✅' : mlPhase === 2 ? '🔍' : '○'"></div>
+                <div style="font-family:var(--mono);font-size:11px;font-weight:800;margin-bottom:2px;">Detection</div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.4;">CUSUM + Z-score<br>Anomali & HET</div>
+                <div style="margin-top:6px;">
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;border:1.5px solid var(--border);"
+                        :style="mlPhase > 2 ? 'background:var(--accent);color:#fff;' : mlPhase === 2 ? 'background:var(--warn);color:#fff;' : 'background:var(--surface2);color:var(--muted);'"
+                        x-text="mlPhase > 2 ? 'SELESAI' : mlPhase === 2 ? 'PROSES...' : 'MENUNGGU'"></span>
+                </div>
+              </div>
+
+              <!-- Phase 3: LLM Agent -->
+              <div class="detect-item"
+                   :style="mlPhase === 3 ? 'background:#FFFBEB;border-color:var(--warn);' : 'opacity:0.45;'">
+                <div class="detect-label">LAPIS 3</div>
+                <div class="detect-value" style="font-size:18px;margin:6px 0;"
+                     x-text="mlPhase === 3 ? '🤖' : '○'"></div>
+                <div style="font-family:var(--mono);font-size:11px;font-weight:800;margin-bottom:2px;">LLM Agent</div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.4;">ReAct Reasoning<br>Rekomendasi</div>
+                <div style="margin-top:6px;">
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;border:1.5px solid var(--border);"
+                        :style="mlPhase === 3 ? 'background:var(--warn);color:#fff;' : 'background:var(--surface2);color:var(--muted);'"
+                        x-text="mlPhase === 3 ? 'PROSES...' : 'MENUNGGU'"></span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Note -->
+            <div class="reco-card" style="background:#DBEAFE;margin-top:4px;">
+              <div class="reco-label" style="color:#1D4ED8;">INFO</div>
+              <div class="reco-text" style="font-size:12px;color:#1e3a5f;">
+                Lapis 3 (LLM Agent) memerlukan waktu <strong>30–90 detik</strong> untuk menyelesaikan reasoning. Proses sedang berjalan — harap tunggu.
+              </div>
+            </div>
+          </div>
         </div>
       </template>
 
@@ -732,6 +799,10 @@ function prediksiPage() {
     mlResult: null,              // FullAnalysisResult
     mlLoading: false,
     mlError: null,
+    mlPhase: 0,              // 0=idle, 1=forecast, 2=detection, 3=llm
+    mlElapsed: 0,            // seconds elapsed since analyze() started
+    _mlElapsedTimer: null,
+    _mlPhaseTimers: [],
 
     // -- DB source state --
     commodities: [],
@@ -838,6 +909,18 @@ function prediksiPage() {
       this.mlLoading = true;
       this.mlError = null;
       this.mlResult = null;
+      this.mlPhase = 1;
+      this.mlElapsed = 0;
+
+      // Elapsed counter
+      this._mlElapsedTimer = setInterval(() => { this.mlElapsed++; }, 1000);
+
+      // Phase advance: Lapis 1→2 after ~3s, Lapis 2→3 after ~6s
+      // (approximate — actual duration depends on server load)
+      this._mlPhaseTimers = [
+        setTimeout(() => { if (this.mlLoading) this.mlPhase = 2; }, 3000),
+        setTimeout(() => { if (this.mlLoading) this.mlPhase = 3; }, 6500),
+      ];
 
       try {
         const r = await fetch('/api/ml/analyze', {
@@ -863,6 +946,11 @@ function prediksiPage() {
         this.mlError = 'Gagal terhubung ke ML server: ' + e.message;
       }
 
+      // Clean up phase timers
+      clearInterval(this._mlElapsedTimer);
+      this._mlPhaseTimers.forEach(t => clearTimeout(t));
+      this._mlPhaseTimers = [];
+      this.mlPhase = 0;
       this.mlLoading = false;
     },
 
