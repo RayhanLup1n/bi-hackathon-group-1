@@ -334,6 +334,7 @@ def get_active_alerts(
     alerts = pipeline.get_active_alerts(
         tanggal=tanggal,
         min_alert_level=min_alert_level,  # type: ignore[arg-type]
+        with_llm=False,
     )
 
     return {
@@ -384,7 +385,7 @@ def daily_summary(tanggal: date) -> dict[str, Any]:
     """
     pipeline = _require_pipeline()
 
-    all_results = pipeline.analyze_all(tanggal)
+    all_results = pipeline.analyze_all(tanggal, with_llm=False)
 
     if not all_results:
         return {
