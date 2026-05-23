@@ -44,6 +44,11 @@ LLM_API_KEY   = os.environ.get("LLM_API_KEY",      "")
 LLM_BASE_URL  = os.environ.get("LLM_BASE_URL",     "https://openrouter.ai/api/v1")
 LLM_MODEL     = os.environ.get("LLM_MODEL",        "google/gemini-2.5-flash")
 
+# Fallback LLM (Groq) — used when primary LLM fails
+LLM_FALLBACK_API_KEY  = os.environ.get("LLM_FALLBACK_API_KEY",  "")
+LLM_FALLBACK_BASE_URL = os.environ.get("LLM_FALLBACK_BASE_URL", "https://api.groq.com/openai/v1")
+LLM_FALLBACK_MODEL    = os.environ.get("LLM_FALLBACK_MODEL",    "llama-3.3-70b-versatile")
+
 # Supabase / PostgreSQL
 _SUPA_HOST = os.environ.get("SUPABASE_HOST", "")
 _SUPA_PORT = os.environ.get("SUPABASE_PORT", "5432")
@@ -74,6 +79,9 @@ async def lifespan(app: FastAPI):
         llm_api_key=LLM_API_KEY,
         llm_base_url=LLM_BASE_URL,
         llm_model=LLM_MODEL,
+        llm_fallback_api_key=LLM_FALLBACK_API_KEY,
+        llm_fallback_base_url=LLM_FALLBACK_BASE_URL,
+        llm_fallback_model=LLM_FALLBACK_MODEL,
     )
     _pipeline.load(
         pg_conn_string=PG_CONN_STRING or None,
