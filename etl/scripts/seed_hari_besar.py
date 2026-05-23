@@ -1,25 +1,35 @@
 """
-Seed hari besar (libur nasional + cuti bersama) ke Supabase PostgreSQL.
+Seed hari besar (libur nasional + cuti bersama) ke BigQuery raw.hari_besar.
 
 Menggunakan python-holidays package sebagai primary source.
-Backup: apiliburnasional.vercel.app API.
+Load via BigQuery batch load (FREE).
 
 Usage:
-    python scripts/seed_hari_besar.py
-    python scripts/seed_hari_besar.py --years 2024 2025 2026 2027
+    python etl/scripts/seed_hari_besar.py
+    python etl/scripts/seed_hari_besar.py --years 2024 2025 2026 2027
 """
 from __future__ import annotations
 
 import argparse
 import os
 import sys
+from collections import Counter
 from datetime import date
 
-import psycopg2
-from loguru import logger
-
-# Ensure project root is in path
+# Ensure etl/ is in path for relative imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Load credentials from .envs/.env
+_project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(_project_root, ".envs", ".env"))
+except ImportError:
+    pass
+
+import pandas as pd
+from google.cloud import bigquery
+from loguru import logger
 
 try:
     import holidays
@@ -28,24 +38,11 @@ except ImportError:
     sys.exit(1)
 
 
-def _get_dsn() -> str:
-    """Build PostgreSQL DSN from environment variables."""
-    # Try loading from .env files
-    try:
-        from dotenv import load_dotenv
-        # Load from ETL .env first, then root .envs/.env
-        load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
-        load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".envs", ".env"))
-    except ImportError:
-        pass
+# -- Config --------------------------------------------------------------------
 
-    host = os.getenv("SUPABASE_HOST", "localhost")
-    port = os.getenv("SUPABASE_PORT", "5432")
-    db = os.getenv("SUPABASE_DB", "postgres")
-    user = os.getenv("SUPABASE_USER", "postgres")
-    password = os.getenv("SUPABASE_PASSWORD", "")
-
-    return f"host={host} port={port} dbname={db} user={user} password={password} sslmode=require"
+GCP_PROJECT = os.getenv("GCP_PROJECT", "radar-pangan-hackathon")
+BQ_LOCATION = os.getenv("BQ_LOCATION", "asia-southeast2")
+BQ_TABLE = f"{GCP_PROJECT}.raw.hari_besar"
 
 
 def _categorize_holiday(name: str) -> str:
@@ -91,7 +88,7 @@ def generate_hari_besar(years: list[int]) -> list[dict]:
                 "tahun": year,
             })
 
-        # Government holidays (cuti bersama) — only available for years with SKB data
+        # Government holidays (cuti bersama) - only available for years with SKB data
         id_govt = holidays.Indonesia(
             years=[year],
             categories=("government",),
@@ -111,44 +108,45 @@ def generate_hari_besar(years: list[int]) -> list[dict]:
     return records
 
 
-def seed_to_postgres(records: list[dict], dsn: str) -> int:
-    """Insert hari besar records ke PostgreSQL."""
+def seed_to_bigquery(records: list[dict]) -> int:
+    """Load hari besar records to BigQuery raw.hari_besar.
+
+    Uses WRITE_TRUNCATE for idempotent full refresh (small table, ~100 rows).
+    """
     if not records:
         return 0
 
-    conn = psycopg2.connect(dsn)
-    try:
-        with conn.cursor() as cur:
-            # Ensure table exists
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS raw.hari_besar (
-                    tanggal     DATE     NOT NULL,
-                    nama        VARCHAR  NOT NULL,
-                    kategori    VARCHAR,
-                    tahun       INTEGER,
-                    UNIQUE (tanggal, nama)
-                );
-            """)
+    # Create DataFrame
+    df = pd.DataFrame(records)
 
-            n_inserted = 0
-            for rec in records:
-                cur.execute("""
-                    INSERT INTO raw.hari_besar (tanggal, nama, kategori, tahun)
-                    VALUES (%s, %s, %s, %s)
-                    ON CONFLICT (tanggal, nama) DO UPDATE SET
-                        kategori = EXCLUDED.kategori
-                """, (rec["tanggal"], rec["nama"], rec["kategori"], rec["tahun"]))
-                n_inserted += cur.rowcount
+    # Add id column (sequential starting from 1)
+    df["id"] = range(1, len(df) + 1)
 
-            conn.commit()
-            logger.success(f"Seeded {n_inserted} hari besar ke raw.hari_besar")
-            return n_inserted
-    finally:
-        conn.close()
+    # Fix dtypes for BigQuery
+    df["tanggal"] = pd.to_datetime(df["tanggal"]).dt.date
+    df["id"] = df["id"].astype("Int64")
+    df["tahun"] = df["tahun"].astype("Int64")
+
+    # Reorder columns to match BigQuery schema
+    df = df[["id", "tanggal", "nama", "kategori", "tahun"]]
+
+    # Load to BigQuery - WRITE_TRUNCATE because this is a small reference table
+    client = bigquery.Client(project=GCP_PROJECT, location=BQ_LOCATION)
+    job_config = bigquery.LoadJobConfig(
+        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+    )
+    load_job = client.load_table_from_dataframe(
+        df, BQ_TABLE, job_config=job_config,
+    )
+    load_job.result()  # Wait for completion
+
+    n_loaded = load_job.output_rows
+    logger.success(f"Loaded {n_loaded} hari besar to BigQuery {BQ_TABLE}")
+    return n_loaded
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Seed hari besar ke PostgreSQL")
+    parser = argparse.ArgumentParser(description="Seed hari besar ke BigQuery")
     parser.add_argument(
         "--years",
         nargs="+",
@@ -158,17 +156,16 @@ def main():
     )
     args = parser.parse_args()
 
-    dsn = _get_dsn()
     records = generate_hari_besar(args.years)
-    seed_to_postgres(records, dsn)
+    seed_to_bigquery(records)
 
     # Print summary
     print("\n=== Hari Besar Summary ===")
-    from collections import Counter
     by_year = Counter(r["tahun"] for r in records)
     by_kategori = Counter(r["kategori"] for r in records)
 
     print(f"Total: {len(records)} records")
+    print(f"Target: BigQuery {BQ_TABLE}")
     print("\nPer tahun:")
     for year, count in sorted(by_year.items()):
         print(f"  {year}: {count}")

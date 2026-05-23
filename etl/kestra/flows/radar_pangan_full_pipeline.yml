@@ -1,0 +1,177 @@
+# =============================================================================
+# Flow 1: Full ETL Pipeline - R.A.D.A.R Pangan
+#
+# Purpose: Bootstrap pipeline - loads ALL historical data from scratch.
+#          Run once on initial setup, then manual trigger for re-processing.
+#
+# Steps:
+#   1. Extract PIHPS harga historis (2020-today) -> BigQuery
+#   2. Extract Open-Meteo weather data -> BigQuery
+#   3. Seed hari besar (national holidays) -> BigQuery
+#   4. Seed reference data (inflasi, musim panen) -> Supabase
+#   5. dbt deps (install dbt packages if needed)
+#   6. dbt run staging (BigQuery SQL transforms)
+#   7. dbt test staging (data quality checks)
+#   8. dbt run marts (BigQuery aggregations)
+#   9. dbt test marts (data quality checks)
+#  10. Sync gold layer: BigQuery marts -> Supabase PostgreSQL
+#  11. Log pipeline summary
+#
+# Trigger: Manual via Kestra UI
+# =============================================================================
+
+id: radar_pangan_full_pipeline
+namespace: radar.pangan
+
+description: |
+  Full ETL pipeline for R.A.D.A.R Pangan.
+  Loads all historical data from PIHPS, weather, holidays, and reference data.
+  Run once on initial setup, then trigger manually for re-processing.
+
+labels:
+  team: simatana
+  env: dev
+  type: full-pipeline
+
+inputs:
+  - id: start_year
+    type: INT
+    defaults: 2020
+    description: "Start year for historical data extraction"
+
+  - id: end_year
+    type: INT
+    defaults: 2026
+    description: "End year for historical data extraction"
+
+tasks:
+  # --------------------------------------------------------------------------
+  # Step 1: Extract PIHPS harga historis -> BigQuery
+  # --------------------------------------------------------------------------
+  - id: extract_harga_historis
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - cd /app/project && python -X utf8 etl/scripts/load_historical.py --start-year {{ inputs.start_year }} --end-year {{ inputs.end_year }}
+    description: "Extract historical PIHPS prices to BigQuery (4 provinces, 6 commodities)"
+    retry:
+      type: constant
+      maxAttempt: 3
+      interval: PT5M
+
+  # --------------------------------------------------------------------------
+  # Step 2: Extract Open-Meteo weather data -> BigQuery
+  # --------------------------------------------------------------------------
+  - id: extract_cuaca
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - cd /app/project && python etl/scripts/load_weather_historical.py --start-year {{ inputs.start_year }} --end-year {{ inputs.end_year }}
+    description: "Extract Open-Meteo historical weather data to BigQuery (5 locations)"
+
+  # --------------------------------------------------------------------------
+  # Step 3: Seed hari besar (national holidays) -> BigQuery
+  # --------------------------------------------------------------------------
+  - id: seed_hari_besar
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - cd /app/project && python etl/scripts/seed_hari_besar.py
+    description: "Seed national holidays via python-holidays to BigQuery (2024-2027)"
+
+  # --------------------------------------------------------------------------
+  # Step 4: Seed reference data to Supabase (inflasi + musim panen)
+  # --------------------------------------------------------------------------
+  - id: seed_reference_data
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - cd /app/project && python etl/scripts/sync_musim_panen_to_supabase.py
+      - cd /app/project && python etl/scripts/sync_inflasi_bulanan_to_supabase.py
+    description: "Sync musim_panen + inflasi_bulanan reference data to Supabase app schema"
+
+  # --------------------------------------------------------------------------
+  # Step 5: dbt deps - install dbt packages (if packages.yml exists)
+  # --------------------------------------------------------------------------
+  - id: dbt_deps
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - dbt deps --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target || echo "No packages to install, continuing..."
+    description: "Install dbt packages (skips if no packages.yml)"
+
+  # --------------------------------------------------------------------------
+  # Step 6: dbt run - staging layer (BigQuery SQL transforms)
+  # --------------------------------------------------------------------------
+  - id: dbt_run_staging
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - dbt run --select staging --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+    description: "Run dbt staging models (deduplicate, normalize, dimension tables)"
+
+  # --------------------------------------------------------------------------
+  # Step 7: dbt test - staging quality checks
+  # --------------------------------------------------------------------------
+  - id: dbt_test_staging
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - dbt test --select staging --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+    description: "Run dbt tests on staging models (NOT NULL, UNIQUE constraints)"
+    allowFailure: true
+
+  # --------------------------------------------------------------------------
+  # Step 8: dbt run - marts layer (BigQuery aggregations)
+  # --------------------------------------------------------------------------
+  - id: dbt_run_marts
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - dbt run --select marts --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+    description: "Run dbt marts models (dashboard aggregations, ML features)"
+
+  # --------------------------------------------------------------------------
+  # Step 9: dbt test - marts quality checks
+  # --------------------------------------------------------------------------
+  - id: dbt_test_marts
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - dbt test --select marts --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+    description: "Run dbt tests on marts models"
+    allowFailure: true
+
+  # --------------------------------------------------------------------------
+  # Step 10: Sync gold layer - BigQuery marts to Supabase PostgreSQL
+  # --------------------------------------------------------------------------
+  - id: sync_gold_to_postgres
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - cd /app/project && python etl/scripts/sync_gold_to_postgres.py
+    description: "Sync BigQuery marts data to Supabase PostgreSQL (Gold serving layer)"
+
+  # --------------------------------------------------------------------------
+  # Step 11: Log pipeline summary
+  # --------------------------------------------------------------------------
+  - id: log_summary
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      ============================================================
+      FULL PIPELINE COMPLETE: radar_pangan_full_pipeline
+      ============================================================
+      Start year : {{ inputs.start_year }}
+      End year   : {{ inputs.end_year }}
+      Status     : {{ execution.status }}
+      ============================================================

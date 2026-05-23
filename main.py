@@ -71,6 +71,14 @@ app.include_router(ml_router)
 app.include_router(data_quality_router)
 
 
+@app.get("/health", tags=["system"])
+def health():
+    """Liveness check for Docker healthcheck and load balancers.
+    Does NOT check database - use /api/status for deep health check.
+    """
+    return {"status": "ok", "service": "radar-pangan"}
+
+
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
     """Return empty favicon to suppress 404 errors."""

@@ -33,6 +33,9 @@ resource "google_bigquery_dataset" "staging" {
   description   = "Cleaned and validated data — managed by dbt (do not edit manually)"
   location      = var.bq_location
 
+  # Allow terraform destroy even when dbt-created tables exist
+  delete_contents_on_destroy = true
+
   depends_on = [google_project_service.bigquery]
 
   labels = {
@@ -42,20 +45,6 @@ resource "google_bigquery_dataset" "staging" {
   }
 }
 
-resource "google_bigquery_dataset" "marts" {
-  dataset_id    = "marts"
-  friendly_name = "Marts Layer"
-  description   = "Aggregated tables for dashboard and ML modelling — managed by dbt"
-  location      = var.bq_location
-
-  depends_on = [google_project_service.bigquery]
-
-  labels = {
-    env     = "production"
-    project = "radar-pangan"
-    layer   = "marts"
-  }
-}
 
 
 # ── raw.harga_pangan ─────────────────────────────────────────────────────────
@@ -67,7 +56,7 @@ resource "google_bigquery_table" "harga_pangan" {
   dataset_id          = google_bigquery_dataset.raw.dataset_id
   table_id            = "harga_pangan"
   description         = "Daily commodity prices from BI PIHPS (619K+ rows, 4 provinsi, 18 kota)"
-  deletion_protection = true
+  deletion_protection = false
 
   time_partitioning {
     type  = "DAY"
@@ -106,7 +95,7 @@ resource "google_bigquery_table" "cuaca_harian" {
   dataset_id          = google_bigquery_dataset.raw.dataset_id
   table_id            = "cuaca_harian"
   description         = "Daily weather data from Open-Meteo (11K+ rows, 5 lokasi)"
-  deletion_protection = true
+  deletion_protection = false
 
   time_partitioning {
     type  = "DAY"

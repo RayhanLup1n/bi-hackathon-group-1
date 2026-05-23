@@ -1,10 +1,33 @@
+# ── App Core ──────────────────────────────────────────────────────────────────
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
-pydantic==2.8.2
+pydantic>=2.8.0
 psycopg2-binary>=2.9.9
 python-jose[cryptography]==3.3.0
 bcrypt>=4.0.0
 python-multipart==0.0.9
-pytest==8.3.2
-pytest-asyncio==0.23.8
-httpx==0.27.2
+httpx>=0.27.0
+
+# ── BigQuery ──────────────────────────────────────────────────────────────────
+google-cloud-bigquery>=3.41.0
+pandas-gbq>=0.35.0
+db-dtypes>=1.6.0
+
+# ── ETL ───────────────────────────────────────────────────────────────────────
+pandas>=2.0.0
+loguru>=0.7.0
+pydantic-settings>=2.3.0
+python-dotenv>=1.0.0
+holidays>=0.50
+tenacity>=8.0.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+
+# ── Dev / Test ────────────────────────────────────────────────────────────────
+pytest>=8.3.0
+pytest-asyncio>=0.23.0
+ruff>=0.4.0
+
+# ── dbt (BigQuery) ───────────────────────────────────────────────────────────
+dbt-core>=1.8.0
+dbt-bigquery>=1.8.0

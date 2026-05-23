@@ -25,7 +25,7 @@ Strategi:
   1. Init session (GET halaman utama → dapat cookies + XSRF token)
   2. Load master data komoditas (dapat peta comcat_id)
   3. Tarik GetGridDataDaerah per rentang tanggal (satu call = semua komoditas + semua daerah)
-  4. Parse & validasi response → simpan ke DuckDB
+  4. Parse & validasi response → return DataFrame for BigQuery load
 """
 from __future__ import annotations
 

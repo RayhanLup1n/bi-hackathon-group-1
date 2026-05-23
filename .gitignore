@@ -28,6 +28,15 @@ etl/.env
 *.db
 
 # ================================
+# Terraform
+# ================================
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+.terraform.lock.hcl
+
+# ================================
 # dbt
 # ================================
 **/dbt_project/target/
@@ -77,3 +86,6 @@ docs/Draf Proposal Sub Topic Pemantauan Inflasi.pdf
 
 # Update Sprint
 progress-report-*.html
+
+# Excel File
+*.xlsx

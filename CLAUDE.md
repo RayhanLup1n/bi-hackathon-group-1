@@ -33,7 +33,7 @@ Data pipeline menggunakan **Medallion Architecture** dengan pembagian database:
          │                  │
          ▼                  ▼
 ┌─────────────────────────────────────────────────────┐
-│          ETL Pipeline (Airflow + dbt)                │
+│          ETL Pipeline (Kestra + dbt)                │
 │          Runs in Docker (local)                      │
 │          Medallion: Bronze → Silver → Gold            │
 └────────────────────┬────────────────────────────────┘
@@ -133,15 +133,16 @@ Gold layer tables (marts.*) akan di-sync dari BigQuery → PostgreSQL via dbt at
 
 ### ETL Pipeline
 
-**Stack**: Airflow + dbt-bigquery + Python extractors (in Docker)
-**Target**: Google BigQuery (migrated from DuckDB → Supabase PostgreSQL → BigQuery)
+**Stack**: Kestra v1.3.19 + dbt-bigquery + Python extractors (in Docker)
+**Target**: Google BigQuery (migrated from DuckDB -> Supabase PostgreSQL -> BigQuery)
+**Orchestrator**: Kestra (migrated from Airflow - 2 containers vs 4)
 **dbt SQL dialect**: BigQuery SQL (NOT PostgreSQL)
 **dbt auth**: OAuth via Application Default Credentials (ADC)
 
-| DAG | Fungsi | Schedule |
-|-----|--------|----------|
-| `dag_data_ready_modelling` | Historical PIHPS data → ML features | Manual trigger |
-| `dag_data_ready_dashboard` | Daily PIHPS update → dashboard tables | Daily 07:00 WIB |
+| Flow | Fungsi | Schedule |
+|------|--------|----------|
+| `radar_pangan_full_pipeline` | Historical data (2020-2026) -> BigQuery -> dbt -> Supabase | Manual trigger |
+| `radar_pangan_daily` | Daily incremental update -> BigQuery -> dbt -> Supabase | Daily 00:00 UTC (07:00 WIB) |
 
 **Data sources**:
 - **BI PIHPS**: Harga harian 21 komoditas, via HTTP API with XSRF token.
@@ -346,18 +347,23 @@ Semua services dikelola dari **satu `docker-compose.yml` di root** (bukan di `et
 
 ```bash
 # App saja (FastAPI)
-docker-compose up app
+docker compose up app
 
-# App + ETL (Airflow) — gunakan profile "etl"
-docker-compose --profile etl up
+# App + ETL (Kestra) - gunakan profile "etl"
+docker compose --profile etl up
 
 # Build ulang setelah perubahan code
-docker-compose build app
-docker-compose --profile etl build
+docker compose build app
+docker compose --profile etl build kestra
 
 # Stop
-docker-compose down
+docker compose down
+
+# Stop + hapus volumes (reset Kestra database)
+docker compose --profile etl down -v
 ```
+
+**Kestra UI**: http://localhost:8080 (login: `admin@radar-pangan.local` / `Admin1234`)
 
 ### Run dbt Transformations
 
@@ -379,7 +385,7 @@ Access points:
 - App Prediksi: `http://localhost:8000/prediksi` (analyst+ only)
 - App Admin: `http://localhost:8000/admin` (admin only)
 - Swagger API docs: `http://localhost:8000/docs`
-- Airflow UI: `http://localhost:8080` (when Docker is running)
+- Kestra UI: `http://localhost:8080` (when Docker ETL profile is running)
 
 ## Git Workflow
 
@@ -577,15 +583,29 @@ BQ_LOCATION=asia-southeast2
 - [ ] Proposal tahap 2 writing
 
 ### Checkpoint 14: Documentation ✅ DONE (May 16)
-- [x] PRD (Product Requirements Document) → `docs/prd/PRD.md`
-- [x] FRD (Functional Requirements Document) → `docs/frd/FRD.md`
-- [x] Wireframe / HTML Prototype → `docs/wireframe/wireframe-all-pages.html`
-- [x] ERD (from scratch, UI-driven) → `docs/erd/ERD.md`
-- [x] System Design Architecture → `docs/sda/SYSTEM_DESIGN.md`
-- [x] Tech Stack Documentation → `docs/tech-stack/TECH_STACK.md`
-- [x] Medallion Architecture defined (BigQuery Bronze+Silver → PostgreSQL Gold)
-- [x] Database deployment strategy (Supabase dev/demo → Docker PostgreSQL production)
+- [x] PRD (Product Requirements Document) -> `docs/prd/PRD.md`
+- [x] FRD (Functional Requirements Document) -> `docs/frd/FRD.md`
+- [x] Wireframe / HTML Prototype -> `docs/wireframe/wireframe-all-pages.html`
+- [x] ERD (from scratch, UI-driven) -> `docs/erd/ERD.md`
+- [x] System Design Architecture -> `docs/sda/SYSTEM_DESIGN.md`
+- [x] Tech Stack Documentation -> `docs/tech-stack/TECH_STACK.md`
+- [x] Medallion Architecture defined (BigQuery Bronze+Silver -> PostgreSQL Gold)
+- [x] Database deployment strategy (Supabase dev/demo -> Docker PostgreSQL production)
 - [x] Cross-check consistency: Guide page added to all docs, ERD arrow fixed
+
+### Checkpoint 15: Kestra Migration (In Progress - May 22-23)
+- [x] Migrate orchestrator: Airflow (4 containers) -> Kestra (2 containers)
+- [x] Write Kestra Dockerfile (Python + dbt-bigquery + ETL deps in venv)
+- [x] Write 2 Kestra flows YAML (full pipeline + daily pipeline)
+- [x] Rewrite ETL scripts: psycopg2 (Supabase raw.*) -> BigQuery batch load (FREE)
+- [x] Fix 13 Kestra migration bugs + 3 additional fixes found during testing
+- [x] Fix Kestra basic-auth (email format, security path, password requirements)
+- [x] Fix null harga issue (dropna before BigQuery batch load)
+- [x] Remove marts dataset from Terraform (dev mode: marts only in Supabase)
+- [x] Add delete_contents_on_destroy to staging dataset
+- [ ] Full end-to-end pipeline test via Kestra (partial - dihentikan sementara)
+- [ ] Verify all 11 steps complete successfully
+- [ ] Commit all changes after testing
 
 ## Team Responsibilities
 
@@ -617,26 +637,30 @@ bi-hackathon-group-1/
 │   └── settings.py             ← App thresholds & config
 ├── infra/                       ← Terraform IaC for BigQuery
 │   ├── main.tf                 ← GCP provider + BigQuery API
-│   ├── bigquery.tf             ← 3 datasets + 8 raw tables
+│   ├── bigquery.tf             ← 2 datasets (raw, staging) + 8 raw tables
 │   ├── variables.tf            ← project_id, region, bq_location
 │   ├── outputs.tf              ← Output definitions
 │   ├── terraform.tfvars        ← Actual values (gitignored)
 │   └── terraform.tfvars.example ← Template
 ├── etl/
 │   ├── .env                    ← ETL-specific config (gitignored)
-│   ├── Dockerfile              ← Airflow + dbt + Playwright image
 │   ├── config/                 ← ETL settings (pydantic-settings) + constants
-│   ├── dags/                   ← Airflow DAGs
 │   ├── dbt_project/            ← dbt models (BigQuery SQL), profiles, macros
 │   ├── extractors/             ← Data extractors (PIHPS, Open-Meteo, Playwright)
+│   ├── kestra/                 ← Kestra orchestrator
+│   │   ├── Dockerfile          ← Custom Kestra image (Python + dbt-bigquery)
+│   │   └── flows/              ← Kestra YAML flows (full + daily pipeline)
 │   ├── loaders/                ← Database loaders (postgres_loader.py)
 │   └── scripts/                ← Seed scripts, historical load, migration
-│       ├── migrate_to_bigquery.py  ← Supabase → BigQuery data migration
-│       ├── load_historical.py      ← PIHPS historical data loader
-│       ├── load_weather_historical.py ← Open-Meteo weather loader
-│       ├── seed_hari_besar.py      ← python-holidays seeder
-│       ├── seed_ml_reference_data.py ← ML dummy data (inflasi, musim panen)
-│       ├── migrate_users_boolean_flags.py ← Role → boolean flags migration
+│       ├── check_pihps_health.py   ← PIHPS API health check
+│       ├── load_historical.py      ← PIHPS historical -> BigQuery batch load
+│       ├── load_weather_historical.py ← Open-Meteo -> BigQuery batch load
+│       ├── seed_hari_besar.py      ← python-holidays -> BigQuery
+│       ├── sync_gold_to_postgres.py ← BigQuery -> Supabase gold sync
+│       ├── sync_musim_panen_to_supabase.py ← Musim panen reference data
+│       ├── sync_inflasi_bulanan_to_supabase.py ← Inflasi dummy data
+│       ├── migrate_to_bigquery.py  ← Supabase -> BigQuery data migration
+│       ├── migrate_users_boolean_flags.py ← Role -> boolean flags migration
 │       └── cleanup_supabase_schemas.py ← Drop raw/staging/marts from Supabase
 ├── frontend/
 │   ├── css/
@@ -706,10 +730,17 @@ Code yang sudah ada dan statusnya:
 - **Database** (`src/data/database.py`): ✅ Shared PostgreSQL connection pool (Gold layer — Dev: Supabase, Prod: Docker).
 - **BigQuery Client** (`src/data/bigquery_client.py`): ✅ Thread-safe singleton, 60s timeout, GoogleAPIError handling, lazy env vars. Hanya untuk Bronze+Silver queries.
 - **Weather Extractor** (`etl/extractors/openmeteo_extractor.py`): ✅ Open-Meteo API extractor.
-- **BigQuery Migration** (`etl/scripts/migrate_to_bigquery.py`): ✅ Batch migrate from Supabase → BigQuery (WRITE_TRUNCATE, free).
+- **BigQuery Migration** (`etl/scripts/migrate_to_bigquery.py`): ✅ Batch migrate from Supabase -> BigQuery (WRITE_TRUNCATE, free).
 - **Supabase Cleanup** (`etl/scripts/cleanup_supabase_schemas.py`): ✅ Drop raw/staging/marts from Supabase.
+- **Historical Loader** (`etl/scripts/load_historical.py`): ✅ PIHPS -> BigQuery batch load (WRITE_APPEND, FREE). Handles null harga via dropna().
+- **Weather Loader** (`etl/scripts/load_weather_historical.py`): ✅ Open-Meteo -> BigQuery batch load. Handles null required fields.
+- **Holiday Seeder** (`etl/scripts/seed_hari_besar.py`): ✅ python-holidays -> BigQuery (WRITE_TRUNCATE).
+- **Gold Sync** (`etl/scripts/sync_gold_to_postgres.py`): ✅ BigQuery raw -> Supabase app.* (TRUNCATE + INSERT).
+- **PIHPS Health Check** (`etl/scripts/check_pihps_health.py`): ✅ Fail-fast API availability check.
+- **Kestra Flows** (`etl/kestra/flows/`): ✅ 2 flows (full + daily). Process runner, BigQuery targets, dbt with --target-path.
+- **Kestra Dockerfile** (`etl/kestra/Dockerfile`): ✅ Custom image kestra:v1.3.19 + Python venv + dbt-bigquery.
 - **dbt Models**: ✅ All 11 models converted to BigQuery SQL. 11/11 pass, 17/17 tests pass.
-- **Terraform IaC** (`infra/`): ✅ 3 datasets + 8 raw tables provisioned. deletion_protection enabled.
+- **Terraform IaC** (`infra/`): ✅ 2 datasets (raw, staging) + 8 raw tables provisioned. deletion_protection=false, delete_contents_on_destroy=true on staging.
 - **Frontend Guide** (`frontend/guide.html`): ✅ Neobrutalism + vanilla JS. Konten sesuai engine: 4 checks, Open-Meteo, 5 indikator, 4 provinsi, 6 bawang+cabai.
 - **Frontend Dashboard** (`frontend/index.html`): ✅ Alpine.js + neobrutalism. HET badge, weather panel, RCA widget.
 - **Frontend Login** (`frontend/login.html`): ✅ Neobrutalism style.
@@ -719,7 +750,9 @@ Code yang sudah ada dan statusnya:
 - **Frontend CSS** (`frontend/css/style.css`): ✅ External shared stylesheet. All pages link to this, page-specific overrides in inline `<style>`.
 - **Tests**: ✅ 84 tests pass (48 HTML structure + 14 HET + 14 RCA + 8 weather).
 
-### Database Status
+### BigQuery Status (Dev Mode)
+
+BigQuery hanya menyimpan **raw** + **staging** (managed by Terraform). **marts** tidak di-manage Terraform - dbt auto-creates jika diperlukan.
 
 **BigQuery** (Bronze + Silver):
 - **raw.harga_pangan**: 619,430 rows (4 provinsi, 18 kota, 2020-2026) — partitioned by tanggal
@@ -768,7 +801,7 @@ Ketika menulis dbt models, gunakan BigQuery SQL (BUKAN PostgreSQL):
 5. ~~Build `/rca` page~~ ✅ Done (single column stacked, animated 4-step check, analyst+ guard)
 6. ~~Build `/prediksi` page~~ ✅ Done (summary cards, Chart.js, prediction table, ML+DB source tabs)
 7. ~~ML predictions API endpoint~~ ✅ Done (`GET /api/predictions` + `/api/ml/*` proxy)
-8. ~~BigQuery infrastructure (Terraform)~~ ✅ Done (3 datasets, 8 tables)
+8. ~~BigQuery infrastructure (Terraform)~~ ✅ Done (2 datasets, 8 tables)
 9. ~~Data migration Supabase -> BigQuery~~ ✅ Done (631K+ rows, 6 tables)
 10. ~~dbt migration to BigQuery~~ ✅ Done (11/11 models, 17/17 tests)
 11. ~~FastAPI dual connection~~ ✅ Done (BigQuery for analytics, Supabase for app.*)
@@ -779,7 +812,9 @@ Ketika menulis dbt models, gunakan BigQuery SQL (BUKAN PostgreSQL):
 16. ~~Navigation between pages (header nav links)~~ ✅ Done (all 6 pages)
 17. ~~Chart.js integration in prediksi page~~ ✅ Done (already built-in)
 18. ~~End-to-end testing~~ ✅ Done (84 tests pass)
-19. BigQuery Gold -> PostgreSQL sync script (low priority, not needed for demo)
+19. ~~Kestra migration (Airflow -> Kestra)~~ ✅ Done (2 flows, scripts rewritten for BigQuery)
+20. Kestra full pipeline end-to-end test (in progress, partial)
+21. BigQuery Gold -> PostgreSQL sync script (low priority, not needed for demo)
 
 ### Demo Readiness Status: READY
 Platform sudah demo-ready. ML integration bersifat plug-and-play:

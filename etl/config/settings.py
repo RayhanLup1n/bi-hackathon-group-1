@@ -53,19 +53,13 @@ class PihpsSettings(BaseSettings):
         alias="SUPABASE_PASSWORD",
     )
 
-    # ── Legacy (kept for reference, not used) ────────────
-    duckdb_path: str = Field(
-        default="/opt/airflow/data/pihps.duckdb",
-        alias="DUCKDB_PATH",
-    )
-
     # ── dbt ─────────────────────────────────────────────
     dbt_project_dir: str = Field(
-        default="/opt/airflow/dbt_project",
+        default="/app/project/etl/dbt_project",
         alias="DBT_PROJECT_DIR",
     )
     dbt_profiles_dir: str = Field(
-        default="/opt/airflow/dbt_project",
+        default="/app/project/etl/dbt_project",
         alias="DBT_PROFILES_DIR",
     )
     dbt_target: str = Field(
