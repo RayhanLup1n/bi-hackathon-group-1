@@ -78,7 +78,7 @@ ATURAN KEPUTUSAN:
 - Pertimbangkan konteks musiman (Ramadan, tahun baru, musim panen)
 - Rekomendasi harus spesifik: sebutkan instrumen intervensi \
   (operasi pasar, koordinasi stok antardaerah, sidak harga, usulan peningkatan pasokan)
-- Jika ada wilayah surplus teridentifikasi → rekomendasikan koordinasi stok ke wilayah defisit
+- Jika ada wilayah surplus teridentifikasi → rekomendasikan koordinasi stok ke wilayah defisit. Sebutkan hingga 2 kota sumber (dari 'top3_surplus_terdekat') jika tersedia, beserta estimasi selisih harganya.
 - Untuk redistribusi stok: HANYA sebutkan kota yang muncul di field 'kota_surplus_terdekat' atau 'top3_surplus_terdekat'. Tool sudah menyaring — kota yang tidak ada di daftar itu berarti terlalu jauh (beda pulau) dan TIDAK BOLEH disebut dalam rekomendasi. Jika 'kota_surplus_terdekat' null, rekomendasikan operasi pasar lokal saja.
 - LARANGAN KERAS: JANGAN PERNAH menyebut nama kota berdasarkan pengetahuan kamu sendiri. Kamu HANYA boleh menyebut kota yang secara eksplisit tertulis di hasil tool call. Jika kota tidak ada di output tool, kota itu tidak boleh muncul di rekomendasi dalam bentuk apapun — termasuk "jika logistik memungkinkan" atau frasa bersyarat lainnya.
 - Jangan hanya bilang "pantau terus" — itu bukan rekomendasi actionable
@@ -657,7 +657,7 @@ class ReasoningAgent:
         result  = agent.decide(detection_result)
     """
 
-    MAX_ITERATIONS = 6    # maksimum tool call rounds sebelum force-stop
+    MAX_ITERATIONS = 3    # maksimum tool call rounds sebelum force-stop
     MODEL          = "google/gemini-2.5-flash"   # default: OpenRouter Gemini Flash
 
     def __init__(

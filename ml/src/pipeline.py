@@ -96,6 +96,10 @@ class FullAnalysisResult:
             "detection": {
                 "alert_level":       self.detection.het_alert.alert_level if self.detection else None,
                 "pred_alert_level":  self.detection.het_alert.pred_alert_level if self.detection else None,
+                "harga_aktual":      float(self.detection.het_alert.harga_aktual)
+                                     if self.detection else None,
+                "tanggal_data":      str(self.detection.tanggal)
+                                     if self.detection else None,
                 "is_changepoint":    bool(self.detection.changepoint.is_changepoint)
                                      if self.detection and self.detection.changepoint else False,
                 "is_cusum_alarm":    bool(self.detection.cusum.is_alarm)
@@ -104,6 +108,10 @@ class FullAnalysisResult:
                                      if self.detection and self.detection.cusum else "stable",
                 "disparity_score":   float(self.detection.disparity.disparity_score)
                                      if self.detection and self.detection.disparity and self.detection.disparity.disparity_score is not None else None,
+                "kota_termahal":     self.detection.disparity.kota_termahal
+                                     if self.detection and self.detection.disparity else None,
+                "kota_termurah":     self.detection.disparity.kota_termurah
+                                     if self.detection and self.detection.disparity else None,
                 "jarak_ke_het_pct":  float(self.detection.het_alert.jarak_ke_het_pct)
                                      if self.detection and self.detection.het_alert.jarak_ke_het_pct is not None else None,
                 "het_harga":         float(self.detection.het_alert.het_harga)
@@ -116,6 +124,7 @@ class FullAnalysisResult:
                 "confidence":            self.decision.confidence,
                 "is_llm_generated":      bool(self.decision.is_llm_generated),
                 "reasoning_trace":       self.decision.reasoning_trace,
+                "tools_called":          self.decision.tools_called,
             } if self.decision else {},
         }
 
@@ -438,6 +447,15 @@ class RadarPipeline:
                 (self._df["komoditas_nama"] == komoditas_nama) &
                 (self._df["tanggal"] == pd.Timestamp(tanggal))
             ].copy()
+
+            # Fallback: if no cross-city data for requested date, use the latest
+            # available date for this commodity (needed when tanggal > last data date)
+            if day_df.empty:
+                commodity_df = self._df[self._df["komoditas_nama"] == komoditas_nama]
+                if not commodity_df.empty:
+                    latest_date = commodity_df["tanggal"].max()
+                    day_df = commodity_df[commodity_df["tanggal"] == latest_date].copy()
+                    logger.debug(f"day_df fallback to {latest_date.date()} for disparity ({komoditas_nama})")
 
             result.detection = run_detection(
                 row=row,
