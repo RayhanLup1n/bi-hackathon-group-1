@@ -193,26 +193,71 @@ class RadarPipeline:
         Load data dari Supabase/PostgreSQL dan semua model ke memory.
         Hanya perlu dipanggil sekali (di startup server).
         """
+        import time
         logger.info("Loading RadarPipeline...")
 
-        # 1. Load data
-        if pg_conn_string:
-            raw_df = load_from_postgres(pg_conn_string)
-        else:
-            logger.warning(
-                "Tidak ada sumber data tersedia. "
-                "Pipeline akan berjalan tanpa historical context (reduce functionality)."
-            )
-            raw_df = pd.DataFrame()
+        # ── 1. Load data (with parquet cache for fast restarts) ───────────────
+        cache_path = self.models_dir.parent / "data" / "pipeline_cache.parquet"
+        cache_max_age_s = 24 * 3600  # 24 hours
 
-        if not raw_df.empty:
-            logger.info("Building feature dataset...")
-            self._df = add_het_features(raw_df, self.het_csv)
-            self._df = add_targets(self._df, horizons=[7, 14])
-            self._df = encode_categoricals(self._df)
-            self._df["tanggal"] = pd.to_datetime(self._df["tanggal"])
+        def _cache_is_fresh() -> bool:
+            if not cache_path.exists():
+                return False
+            age = time.time() - cache_path.stat().st_mtime
+            return age < cache_max_age_s
+
+        if _cache_is_fresh():
+            logger.info(f"Loading from cache: {cache_path}")
+            try:
+                self._df = pd.read_parquet(cache_path)
+                self._df["tanggal"] = pd.to_datetime(self._df["tanggal"])
+                logger.info(f"Cache loaded: {len(self._df):,} rows")
+            except Exception as exc_cache:
+                logger.warning(f"Cache read failed ({exc_cache}), loading from DB...")
+                self._df = None
         else:
-            self._df = pd.DataFrame()
+            self._df = None
+
+        if self._df is None:
+            raw_df: pd.DataFrame = pd.DataFrame()
+            if pg_conn_string:
+                try:
+                    raw_df = load_from_postgres(pg_conn_string)
+                except Exception as exc_mart:
+                    logger.warning(
+                        f"Mart tidak tersedia ({exc_mart}). "
+                        "Mencoba load dari app.harga_pangan..."
+                    )
+                    try:
+                        from ml.src.features import load_from_harga_pangan
+                        raw_df = load_from_harga_pangan(pg_conn_string)
+                    except Exception as exc2:
+                        logger.warning(
+                            f"Gagal load data dari app.harga_pangan ({exc2}). "
+                            "Pipeline akan berjalan tanpa historical context (reduced functionality)."
+                        )
+            else:
+                logger.warning(
+                    "Tidak ada sumber data tersedia. "
+                    "Pipeline akan berjalan tanpa historical context (reduce functionality)."
+                )
+
+            if not raw_df.empty:
+                logger.info("Building feature dataset...")
+                self._df = add_het_features(raw_df, self.het_csv)
+                self._df = add_targets(self._df, horizons=[7, 14])
+                self._df = encode_categoricals(self._df)
+                self._df["tanggal"] = pd.to_datetime(self._df["tanggal"])
+
+                # Save cache for fast restarts
+                try:
+                    cache_path.parent.mkdir(parents=True, exist_ok=True)
+                    self._df.to_parquet(cache_path, index=False)
+                    logger.info(f"Pipeline cache saved: {cache_path}")
+                except Exception as exc_save:
+                    logger.warning(f"Cache save failed: {exc_save}")
+            else:
+                self._df = pd.DataFrame()
 
         # 2. Load models
         self._models = {}
@@ -225,8 +270,37 @@ class RadarPipeline:
         if not self._models:
             logger.warning(f"Tidak ada model ditemukan di {self.models_dir}. Jalankan train.py dulu.")
 
-        # 3. Init agent
-        tool_context = ToolContext(self._df) if not self._df.empty else None
+        # 3. Load reference tables for LLM tool context
+        self._df_hari_besar: pd.DataFrame  = pd.DataFrame()
+        self._df_musim_panen: pd.DataFrame = pd.DataFrame()
+
+        if pg_conn_string:
+            try:
+                import psycopg2
+                _ref_conn = psycopg2.connect(pg_conn_string)
+                self._df_hari_besar  = pd.read_sql(
+                    "SELECT tanggal, nama, kategori FROM app.hari_besar ORDER BY tanggal",
+                    _ref_conn,
+                )
+                self._df_musim_panen = pd.read_sql(
+                    "SELECT komoditas_nama, bulan_mulai, bulan_selesai, daerah_utama, catatan FROM app.musim_panen",
+                    _ref_conn,
+                )
+                _ref_conn.close()
+                logger.info(
+                    f"Loaded reference tables: "
+                    f"{len(self._df_hari_besar)} hari_besar, "
+                    f"{len(self._df_musim_panen)} musim_panen"
+                )
+            except Exception as exc_ref:
+                logger.warning(f"Gagal load hari_besar/musim_panen: {exc_ref}")
+
+        # 4. Init agent
+        tool_context = ToolContext(
+            self._df,
+            df_hari_besar=self._df_hari_besar,
+            df_musim_panen=self._df_musim_panen,
+        ) if self._df is not None and not self._df.empty else None
         self._agent  = ReasoningAgent(
             api_key=self.llm_api_key,
             base_url=self.llm_base_url,
@@ -269,6 +343,18 @@ class RadarPipeline:
                     logger.debug(f"Using data from {delta} days ago for ({komoditas_nama}, {kota_nama})")
                     break
 
+        if sub.empty:
+            # Fallback to latest available date for this (komoditas, kota) pair
+            mask_combo = (
+                (self._df["komoditas_nama"] == komoditas_nama) &
+                (self._df["kota_nama"] == kota_nama)
+            )
+            combo_df = self._df[mask_combo]
+            if not combo_df.empty:
+                latest = combo_df["tanggal"].max()
+                sub = combo_df[combo_df["tanggal"] == latest]
+                logger.debug(f"Using latest available date {latest.date()} for ({komoditas_nama}, {kota_nama})")
+
         return sub.iloc[0] if not sub.empty else None
 
     def _predict(self, row: pd.Series, horizon: int) -> tuple[float | None, float | None]:
@@ -310,12 +396,17 @@ class RadarPipeline:
         komoditas_nama: str,
         kota_nama: str,
         tanggal: date,
+        with_llm: bool = True,
     ) -> FullAnalysisResult:
         """
-        Jalankan full 3-layer analysis untuk satu (komoditas, kota, tanggal).
+        Jalankan analysis untuk satu (komoditas, kota, tanggal).
+
+        Args:
+            with_llm: Jika False, skip Lapis 3 (LLM). Berguna untuk batch scanning
+                      yang hanya butuh alert level dari Lapis 1+2.
 
         Returns:
-            FullAnalysisResult dengan prediksi, detection, dan decision.
+            FullAnalysisResult dengan prediksi, detection, dan (jika with_llm) decision.
         """
         if not self._loaded:
             raise RuntimeError("Pipeline belum di-load. Panggil pipeline.load() dulu.")
@@ -357,7 +448,7 @@ class RadarPipeline:
             )
 
         # ── Lapis 3: Decision (LLM Reasoning Agent) ───────────────────────────
-        if result.detection and self._agent:
+        if with_llm and result.detection and self._agent:
             result.decision = self._agent.decide(result.detection)
 
         return result
@@ -367,12 +458,15 @@ class RadarPipeline:
         tanggal: date,
         komoditas_filter: list[str] | None = None,
         kota_filter: list[str] | None = None,
+        with_llm: bool = False,
     ) -> list[FullAnalysisResult]:
         """
         Analisis semua kombinasi (komoditas, kota) pada satu tanggal.
 
         Args:
             tanggal          : Tanggal analisis
+            with_llm         : Jika True, jalankan LLM (Lapis 3) untuk setiap kombinasi.
+                               Default False — hanya Lapis 1+2 (cepat, cocok untuk dashboard scan).
             komoditas_filter : Jika diisi, hanya analisis komoditas ini
             kota_filter      : Jika diisi, hanya analisis kota ini
 
@@ -404,7 +498,7 @@ class RadarPipeline:
         logger.info(f"Analyzing {len(combos)} (komoditas, kota) pairs for {tanggal}...")
 
         for _, combo in combos.iterrows():
-            result = self.analyze(combo["komoditas_nama"], combo["kota_nama"], tanggal)
+            result = self.analyze(combo["komoditas_nama"], combo["kota_nama"], tanggal, with_llm=with_llm)
             results.append(result)
 
         results.sort(key=lambda r: r.priority)
@@ -415,6 +509,7 @@ class RadarPipeline:
         self,
         tanggal: date,
         min_alert_level: AlertLevel = "yellow",
+        with_llm: bool = False,
     ) -> list[FullAnalysisResult]:
         """
         Dapatkan semua alert aktif pada tanggal tertentu.
@@ -427,7 +522,7 @@ class RadarPipeline:
         _rank = {"green": 0, "yellow": 1, "red": 2, "unknown": -1}
         min_rank = _rank.get(min_alert_level, 0)
 
-        all_results = self.analyze_all(tanggal)
+        all_results = self.analyze_all(tanggal, with_llm=with_llm)
         alerts = [
             r for r in all_results
             if _rank.get(r.final_alert_level, -1) >= min_rank

@@ -198,13 +198,23 @@ class ToolContext:
     Disiapkan sekali per analisis batch, lalu dipass ke ReasoningAgent.
     """
 
-    def __init__(self, df: pd.DataFrame):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        df_hari_besar: pd.DataFrame | None = None,
+        df_musim_panen: pd.DataFrame | None = None,
+    ):
         """
         Args:
-            df: Full feature DataFrame (dari build_feature_dataset) dengan kolom
-                tanggal, komoditas_nama, kota_nama, harga_aktual, het_harga, has_het, bulan
+            df             : Full feature DataFrame (dari build_feature_dataset) dengan kolom
+                             tanggal, komoditas_nama, kota_nama, harga_aktual, het_harga, has_het, bulan
+            df_hari_besar  : DataFrame dari app.hari_besar (kolom: tanggal, nama, kategori)
+            df_musim_panen : DataFrame dari app.musim_panen (kolom: komoditas_nama, bulan_mulai,
+                             bulan_selesai, daerah_utama, catatan)
         """
-        self.df = df
+        self.df             = df
+        self.df_hari_besar  = df_hari_besar  if df_hari_besar  is not None else pd.DataFrame()
+        self.df_musim_panen = df_musim_panen if df_musim_panen is not None else pd.DataFrame()
         self._target_pulau: str = "unknown"  # set per-request by ReasoningAgent.decide()
 
     def get_historical_pattern(self, komoditas_nama: str, bulan: int) -> dict[str, Any]:
@@ -392,46 +402,100 @@ class ToolContext:
         }
 
     def get_upcoming_events(self, tanggal_referensi: str) -> dict[str, Any]:
-        """Event musiman dalam 30 hari ke depan dan dampak harga historisnya."""
-        ref  = date.fromisoformat(tanggal_referensi)
-        events = []
+        """Event musiman dalam 30 hari ke depan: hari besar nasional dan musim panen."""
+        ref    = date.fromisoformat(tanggal_referensi)
+        end    = ref + timedelta(days=30)
+        events: list[dict[str, Any]] = []
 
-        # Ramadan/Lebaran proxy: bulan 3-5 (lihat is_ramadan_season)
-        for offset in range(1, 31):
-            d = ref + timedelta(days=offset)
-            if d.month in (3, 4, 5):
-                events.append({
-                    "event": "Musim Ramadan/Lebaran",
-                    "tanggal_mulai": str(date(d.year, 3, 1)),
-                    "hari_ke_depan": (date(d.year, 3, 1) - ref).days,
-                    "dampak_harga_historis": "+15–30% untuk cabai, bawang, daging, telur",
-                    "catatan": "Proxy bulan 3-5; cek kalender Hijriah untuk akurasi",
-                })
-                break
+        # ── 1. Hari Besar Nasional from DB ────────────────────────────────────
+        if not self.df_hari_besar.empty:
+            df_hb = self.df_hari_besar.copy()
+            df_hb["tanggal"] = pd.to_datetime(df_hb["tanggal"]).dt.date
+            upcoming = df_hb[
+                (df_hb["tanggal"] > ref) & (df_hb["tanggal"] <= end)
+            ].sort_values("tanggal")
 
-        # Tahun baru / akhir tahun
-        for offset in range(1, 31):
-            d = ref + timedelta(days=offset)
-            if d.month == 12 and d.day >= 20:
+            for _, row in upcoming.iterrows():
+                hari_ke_depan = (row["tanggal"] - ref).days
                 events.append({
-                    "event": "Libur Natal & Tahun Baru",
-                    "tanggal": str(d),
-                    "hari_ke_depan": offset,
-                    "dampak_harga_historis": "+5–15% untuk daging, telur, sayuran",
+                    "jenis":             "hari_besar",
+                    "event":             row.get("nama", "Hari Besar Nasional"),
+                    "kategori":          row.get("kategori", ""),
+                    "tanggal":           str(row["tanggal"]),
+                    "hari_ke_depan":     hari_ke_depan,
+                    "dampak_harga":      "+10–25% untuk bawang dan cabai pada H-7 s/d H+3",
+                    "catatan":           "Sumber: app.hari_besar (python-holidays 2024–2027)",
                 })
-                break
+        else:
+            # Fallback: proxy Ramadan/Lebaran (bulan 3–5) dan Natal/Tahun Baru
+            for offset in range(1, 31):
+                d = ref + timedelta(days=offset)
+                if d.month in (3, 4, 5):
+                    events.append({
+                        "jenis":         "hari_besar",
+                        "event":         "Musim Ramadan/Lebaran (proxy)",
+                        "tanggal":       str(date(d.year, 3, 1)),
+                        "hari_ke_depan": (date(d.year, 3, 1) - ref).days,
+                        "dampak_harga":  "+15–30% untuk cabai, bawang",
+                        "catatan":       "Proxy bulan 3-5; tidak ada data hari_besar di DB",
+                    })
+                    break
+            for offset in range(1, 31):
+                d = ref + timedelta(days=offset)
+                if d.month == 12 and d.day >= 20:
+                    events.append({
+                        "jenis":         "hari_besar",
+                        "event":         "Libur Natal & Tahun Baru (proxy)",
+                        "tanggal":       str(d),
+                        "hari_ke_depan": offset,
+                        "dampak_harga":  "+5–15% untuk daging, telur, sayuran",
+                        "catatan":       "Proxy; tidak ada data hari_besar di DB",
+                    })
+                    break
+
+        # ── 2. Musim Panen from DB ────────────────────────────────────────────
+        if not self.df_musim_panen.empty:
+            # Compute which months fall in the 30-day window
+            months_in_window: set[int] = set()
+            for offset in range(0, 31):
+                months_in_window.add((ref + timedelta(days=offset)).month)
+
+            for _, row in self.df_musim_panen.iterrows():
+                try:
+                    b_mulai    = int(row["bulan_mulai"])
+                    b_selesai  = int(row["bulan_selesai"])
+                except (ValueError, TypeError):
+                    continue
+
+                if b_mulai <= b_selesai:
+                    season_months = set(range(b_mulai, b_selesai + 1))
+                else:                          # wraps across December → January
+                    season_months = set(range(b_mulai, 13)) | set(range(1, b_selesai + 1))
+
+                if months_in_window & season_months:
+                    events.append({
+                        "jenis":         "musim_panen",
+                        "event":         f"Musim Panen: {row.get('komoditas_nama', '')}",
+                        "daerah_utama":  row.get("daerah_utama", ""),
+                        "bulan_mulai":   b_mulai,
+                        "bulan_selesai": b_selesai,
+                        "dampak_harga":  "Harga cenderung turun 10–20% saat panen raya di daerah produksi",
+                        "catatan":       row.get("catatan", ""),
+                    })
 
         if not events:
             events.append({
-                "event": "Tidak ada event besar dalam 30 hari ke depan",
+                "jenis":         "none",
+                "event":         "Tidak ada event besar dalam 30 hari ke depan",
                 "hari_ke_depan": None,
-                "dampak_harga_historis": "Normal seasonality",
+                "dampak_harga":  "Normal seasonality",
             })
 
         return {
             "tanggal_referensi": tanggal_referensi,
-            "window_hari": 30,
-            "events": events,
+            "window_hari":       30,
+            "total_events":      len(events),
+            "events":            events,
         }
 
     def get_het_breach_history(
