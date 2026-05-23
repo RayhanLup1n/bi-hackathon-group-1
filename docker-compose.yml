@@ -155,10 +155,11 @@ services:
             username: kestra
             password: kestra
         kestra:
-          server:
+          security:
             basic-auth:
-              username: admin
-              password: kestra
+              enabled: true
+              username: admin@radar-pangan.local
+              password: "Admin1234"
           repository:
             type: postgres
           storage:

@@ -194,6 +194,18 @@ def _prepare_dataframe(df: pd.DataFrame, start_id: int) -> pd.DataFrame:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
+    # Drop rows with null REQUIRED fields (BQ rejects nulls on REQUIRED columns)
+    required_cols = ["tanggal", "comcat_id", "komoditas_nama", "provinsi_id", "kota_id", "harga", "satuan"]
+    existing_required = [c for c in required_cols if c in df.columns]
+    before = len(df)
+    df = df.dropna(subset=existing_required)
+    dropped = before - len(df)
+    if dropped > 0:
+        logger.warning(f"Dropped {dropped} rows with null required fields (harga, etc.)")
+
+    # Re-assign sequential IDs after dropping rows
+    df["id"] = range(start_id, start_id + len(df))
+
     return df
 
 

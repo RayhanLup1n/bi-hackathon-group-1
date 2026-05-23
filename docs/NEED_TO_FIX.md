@@ -1,6 +1,6 @@
 # NEED_TO_FIX.md — Consolidated Testing Report
 
-> Updated: 2026-05-22 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
+> Updated: 2026-05-23 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
 > Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review
 
 ---
@@ -67,7 +67,7 @@
 > Migrasi Airflow (4 containers) ke Kestra (2 containers) - commit `0c21f5a`
 > ETL scripts rewritten: psycopg2 (Supabase raw.*) -> BigQuery batch load (FREE)
 
-### FIXED (13 bugs resolved)
+### FIXED (13 bugs + 3 new fixes resolved)
 - K-01: `python -m` -> direct script execution (`python etl/scripts/xxx.py`)
 - K-02: CLI args fixed (`--start-year`/`--end-year` INT, bukan `--start`/`--end`)
 - K-03: `--mode master` removed (master data sudah ada di BigQuery)
@@ -81,12 +81,17 @@
 - K-13: `pyarrow` dihapus dari Dockerfile (transitive dep dari dbt-bigquery)
 - NEW: Scripts rewritten untuk BigQuery (load_historical, load_weather, seed_hari_besar)
 - NEW: dbt `--target-path /tmp/dbt-target` (project mount read-only)
+- NEW-0523: Kestra basic-auth fixed (email format, `security` path, password requirements)
+- NEW-0523: Null harga handling in `load_historical.py` (`dropna()` before BQ load)
+- NEW-0523: Null required fields handling in `load_weather_historical.py` (same fix)
 
 ### REMAINING (belum di-fix, low priority)
 - K-10: Python version tidak di-pin (pakai default dari Kestra base image)
 - K-12: `allowFailure: true` pada dbt test tanpa notifikasi
 - K-06b: Windows users harus manual set `GOOGLE_APPLICATION_CREDENTIALS_DIR`
 - Daily pipeline re-extracts seluruh tahun berjalan (scripts belum support single-date)
+- K-14: Full pipeline belum fully tested end-to-end (dihentikan sementara, partial data loaded)
+- K-15: `marts` dataset dihapus dari Terraform (dev mode). dbt auto-creates jika diperlukan, tapi belum diverifikasi di Docker environment
 
 ---
 
