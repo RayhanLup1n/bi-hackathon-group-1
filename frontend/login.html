@@ -278,7 +278,8 @@
       </button>
     </form>
 
-    <div class="demo-hint">
+    <!-- Demo hint: only visible if ?demo=1 query param is present -->
+    <div class="demo-hint" id="demoHint" style="display:none;">
       <strong>Akun Demo</strong><br>
       admin / admin123 <span class="role-badge">admin</span><br>
       analyst / analyst123 <span class="role-badge">analyst</span>
@@ -288,6 +289,15 @@
 </div>
 
 <script>
+  // Show demo hint only if ?demo=1 is in URL (for demo presentation only)
+  (function showDemoHint() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('demo') === '1') {
+      const hint = document.getElementById('demoHint');
+      if (hint) hint.style.display = '';
+    }
+  })();
+
   // Redirect jika sudah login
   (function checkExisting() {
     const token = localStorage.getItem('rca_token');

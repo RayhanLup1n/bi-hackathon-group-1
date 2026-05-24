@@ -294,31 +294,18 @@ def get_predictions(
     """Read ML predictions from database. Returns empty if no data yet."""
     from src.data.database import db_cursor
 
-    conditions = []
-    params = []
-
-    if komoditas_id:
-        conditions.append("komoditas_id = %s")
-        params.append(komoditas_id)
-    if kota_id:
-        conditions.append("kota_id = %s")
-        params.append(kota_id)
-
-    where_clause = ""
-    if conditions:
-        where_clause = "WHERE " + " AND ".join(conditions)
-
     try:
         with db_cursor() as cur:
-            cur.execute(f"""
+            cur.execute("""
                 SELECT komoditas_id, kota_id, prediction_date, target_date,
                        predicted_price, confidence_lower, confidence_upper,
                        model_version, created_at
                 FROM app.ml_predictions
-                {where_clause}
+                WHERE (%s IS NULL OR komoditas_id = %s)
+                  AND (%s IS NULL OR kota_id = %s)
                 ORDER BY target_date ASC
                 LIMIT %s
-            """, params + [limit])  # noqa: S608
+            """, (komoditas_id, komoditas_id, kota_id, kota_id, limit))
             rows = cur.fetchall()
 
         predictions = [dict(r) for r in rows]

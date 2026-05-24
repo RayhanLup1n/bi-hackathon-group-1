@@ -4,10 +4,6 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
-from src.api.routes import router, het_router, cuaca_router, stok_router, predictions_router, data_quality_router
-from src.api.auth_routes import auth_router
-from src.api.ml_routes import ml_router
-
 import os
 
 
@@ -23,8 +19,14 @@ def _load_env() -> None:
                     os.environ.setdefault(key.strip(), value.strip())
 
 
-# Load env before anything else
+# Load env BEFORE importing modules that read env vars at import time
+# (e.g. auth_routes reads JWT_SECRET, DEBUG at module level)
 _load_env()
+
+# Now safe to import app modules that depend on env vars
+from src.api.routes import router, het_router, cuaca_router, stok_router, predictions_router, data_quality_router  # noqa: E402
+from src.api.auth_routes import auth_router  # noqa: E402
+from src.api.ml_routes import ml_router  # noqa: E402
 
 
 @asynccontextmanager

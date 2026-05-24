@@ -1,6 +1,6 @@
 # NEED_TO_FIX.md — Consolidated Testing Report
 
-> Updated: 2026-05-23 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
+> Updated: 2026-05-24 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
 > Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review
 
 ---
@@ -15,50 +15,37 @@
 
 ---
 
-## P0 — Fix Before Demo
+## P0 - Fix Before Demo
 
-### [SEC] S-02: JWT secret fallback allows forged tokens
-- **File**: `src/api/auth_routes.py:38-40`
-- **Problem**: If `JWT_SECRET` env var is missing, app silently uses a known public default string. Anyone who reads the source code can forge valid admin JWTs.
-- **Fix**: Raise `RuntimeError` at startup if `JWT_SECRET` is missing or too short (< 32 chars).
-- **Effort**: 5 min
+### ~~[SEC] S-02: JWT secret fallback allows forged tokens~~ FIXED (2026-05-24)
+- **File**: `src/api/auth_routes.py`, `main.py`
+- **What changed**: App now raises `RuntimeError` if `JWT_SECRET` is missing and `DEBUG != true`. Dev fallback only active in debug mode. Import order in `main.py` fixed so `.envs/.env` is loaded before `auth_routes` import.
+- **Current state**: Using `DEBUG=true` for dev/demo. See **[DEPLOY] JWT_SECRET production setup** below.
 
-### [SEC] S-03: Demo credentials exposed in login page HTML
-- **File**: `frontend/login.html:305-306`
-- **Problem**: `admin/admin123` and `analyst/analyst123` displayed in the login page HTML. Visible to any unauthenticated visitor.
-- **Fix**: Remove the demo hint entirely, or hide behind a dev-only flag.
+### ~~[SEC] S-03: Demo credentials exposed in login page HTML~~ FIXED (2026-05-24)
+- **File**: `frontend/login.html`
+- **What changed**: Demo hint hidden by default (`display:none`). Only visible with `?demo=1` query param in URL (for demo presentation).
+
+### ~~[SEC] S-01: SQL injection pattern in get_predictions~~ FIXED (2026-05-24)
+- **File**: `src/api/routes.py`
+- **What changed**: Replaced f-string `where_clause` interpolation with static SQL using `(%s IS NULL OR column = %s)` pattern. Removed `# noqa: S608`.
+
+### ~~[PERF] BigQuery latency - no response caching~~ FIXED (2026-05-24)
+- **File**: `src/data/bigquery_client.py`
+- **What changed**: Added `bq_query_cached()` with thread-safe TTL cache (5-min default, max 200 entries, LRU eviction). Also added `clear_bq_cache()` for manual invalidation. Dashboard queries already use Supabase PostgreSQL (Gold layer) which is fast enough.
+
+### [DEPLOY] JWT_SECRET production setup
+- **Status**: Pending - needed before public deployment
+- **Current**: `DEBUG=true` in `.envs/.env`, using dev fallback secret
+- **Before production/public deploy**:
+  1. Generate random secret: `python -c "import secrets; print(secrets.token_urlsafe(48))"`
+  2. Set in `.envs/.env`:
+     ```
+     JWT_SECRET=<generated-secret-here>
+     DEBUG=false
+     ```
+  3. Set same secret in Docker environment / deployment config
 - **Effort**: 2 min
-
-### [SEC] S-01: SQL injection pattern in get_predictions
-- **File**: `src/api/routes.py:301-315`
-- **Problem**: f-string interpolation of `where_clause` into SQL. Currently safe (predicates are hardcoded strings), but the pattern is architecturally dangerous and has a `# noqa: S608` suppression hiding the smell.
-- **Fix**: Rewrite with static SQL using `COALESCE(%s, column)` pattern or `(%s IS NULL OR column = %s)`.
-- **Effort**: 10 min
-
-### [PERF] BigQuery latency — no response caching
-- **File**: `src/data/bigquery_client.py` (add cache), `src/data/commodity_data.py` (N+1 calls)
-- **Problem**: Dashboard page load triggers 20-30 BigQuery calls (6 komoditas × 4+ calls each). Potential 30-60 second latency. `/api/het` duplicates the same calls.
-- **Fix**: Add thread-safe TTL cache (5 min) in `bigquery_client.py`:
-  ```python
-  import threading
-  from datetime import datetime, timedelta
-
-  _cache: dict = {}
-  _cache_lock = threading.Lock()
-
-  def bq_query_cached(sql, params=None, ttl_minutes=5):
-      key = (sql, str(params))
-      with _cache_lock:
-          if key in _cache:
-              result, expire_at = _cache[key]
-              if datetime.now() < expire_at:
-                  return result
-      result = bq_query(sql, params)
-      with _cache_lock:
-          _cache[key] = (result, datetime.now() + timedelta(minutes=ttl_minutes))
-      return result
-  ```
-- **Effort**: 30 min
 
 ---
 
@@ -67,7 +54,7 @@
 > Migrasi Airflow (4 containers) ke Kestra (2 containers) - commit `0c21f5a`
 > ETL scripts rewritten: psycopg2 (Supabase raw.*) -> BigQuery batch load (FREE)
 
-### FIXED (13 bugs + 3 new fixes resolved)
+### FIXED (13 bugs + 3 new fixes resolved + 3 additional fixes 2026-05-24)
 - K-01: `python -m` -> direct script execution (`python etl/scripts/xxx.py`)
 - K-02: CLI args fixed (`--start-year`/`--end-year` INT, bukan `--start`/`--end`)
 - K-03: `--mode master` removed (master data sudah ada di BigQuery)
@@ -84,6 +71,9 @@
 - NEW-0523: Kestra basic-auth fixed (email format, `security` path, password requirements)
 - NEW-0523: Null harga handling in `load_historical.py` (`dropna()` before BQ load)
 - NEW-0523: Null required fields handling in `load_weather_historical.py` (same fix)
+- NEW-0524: dbt `--log-path /tmp/dbt-logs` added (read-only filesystem fix for dbt log writes)
+- NEW-0524: `dbt deps` removed invalid `--target-path` flag
+- NEW-0524: loguru stderr -> stdout (`etl/config/log_config.py`) for correct Kestra UI log levels
 
 ### REMAINING (belum di-fix, low priority)
 - K-10: Python version tidak di-pin (pakai default dari Kestra base image)

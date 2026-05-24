@@ -34,10 +34,24 @@ from src.data.auth_db import (
     verify_password,
 )
 
-# JWT secret from env var — falls back to a dev-only default (NEVER use in production)
-_SECRET = os.environ.get(
-    "JWT_SECRET", "radarpangan-dev-secret-DO-NOT-USE-IN-PROD"
-)
+# JWT secret from env var — required in production, dev fallback only if DEBUG=true
+_DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+_SECRET = os.environ.get("JWT_SECRET", "")
+
+if not _SECRET:
+    if _DEBUG:
+        _SECRET = "radarpangan-dev-secret-DO-NOT-USE-IN-PROD"
+    else:
+        raise RuntimeError(
+            "JWT_SECRET env var is required. "
+            "Set JWT_SECRET (min 32 chars) or set DEBUG=true for dev mode."
+        )
+
+if len(_SECRET) < 32 and not _DEBUG:
+    raise RuntimeError(
+        f"JWT_SECRET too short ({len(_SECRET)} chars). Minimum 32 chars required."
+    )
+
 _ALGO = "HS256"
 _TOKEN_HOURS = 8
 
