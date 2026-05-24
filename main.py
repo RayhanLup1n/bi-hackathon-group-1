@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
@@ -61,6 +62,24 @@ app = FastAPI(
         "Platform pemantauan inflasi pangan berbasis data PIHPS."
     ),
     lifespan=lifespan,
+)
+
+# CORS middleware - allow same-origin + localhost dev servers
+_allowed_origins = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:3000",  # frontend dev server if any
+]
+# Allow ngrok origins for demo (wildcard subdomain)
+if os.environ.get("DEBUG", "false").lower() == "true":
+    _allowed_origins.append("https://*.ngrok-free.app")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(router)

@@ -33,9 +33,9 @@ WEATHER_LOOKBACK_DAYS = 7             # check weather in past N days for RCA
 
 # ── HET (Harga Eceran Tertinggi) Thresholds ───────────────────────────────
 # Status levels based on current price vs HET reference
-HET_WASPADA_PCT = 0.80               # >= 80% of HET → WASPADA
-HET_KRITIS_PCT = 1.00                # >= 100% of HET → KRITIS
-HET_MELAMPAUI_PCT = 1.00             # > 100% of HET → MELAMPAUI
+HET_WASPADA_PCT = 0.80               # >= 80% of HET -> WASPADA
+HET_KRITIS_PCT = 0.95                # >= 95% of HET -> KRITIS (approaching limit)
+HET_MELAMPAUI_PCT = 1.00             # > 100% of HET -> MELAMPAUI (exceeded)
 
 # Dummy HET reference prices (Rp/kg) — replace with real Bapanas data
 # Sources: estimasi berdasarkan observasi pasar + berita Bapanas

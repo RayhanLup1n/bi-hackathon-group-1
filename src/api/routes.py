@@ -12,11 +12,13 @@ Endpoints:
   /api/het                      - HET status semua komoditas
   /api/cuaca/{provinsi_id}      - data cuaca per provinsi (Open-Meteo)
 """
+import logging
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from src.api.auth_routes import _current_user, _require_admin
 from src.data.commodity_data import (
     get_all_commodities,
     get_commodity_data,
@@ -29,10 +31,24 @@ from src.engine.het_monitor import check_het_status, check_het_all, get_het_summ
 from src.data.weather_data import get_weather_for_rca, get_weather_summary
 from src.models.schemas import RCAResult, CommodityData
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api", tags=["RCA & Harga"])
 het_router = APIRouter(prefix="/api/het", tags=["HET Monitor"])
 cuaca_router = APIRouter(prefix="/api/cuaca", tags=["Cuaca"])
 stok_router = APIRouter(prefix="/api/stok", tags=["Stok"])
+
+
+# ── RBAC guard: analyst or admin required ─────────────────────────────────────
+
+def _require_analyst(user: dict = Depends(_current_user)) -> dict:
+    """Allow access only to analysts and admins."""
+    if not user.get("is_analyst", False) and not user.get("is_admin", False):
+        raise HTTPException(
+            status_code=403,
+            detail="Akses ditolak: hanya analyst atau admin",
+        )
+    return user
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -67,6 +83,7 @@ def get_commodity(
     sim_date: Optional[date] = Query(
         default=None, description="Simulasi tanggal (YYYY-MM-DD)"
     ),
+    _user: dict = Depends(_current_user),
 ) -> CommodityData:
     data = get_commodity_data(key, tanggal=sim_date)
     if not data:
@@ -86,6 +103,7 @@ def run_rca_endpoint(
     sim_date: Optional[date] = Query(
         default=None, description="Simulasi tanggal (YYYY-MM-DD)"
     ),
+    _user: dict = Depends(_require_analyst),
 ) -> RCAResult:
     data = get_commodity_data(key, tanggal=sim_date)
     if not data:
@@ -100,6 +118,7 @@ def run_rca_all(
     sim_date: Optional[date] = Query(
         default=None, description="Simulasi tanggal (YYYY-MM-DD)"
     ),
+    _user: dict = Depends(_require_analyst),
 ) -> list[RCAResult]:
     results = []
     for key in get_all_commodities():
@@ -120,6 +139,7 @@ def run_rca_all(
 def price_summary(
     comcat_id: str,
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> dict:
     result = get_price_summary(comcat_id, sim_date)
     if not result:
@@ -135,6 +155,7 @@ def price_history(
     comcat_id: str,
     n_days: int = Query(default=30, ge=7, le=365),
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> list[dict]:
     return get_price_history(comcat_id, n_days, sim_date)
 
@@ -163,6 +184,7 @@ def get_stok_by_key(key: str, sim_date: Optional[date] = Query(None)) -> list[di
 )
 def get_het_all(
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> list[dict]:
     """Check HET status for all MVP commodities."""
     commodity_prices: dict[str, tuple[int, str]] = {}
@@ -183,6 +205,7 @@ def get_het_all(
 )
 def get_het_summary_endpoint(
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> dict:
     """Get summary of HET status across all commodities."""
     commodity_prices: dict[str, tuple[int, str]] = {}
@@ -204,6 +227,7 @@ def get_het_summary_endpoint(
 def get_het_by_key(
     key: str,
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> dict:
     """Check HET status for one commodity."""
     data = get_commodity_data(key, tanggal=sim_date)
@@ -228,6 +252,7 @@ def get_cuaca_by_provinsi(
     provinsi_id: int,
     sim_date: Optional[date] = Query(None),
     n_days: int = Query(default=7, ge=1, le=30),
+    _user: dict = Depends(_current_user),
 ) -> dict:
     """Get weather data and extreme detection for a province."""
     # Get RCA-style weather check
@@ -252,6 +277,7 @@ def get_cuaca_by_provinsi(
 )
 def get_cuaca_all_provinces(
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> list[dict]:
     """Get weather summary for all target provinces."""
     # Target provinces for MVP (inline to avoid cross-layer import from etl/)
@@ -290,9 +316,11 @@ def get_predictions(
     komoditas_id: Optional[str] = Query(None),
     kota_id: Optional[int] = Query(None),
     limit: int = Query(default=30, ge=1, le=365),
+    _user: dict = Depends(_require_analyst),
 ) -> dict:
     """Read ML predictions from database. Returns empty if no data yet."""
     from src.data.database import db_cursor
+    import psycopg2
 
     try:
         with db_cursor() as cur:
@@ -316,9 +344,13 @@ def get_predictions(
                     p[key] = str(p[key])
 
         return {"predictions": predictions, "total": len(predictions)}
-    except Exception:
-        # Return empty if table doesn't exist yet or any error
+    except psycopg2.errors.UndefinedTable:
+        # Table doesn't exist yet - ML teammate hasn't created it
+        logger.warning("app.ml_predictions table not found")
         return {"predictions": [], "total": 0}
+    except psycopg2.Error as e:
+        logger.error("Database error in get_predictions: %s", e)
+        raise HTTPException(status_code=500, detail="Database error")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -332,7 +364,7 @@ data_quality_router = APIRouter(prefix="/api/data-quality", tags=["Data Quality"
     "",
     summary="Full data quality report (coverage + missing + outliers + duplicates)",
 )
-def get_quality_report() -> dict:
+def get_quality_report(_user: dict = Depends(_require_admin)) -> dict:
     """Run all data quality checks and return combined summary.
 
     Uses MVP komoditas filter by default. Queries BigQuery.

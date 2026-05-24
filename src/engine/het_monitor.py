@@ -20,7 +20,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from config.settings import HET_REFERENCE, HET_WASPADA_PCT, HET_KRITIS_PCT
+from config.settings import HET_REFERENCE, HET_WASPADA_PCT, HET_KRITIS_PCT, HET_MELAMPAUI_PCT
 
 
 class HETStatus(str, Enum):
@@ -63,7 +63,7 @@ def _determine_status(pct_of_het: float) -> HETStatus:
     Returns:
         HETStatus enum value.
     """
-    if pct_of_het > HET_KRITIS_PCT * 100:
+    if pct_of_het > HET_MELAMPAUI_PCT * 100:
         return HETStatus.MELAMPAUI
     elif pct_of_het >= HET_KRITIS_PCT * 100:
         return HETStatus.KRITIS

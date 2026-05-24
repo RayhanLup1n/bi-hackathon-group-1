@@ -212,6 +212,13 @@ def _check_persebaran_kota(data: CommodityData) -> CheckResult:
     """Check 3: Apakah kenaikan merata di banyak kota? (threshold default 60%)"""
     kota_naik = [k for k in data.kota_list if k.naik]
     total_kota = len(data.kota_list)
+    if total_kota == 0:
+        return CheckResult(
+            step=3,
+            nama="Cek Persebaran Kenaikan Antar Kota",
+            status="skip",
+            detail="Tidak ada data kota tersedia untuk analisis persebaran",
+        )
     pct = len(kota_naik) / total_kota
     nama_naik = ", ".join(k.nama for k in kota_naik) if kota_naik else "—"
     if pct >= data.threshold_kota:
@@ -329,8 +336,11 @@ def run_rca(data: CommodityData, today: date | None = None) -> RCAResult:
 
     checks: list[CheckResult] = []
 
-    # Hitung delta harga
-    delta_pct = ((data.price_now - data.price_prev) / data.price_prev) * 100
+    # Hitung delta harga (guard division by zero)
+    if data.price_prev == 0:
+        delta_pct = 0.0
+    else:
+        delta_pct = ((data.price_now - data.price_prev) / data.price_prev) * 100
     is_anomaly = delta_pct >= data.price_threshold
 
     # ── Check 1: Hari Raya ──────────────────────
