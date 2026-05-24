@@ -1,5 +1,13 @@
 {
+  "includeCoAuthoredBy": false,
   "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(.envs/.env)",
+      "Read(etl/.env)",
+      "Read(**/*.tfvars)"
+    ],
     "allow": [
       "Bash(python -c ' *)",
       "Bash(python -m pytest tests/ -v --tb=short)",

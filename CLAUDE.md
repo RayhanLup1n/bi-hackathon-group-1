@@ -423,7 +423,7 @@ BQ_LOCATION=asia-southeast2
 - **DO** selalu kerja di branch `feat/workflow-integration`, bukan `main`
 - **DO** gunakan `.env` untuk credentials — JANGAN hardcode
 - **DO** tulis test sebelum implementasi (TDD approach)
-- **DO** auto-commit saat fitur/fix berhasil (checkpoint)
+- **DO** tanyakan dulu ke user sebelum commit: "Apakah ini bisa dijadikan checkpoint?" beserta ringkasan perubahan. Baru commit jika user approve. JANGAN auto-commit tanpa approval
 - **DO** gunakan conventional commits format
 - **DO** gunakan dbt untuk transformasi data — jangan transform di Python jika bisa di SQL
 - **DO** tulis dbt models dalam **BigQuery SQL** (BUKAN PostgreSQL SQL)
