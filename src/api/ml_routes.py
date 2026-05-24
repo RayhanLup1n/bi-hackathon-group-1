@@ -57,6 +57,11 @@ class MLBatchRequest(BaseModel):
     tanggal: Optional[date] = None  # override all request dates if set
 
 
+class MLSimulateScenario(BaseModel):
+    harga_intervensi: Optional[float] = Field(None, description="Harga target setelah intervensi (Rp)")
+    pct_shock: Optional[float] = Field(None, description="Persen perubahan harga (negatif = turun, mis. -15)")
+
+
 # ── HTTP Client Helper ────────────────────────────────────────────────────────
 
 async def _proxy_get(path: str, params: dict | None = None) -> Any:
@@ -94,7 +99,7 @@ async def _proxy_post(path: str, json_body: dict) -> Any:
 
     url = f"{ML_SERVER_URL}{path}"
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             resp = await client.post(url, json=json_body)
             resp.raise_for_status()
             return resp.json()
@@ -194,3 +199,34 @@ async def ml_komoditas(user: dict = Depends(_current_user)) -> dict:
 async def ml_kota(user: dict = Depends(_current_user)) -> dict:
     """Daftar kota yang tersedia di ML pipeline."""
     return await _proxy_get("/api/v1/kota")
+
+
+@ml_router.post("/simulate", summary="Simulasi intervensi ML")
+async def ml_simulate(
+    komoditas_nama: str,
+    kota_nama: str,
+    scenario: MLSimulateScenario,
+    tanggal: Optional[date] = None,
+    with_llm: bool = False,
+    user: dict = Depends(_current_user),
+) -> dict:
+    """
+    Simulasi 'bagaimana jika' harga berubah setelah intervensi.
+
+    - harga_intervensi: harga absolut target (mis. turun ke HET)
+    - pct_shock: persentase perubahan (mis. -15 = turun 15%)
+    """
+    body: dict[str, Any] = {
+        "komoditas_nama": komoditas_nama,
+        "kota_nama": kota_nama,
+        "tanggal": str(tanggal or date.today()),
+        "scenario": {
+            k: v for k, v in {
+                "harga_intervensi": scenario.harga_intervensi,
+                "pct_shock": scenario.pct_shock,
+            }.items() if v is not None
+        },
+        "with_llm": with_llm,
+    }
+    return await _proxy_post("/api/v1/simulate", body)
+

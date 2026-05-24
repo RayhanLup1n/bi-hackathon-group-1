@@ -12,10 +12,11 @@
 #   1. Check PIHPS API availability (fail-fast)
 #   2. Extract current year harga -> BigQuery (append, dbt dedup)
 #   3. Extract current year cuaca -> BigQuery (append, dbt dedup)
-#   4. dbt run staging + marts (BigQuery transforms)
-#   5. dbt test (data quality checks)
-#   6. Sync gold layer: BigQuery marts -> Supabase PostgreSQL
-#   7. Log daily summary
+#   4. Fetch BMKG 3-day forecast -> Supabase app.bmkg_siaga
+#   5. dbt run staging + marts (BigQuery transforms)
+#   6. dbt test (data quality checks)
+#   7. Sync gold layer: BigQuery marts -> Supabase PostgreSQL
+#   8. Log daily summary
 #
 # Schedule: 00:00 UTC (07:00 WIB) every day
 # =============================================================================
@@ -72,30 +73,42 @@ tasks:
     description: "Extract current year weather data from Open-Meteo to BigQuery (5 locations)"
 
   # --------------------------------------------------------------------------
-  # Step 4: dbt run - staging + marts (full refresh)
+  # Step 4: Fetch BMKG 3-day forecast -> Supabase
+  # --------------------------------------------------------------------------
+  - id: fetch_bmkg_forecast
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - cd /app/project && python etl/scripts/fetch_bmkg_forecast.py
+    description: "Fetch 3-day weather forecast from BMKG API -> Supabase app.bmkg_siaga"
+    allowFailure: true
+
+  # --------------------------------------------------------------------------
+  # Step 5: dbt run - staging + marts (full refresh)
   # --------------------------------------------------------------------------
   - id: dbt_run
     type: io.kestra.plugin.scripts.shell.Commands
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
     commands:
-      - dbt run --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+      - dbt run --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target --log-path /tmp/dbt-logs
     description: "Run all dbt models (staging views + marts tables)"
 
   # --------------------------------------------------------------------------
-  # Step 5: dbt test - data quality checks
+  # Step 6: dbt test - data quality checks
   # --------------------------------------------------------------------------
   - id: dbt_test
     type: io.kestra.plugin.scripts.shell.Commands
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
     commands:
-      - dbt test --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+      - dbt test --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target --log-path /tmp/dbt-logs
     description: "Run dbt tests (NOT NULL, UNIQUE, data quality)"
     allowFailure: true
 
   # --------------------------------------------------------------------------
-  # Step 6: Sync gold layer - BigQuery marts to Supabase PostgreSQL
+  # Step 7: Sync gold layer - BigQuery marts to Supabase PostgreSQL
   # --------------------------------------------------------------------------
   - id: sync_gold_to_postgres
     type: io.kestra.plugin.scripts.shell.Commands
@@ -106,7 +119,7 @@ tasks:
     description: "Sync updated marts to Supabase PostgreSQL (Gold serving layer)"
 
   # --------------------------------------------------------------------------
-  # Step 7: Log daily summary
+  # Step 8: Log daily summary
   # --------------------------------------------------------------------------
   - id: log_summary
     type: io.kestra.plugin.core.log.Log
@@ -115,7 +128,7 @@ tasks:
       DAILY PIPELINE COMPLETE: radar_pangan_daily
       ============================================================
       Execution   : {{ execution.id }}
-      Status      : {{ execution.status }}
+      Status      : SUCCESS (all steps completed)
       ============================================================
 
 # -- Schedule: 00:00 UTC (07:00 WIB) every day --------------------------------

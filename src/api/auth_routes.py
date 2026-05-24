@@ -15,14 +15,15 @@ POST /api/auth/users           → tambah user baru (admin only)
 PATCH /api/auth/users/{id}     → edit password / flags (admin only)
 DELETE /api/auth/users/{id}    → hapus user (admin only)
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+import bcrypt
 import os
 
 from src.data.auth_db import (
@@ -34,10 +35,27 @@ from src.data.auth_db import (
     verify_password,
 )
 
-# JWT secret from env var — falls back to a dev-only default (NEVER use in production)
-_SECRET = os.environ.get(
-    "JWT_SECRET", "radarpangan-dev-secret-DO-NOT-USE-IN-PROD"
-)
+# Dummy hash for timing-safe login (prevents username enumeration)
+_DUMMY_HASH = bcrypt.hashpw(b"dummy-timing-safe", bcrypt.gensalt()).decode()
+
+# JWT secret from env var — required in production, dev fallback only if DEBUG=true
+_DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+_SECRET = os.environ.get("JWT_SECRET", "")
+
+if not _SECRET:
+    if _DEBUG:
+        _SECRET = "radarpangan-dev-secret-DO-NOT-USE-IN-PROD"
+    else:
+        raise RuntimeError(
+            "JWT_SECRET env var is required. "
+            "Set JWT_SECRET (min 32 chars) or set DEBUG=true for dev mode."
+        )
+
+if len(_SECRET) < 32 and not _DEBUG:
+    raise RuntimeError(
+        f"JWT_SECRET too short ({len(_SECRET)} chars). Minimum 32 chars required."
+    )
+
 _ALGO = "HS256"
 _TOKEN_HOURS = 8
 
@@ -48,14 +66,24 @@ _oauth2 = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 # ── Pydantic models ────────────────────────────────────────────────────────────
 
 class UserCreate(BaseModel):
-    username: str
-    password: str
+    username: str = Field(
+        min_length=3, max_length=50,
+        pattern=r"^[a-zA-Z0-9_]+$",
+        description="Username (alphanumeric + underscore, 3-50 chars)",
+    )
+    password: str = Field(
+        min_length=6, max_length=128,
+        description="Password (6-128 chars)",
+    )
     is_admin: bool = False
     is_analyst: bool = False
 
 
 class UserUpdate(BaseModel):
-    password: Optional[str] = None
+    password: Optional[str] = Field(
+        default=None, min_length=6, max_length=128,
+        description="New password (6-128 chars, optional)",
+    )
     is_admin: Optional[bool] = None
     is_analyst: Optional[bool] = None
     is_active: Optional[bool] = None
@@ -65,13 +93,15 @@ class UserUpdate(BaseModel):
 
 def _make_token(user: dict) -> str:
     """Create JWT with boolean flags + computed role for backward compat."""
-    expire = datetime.utcnow() + timedelta(hours=_TOKEN_HOURS)
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(hours=_TOKEN_HOURS)
     return jwt.encode(
         {
             "sub": user["username"],
             "role": user["role"],  # computed by auth_db._compute_role
             "is_admin": user.get("is_admin", False),
             "is_analyst": user.get("is_analyst", False),
+            "iat": now,
             "exp": expire,
         },
         _SECRET,
@@ -124,7 +154,10 @@ def _require_admin(user: dict = Depends(_current_user)) -> dict:
 @auth_router.post("/login", summary="Login dan dapatkan JWT")
 def login(form: OAuth2PasswordRequestForm = Depends()):
     user = get_user_by_username(form.username)
-    if not user or not verify_password(form.password, user["password_hash"]):
+    # Always run verify_password to prevent timing-based username enumeration
+    hash_to_check = user["password_hash"] if user else _DUMMY_HASH
+    password_ok = verify_password(form.password, hash_to_check)
+    if not user or not password_ok:
         raise HTTPException(status_code=401, detail="Username atau password salah")
     # Block disabled accounts from logging in
     if not user.get("is_active", True):
@@ -177,4 +210,5 @@ def patch_user(user_id: int, data: UserUpdate, _: dict = Depends(_require_admin)
 def remove_user(user_id: int, current: dict = Depends(_require_admin)):
     if user_id == current["id"]:
         raise HTTPException(status_code=400, detail="Tidak bisa menghapus akun sendiri")
-    delete_user(user_id)
+    if not delete_user(user_id):
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")

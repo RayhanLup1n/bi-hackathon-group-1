@@ -659,7 +659,7 @@
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-left">
-      <div class="logo-icon"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
+      <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
         <div class="header-sub">monitoring &amp; rca engine &nbsp;&middot;&nbsp; v0.5</div>
@@ -671,9 +671,6 @@
       </span>
       <a href="/" class="nav-link nav-link-active">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
-      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/rca" class="nav-link nav-link-default">RCA</a>
-      </template>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
         <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
       </template>

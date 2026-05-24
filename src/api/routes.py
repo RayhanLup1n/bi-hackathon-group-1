@@ -12,11 +12,13 @@ Endpoints:
   /api/het                      - HET status semua komoditas
   /api/cuaca/{provinsi_id}      - data cuaca per provinsi (Open-Meteo)
 """
+import logging
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from src.api.auth_routes import _current_user, _require_admin
 from src.data.commodity_data import (
     get_all_commodities,
     get_commodity_data,
@@ -29,10 +31,26 @@ from src.engine.het_monitor import check_het_status, check_het_all, get_het_summ
 from src.data.weather_data import get_weather_for_rca, get_weather_summary
 from src.models.schemas import RCAResult, CommodityData
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api", tags=["RCA & Harga"])
 het_router = APIRouter(prefix="/api/het", tags=["HET Monitor"])
 cuaca_router = APIRouter(prefix="/api/cuaca", tags=["Cuaca"])
 stok_router = APIRouter(prefix="/api/stok", tags=["Stok"])
+predictions_router = APIRouter(prefix="/api/predictions", tags=["ML Predictions"])
+data_quality_router = APIRouter(prefix="/api/data-quality", tags=["Data Quality"])
+
+
+# ── RBAC guard: analyst or admin required ─────────────────────────────────────
+
+def _require_analyst(user: dict = Depends(_current_user)) -> dict:
+    """Allow access only to analysts and admins."""
+    if not user.get("is_analyst", False) and not user.get("is_admin", False):
+        raise HTTPException(
+            status_code=403,
+            detail="Akses ditolak: hanya analyst atau admin",
+        )
+    return user
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -67,6 +85,7 @@ def get_commodity(
     sim_date: Optional[date] = Query(
         default=None, description="Simulasi tanggal (YYYY-MM-DD)"
     ),
+    _user: dict = Depends(_current_user),
 ) -> CommodityData:
     data = get_commodity_data(key, tanggal=sim_date)
     if not data:
@@ -86,6 +105,7 @@ def run_rca_endpoint(
     sim_date: Optional[date] = Query(
         default=None, description="Simulasi tanggal (YYYY-MM-DD)"
     ),
+    _user: dict = Depends(_require_analyst),
 ) -> RCAResult:
     data = get_commodity_data(key, tanggal=sim_date)
     if not data:
@@ -100,6 +120,7 @@ def run_rca_all(
     sim_date: Optional[date] = Query(
         default=None, description="Simulasi tanggal (YYYY-MM-DD)"
     ),
+    _user: dict = Depends(_require_analyst),
 ) -> list[RCAResult]:
     results = []
     for key in get_all_commodities():
@@ -120,6 +141,7 @@ def run_rca_all(
 def price_summary(
     comcat_id: str,
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> dict:
     result = get_price_summary(comcat_id, sim_date)
     if not result:
@@ -135,6 +157,7 @@ def price_history(
     comcat_id: str,
     n_days: int = Query(default=30, ge=7, le=365),
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> list[dict]:
     return get_price_history(comcat_id, n_days, sim_date)
 
@@ -154,8 +177,25 @@ def get_stok_by_key(key: str, sim_date: Optional[date] = Query(None)) -> list[di
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# HET MONITOR — Bandingkan harga aktual vs HET reference
+# HET MONITOR - Bandingkan harga aktual vs HET reference
 # ─────────────────────────────────────────────────────────────────────────────
+
+def _build_commodity_prices(
+    sim_date: Optional[date] = None,
+) -> dict[str, tuple[int, str]]:
+    """Build {comcat_id: (price, name)} for all MVP commodities.
+
+    Shared helper to avoid duplicate data loading in HET endpoints.
+    """
+    prices: dict[str, tuple[int, str]] = {}
+    for key in get_all_commodities():
+        data = get_commodity_data(key, tanggal=sim_date)
+        if data:
+            info = KOMODITAS_MAP.get(key, {})
+            comcat_id = info.get("comcat_id", "")
+            prices[comcat_id] = (data.price_now, data.name)
+    return prices
+
 
 @het_router.get(
     "",
@@ -163,16 +203,10 @@ def get_stok_by_key(key: str, sim_date: Optional[date] = Query(None)) -> list[di
 )
 def get_het_all(
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> list[dict]:
     """Check HET status for all MVP commodities."""
-    commodity_prices: dict[str, tuple[int, str]] = {}
-    for key in get_all_commodities():
-        data = get_commodity_data(key, tanggal=sim_date)
-        if data:
-            info = KOMODITAS_MAP.get(key, {})
-            comcat_id = info.get("comcat_id", "")
-            commodity_prices[comcat_id] = (data.price_now, data.name)
-
+    commodity_prices = _build_commodity_prices(sim_date)
     results = check_het_all(commodity_prices)
     return [r.model_dump() for r in results]
 
@@ -183,16 +217,10 @@ def get_het_all(
 )
 def get_het_summary_endpoint(
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> dict:
     """Get summary of HET status across all commodities."""
-    commodity_prices: dict[str, tuple[int, str]] = {}
-    for key in get_all_commodities():
-        data = get_commodity_data(key, tanggal=sim_date)
-        if data:
-            info = KOMODITAS_MAP.get(key, {})
-            comcat_id = info.get("comcat_id", "")
-            commodity_prices[comcat_id] = (data.price_now, data.name)
-
+    commodity_prices = _build_commodity_prices(sim_date)
     results = check_het_all(commodity_prices)
     return get_het_summary(results)
 
@@ -204,6 +232,7 @@ def get_het_summary_endpoint(
 def get_het_by_key(
     key: str,
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> dict:
     """Check HET status for one commodity."""
     data = get_commodity_data(key, tanggal=sim_date)
@@ -228,6 +257,7 @@ def get_cuaca_by_provinsi(
     provinsi_id: int,
     sim_date: Optional[date] = Query(None),
     n_days: int = Query(default=7, ge=1, le=30),
+    _user: dict = Depends(_current_user),
 ) -> dict:
     """Get weather data and extreme detection for a province."""
     # Get RCA-style weather check
@@ -252,6 +282,7 @@ def get_cuaca_by_provinsi(
 )
 def get_cuaca_all_provinces(
     sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
 ) -> list[dict]:
     """Get weather summary for all target provinces."""
     # Target provinces for MVP (inline to avoid cross-layer import from etl/)
@@ -276,10 +307,8 @@ def get_cuaca_all_provinces(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ML PREDICTIONS — Read from app.ml_predictions
+# ML PREDICTIONS - Read from app.ml_predictions
 # ─────────────────────────────────────────────────────────────────────────────
-
-predictions_router = APIRouter(prefix="/api/predictions", tags=["ML Predictions"])
 
 
 @predictions_router.get(
@@ -290,35 +319,24 @@ def get_predictions(
     komoditas_id: Optional[str] = Query(None),
     kota_id: Optional[int] = Query(None),
     limit: int = Query(default=30, ge=1, le=365),
+    _user: dict = Depends(_require_analyst),
 ) -> dict:
     """Read ML predictions from database. Returns empty if no data yet."""
     from src.data.database import db_cursor
-
-    conditions = []
-    params = []
-
-    if komoditas_id:
-        conditions.append("komoditas_id = %s")
-        params.append(komoditas_id)
-    if kota_id:
-        conditions.append("kota_id = %s")
-        params.append(kota_id)
-
-    where_clause = ""
-    if conditions:
-        where_clause = "WHERE " + " AND ".join(conditions)
+    import psycopg2
 
     try:
         with db_cursor() as cur:
-            cur.execute(f"""
+            cur.execute("""
                 SELECT komoditas_id, kota_id, prediction_date, target_date,
                        predicted_price, confidence_lower, confidence_upper,
                        model_version, created_at
                 FROM app.ml_predictions
-                {where_clause}
+                WHERE (%s IS NULL OR komoditas_id = %s)
+                  AND (%s IS NULL OR kota_id = %s)
                 ORDER BY target_date ASC
                 LIMIT %s
-            """, params + [limit])  # noqa: S608
+            """, (komoditas_id, komoditas_id, kota_id, kota_id, limit))
             rows = cur.fetchall()
 
         predictions = [dict(r) for r in rows]
@@ -329,23 +347,24 @@ def get_predictions(
                     p[key] = str(p[key])
 
         return {"predictions": predictions, "total": len(predictions)}
-    except Exception:
-        # Return empty if table doesn't exist yet or any error
+    except psycopg2.errors.UndefinedTable:
+        # Table doesn't exist yet - ML teammate hasn't created it
+        logger.warning("app.ml_predictions table not found")
         return {"predictions": [], "total": 0}
+    except psycopg2.Error as e:
+        logger.error("Database error in get_predictions: %s", e)
+        raise HTTPException(status_code=500, detail="Database error")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DATA QUALITY — Validation checks on raw.harga_pangan
 # ─────────────────────────────────────────────────────────────────────────────
 
-data_quality_router = APIRouter(prefix="/api/data-quality", tags=["Data Quality"])
-
-
 @data_quality_router.get(
     "",
     summary="Full data quality report (coverage + missing + outliers + duplicates)",
 )
-def get_quality_report() -> dict:
+def get_quality_report(_user: dict = Depends(_require_admin)) -> dict:
     """Run all data quality checks and return combined summary.
 
     Uses MVP komoditas filter by default. Queries BigQuery.
@@ -355,20 +374,22 @@ def get_quality_report() -> dict:
     try:
         return get_quality_summary()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Data quality check failed: {e}")
+        logger.error("Data quality check failed: %s", e)
+        raise HTTPException(status_code=500, detail="Data quality check gagal")
 
 
 @data_quality_router.get(
     "/coverage",
     summary="Data coverage summary (row counts, date range per komoditas)",
 )
-def get_coverage() -> dict:
+def get_coverage(_user: dict = Depends(_require_admin)) -> dict:
     from src.data.data_quality import get_data_coverage
 
     try:
         return get_data_coverage()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Coverage check failed: {e}")
+        logger.error("Coverage check failed: %s", e)
+        raise HTTPException(status_code=500, detail="Coverage check gagal")
 
 
 @data_quality_router.get(
@@ -378,6 +399,7 @@ def get_coverage() -> dict:
 def get_outliers(
     z_threshold: float = Query(default=3.0, ge=1.0, le=10.0),
     last_n_days: int = Query(default=90, ge=7, le=365),
+    _user: dict = Depends(_require_admin),
 ) -> dict:
     from src.data.data_quality import check_outliers
 
@@ -385,7 +407,8 @@ def get_outliers(
         items = check_outliers(z_threshold=z_threshold, last_n_days=last_n_days)
         return {"count": len(items), "z_threshold": z_threshold, "items": items}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Outlier check failed: {e}")
+        logger.error("Outlier check failed: %s", e)
+        raise HTTPException(status_code=500, detail="Outlier check gagal")
 
 
 @data_quality_router.get(
@@ -394,6 +417,7 @@ def get_outliers(
 )
 def get_missing_dates(
     last_n_days: int = Query(default=30, ge=7, le=365),
+    _user: dict = Depends(_require_admin),
 ) -> dict:
     from src.data.data_quality import check_missing_dates
 
@@ -401,19 +425,21 @@ def get_missing_dates(
         items = check_missing_dates(last_n_days=last_n_days)
         return {"count": len(items), "last_n_days": last_n_days, "items": items}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Missing dates check failed: {e}")
+        logger.error("Missing dates check failed: %s", e)
+        raise HTTPException(status_code=500, detail="Missing dates check gagal")
 
 
 @data_quality_router.get(
     "/duplicates",
     summary="Duplicate rows (same comcat_id + kota_id + tanggal)",
 )
-def get_duplicates() -> dict:
+def get_duplicates(_user: dict = Depends(_require_admin)) -> dict:
     from src.data.data_quality import check_duplicates
 
     try:
         items = check_duplicates()
         return {"count": len(items), "items": items}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Duplicates check failed: {e}")
+        logger.error("Duplicates check failed: %s", e)
+        raise HTTPException(status_code=500, detail="Duplicates check gagal")
 

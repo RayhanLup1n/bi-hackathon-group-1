@@ -1,6 +1,8 @@
 # config/settings.py
 # Semua parameter yang bisa di-tune tanpa ubah business logic
 
+import os
+
 # ── Anomali Detection ─────────────────────────────────────────────────────
 DEFAULT_PRICE_THRESHOLD_PCT = 10.0    # % kenaikan harga untuk flag anomali
 HARI_RAYA_WINDOW_DAYS = 14            # H-N s/d hari H dianggap window demand spike
@@ -33,9 +35,9 @@ WEATHER_LOOKBACK_DAYS = 7             # check weather in past N days for RCA
 
 # ── HET (Harga Eceran Tertinggi) Thresholds ───────────────────────────────
 # Status levels based on current price vs HET reference
-HET_WASPADA_PCT = 0.80               # >= 80% of HET → WASPADA
-HET_KRITIS_PCT = 1.00                # >= 100% of HET → KRITIS
-HET_MELAMPAUI_PCT = 1.00             # > 100% of HET → MELAMPAUI
+HET_WASPADA_PCT = 0.80               # >= 80% of HET -> WASPADA
+HET_KRITIS_PCT = 0.95                # >= 95% of HET -> KRITIS (approaching limit)
+HET_MELAMPAUI_PCT = 1.00             # > 100% of HET -> MELAMPAUI (exceeded)
 
 # Dummy HET reference prices (Rp/kg) — replace with real Bapanas data
 # Sources: estimasi berdasarkan observasi pasar + berita Bapanas
@@ -54,4 +56,4 @@ OPENMETEO_API_URL = "https://archive-api.open-meteo.com/v1/archive"
 # ── App ───────────────────────────────────────────────────────────────────
 APP_HOST = "0.0.0.0"
 APP_PORT = 8000
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "false").lower() == "true"

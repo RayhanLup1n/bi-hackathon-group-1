@@ -1,6 +1,6 @@
 [project]
 name = "radar-pangan"
-version = "0.3.0"
+version = "0.6.0"
 description = "R.A.D.A.R Pangan - Platform Pemantauan Inflasi Pangan Indonesia"
 requires-python = ">=3.10"
 dependencies = [
@@ -15,6 +15,7 @@ dependencies = [
     "google-cloud-bigquery>=3.41.0",
     "pandas-gbq>=0.35.0",
     "db-dtypes>=1.6.0",
+    "openpyxl>=3.1.5",
 ]
 
 [project.optional-dependencies]

@@ -39,6 +39,16 @@ from loguru import logger
 
 from ml.src.detect import AlertLevel, DetectionResult
 
+# ── Bowtie Mitigations ────────────────────────────────────────────────────────
+# Maps each FTA threat ID → recommended intervention instrument (Bahasa Indonesia)
+BOWTIE_MITIGATIONS: dict[str, str] = {
+    "T1": "Lakukan operasi pasar H-7 s/d H+3 di pasar-pasar utama; koordinasi stok cadangan pemda",
+    "T2": "Percepat penyaluran subsidi pangan; prioritaskan Sembako murah di daerah inflasi tinggi",
+    "T3": "Aktivasi jalur distribusi alternatif; koordinasi stok antardaerah dari daerah tidak terdampak cuaca",
+    "T4": "Ajukan permintaan release stok cadangan pemerintah (CBP/CBAN); koordinasi dengan distributor nasional",
+    "T5": "Koordinasi pengiriman stok dari kota surplus ke kota defisit; sidak rantai distribusi dan cold chain",
+}
+
 # ── Data Classes ──────────────────────────────────────────────────────────────
 
 @dataclass
@@ -54,6 +64,7 @@ class DecisionResult:
     tools_called:         list[str]       # List tool names yang dipanggil
     confidence:           Literal["high", "medium", "low"]
     is_llm_generated:     bool            # True = LLM, False = rule-based fallback
+    akar_masalah:         list[str] = field(default_factory=list)  # Bowtie root causes
 
 
 # ── System Prompt ─────────────────────────────────────────────────────────────
@@ -78,10 +89,16 @@ ATURAN KEPUTUSAN:
 - Pertimbangkan konteks musiman (Ramadan, tahun baru, musim panen)
 - Rekomendasi harus spesifik: sebutkan instrumen intervensi \
   (operasi pasar, koordinasi stok antardaerah, sidak harga, usulan peningkatan pasokan)
-- Jika ada wilayah surplus teridentifikasi → rekomendasikan koordinasi stok ke wilayah defisit
+- Jika ada wilayah surplus teridentifikasi → rekomendasikan koordinasi stok ke wilayah defisit. Sebutkan hingga 2 kota sumber (dari 'top3_surplus_terdekat') jika tersedia, beserta estimasi selisih harganya.
 - Untuk redistribusi stok: HANYA sebutkan kota yang muncul di field 'kota_surplus_terdekat' atau 'top3_surplus_terdekat'. Tool sudah menyaring — kota yang tidak ada di daftar itu berarti terlalu jauh (beda pulau) dan TIDAK BOLEH disebut dalam rekomendasi. Jika 'kota_surplus_terdekat' null, rekomendasikan operasi pasar lokal saja.
 - LARANGAN KERAS: JANGAN PERNAH menyebut nama kota berdasarkan pengetahuan kamu sendiri. Kamu HANYA boleh menyebut kota yang secara eksplisit tertulis di hasil tool call. Jika kota tidak ada di output tool, kota itu tidak boleh muncul di rekomendasi dalam bentuk apapun — termasuk "jika logistik memungkinkan" atau frasa bersyarat lainnya.
 - Jangan hanya bilang "pantau terus" — itu bukan rekomendasi actionable
+
+BOWTIE ANALYSIS:
+Jika ada data 'active_threats' di input, kamu wajib:
+1. Identifikasi akar masalah berdasarkan threats yang aktif (gunakan label threat)
+2. Sertakan mitigasi Bowtie yang relevan dalam rekomendasi
+3. Field 'akar_masalah' berisi list singkat (max 3 item) penyebab aktif
 
 FORMAT JAWABAN AKHIR (JSON):
 {
@@ -89,7 +106,8 @@ FORMAT JAWABAN AKHIR (JSON):
   "intervention_priority": 1-5,
   "rekomendasi": "...",
   "reasoning": "...",
-  "confidence": "high"|"medium"|"low"
+  "confidence": "high"|"medium"|"low",
+  "akar_masalah": ["...", "..."]
 }
 """.strip()
 
@@ -198,13 +216,23 @@ class ToolContext:
     Disiapkan sekali per analisis batch, lalu dipass ke ReasoningAgent.
     """
 
-    def __init__(self, df: pd.DataFrame):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        df_hari_besar: pd.DataFrame | None = None,
+        df_musim_panen: pd.DataFrame | None = None,
+    ):
         """
         Args:
-            df: Full feature DataFrame (dari build_feature_dataset) dengan kolom
-                tanggal, komoditas_nama, kota_nama, harga_aktual, het_harga, has_het, bulan
+            df             : Full feature DataFrame (dari build_feature_dataset) dengan kolom
+                             tanggal, komoditas_nama, kota_nama, harga_aktual, het_harga, has_het, bulan
+            df_hari_besar  : DataFrame dari app.hari_besar (kolom: tanggal, nama, kategori)
+            df_musim_panen : DataFrame dari app.musim_panen (kolom: komoditas_nama, bulan_mulai,
+                             bulan_selesai, daerah_utama, catatan)
         """
-        self.df = df
+        self.df             = df
+        self.df_hari_besar  = df_hari_besar  if df_hari_besar  is not None else pd.DataFrame()
+        self.df_musim_panen = df_musim_panen if df_musim_panen is not None else pd.DataFrame()
         self._target_pulau: str = "unknown"  # set per-request by ReasoningAgent.decide()
 
     def get_historical_pattern(self, komoditas_nama: str, bulan: int) -> dict[str, Any]:
@@ -392,46 +420,100 @@ class ToolContext:
         }
 
     def get_upcoming_events(self, tanggal_referensi: str) -> dict[str, Any]:
-        """Event musiman dalam 30 hari ke depan dan dampak harga historisnya."""
-        ref  = date.fromisoformat(tanggal_referensi)
-        events = []
+        """Event musiman dalam 30 hari ke depan: hari besar nasional dan musim panen."""
+        ref    = date.fromisoformat(tanggal_referensi)
+        end    = ref + timedelta(days=30)
+        events: list[dict[str, Any]] = []
 
-        # Ramadan/Lebaran proxy: bulan 3-5 (lihat is_ramadan_season)
-        for offset in range(1, 31):
-            d = ref + timedelta(days=offset)
-            if d.month in (3, 4, 5):
-                events.append({
-                    "event": "Musim Ramadan/Lebaran",
-                    "tanggal_mulai": str(date(d.year, 3, 1)),
-                    "hari_ke_depan": (date(d.year, 3, 1) - ref).days,
-                    "dampak_harga_historis": "+15–30% untuk cabai, bawang, daging, telur",
-                    "catatan": "Proxy bulan 3-5; cek kalender Hijriah untuk akurasi",
-                })
-                break
+        # ── 1. Hari Besar Nasional from DB ────────────────────────────────────
+        if not self.df_hari_besar.empty:
+            df_hb = self.df_hari_besar.copy()
+            df_hb["tanggal"] = pd.to_datetime(df_hb["tanggal"]).dt.date
+            upcoming = df_hb[
+                (df_hb["tanggal"] > ref) & (df_hb["tanggal"] <= end)
+            ].sort_values("tanggal")
 
-        # Tahun baru / akhir tahun
-        for offset in range(1, 31):
-            d = ref + timedelta(days=offset)
-            if d.month == 12 and d.day >= 20:
+            for _, row in upcoming.iterrows():
+                hari_ke_depan = (row["tanggal"] - ref).days
                 events.append({
-                    "event": "Libur Natal & Tahun Baru",
-                    "tanggal": str(d),
-                    "hari_ke_depan": offset,
-                    "dampak_harga_historis": "+5–15% untuk daging, telur, sayuran",
+                    "jenis":             "hari_besar",
+                    "event":             row.get("nama", "Hari Besar Nasional"),
+                    "kategori":          row.get("kategori", ""),
+                    "tanggal":           str(row["tanggal"]),
+                    "hari_ke_depan":     hari_ke_depan,
+                    "dampak_harga":      "+10–25% untuk bawang dan cabai pada H-7 s/d H+3",
+                    "catatan":           "Sumber: app.hari_besar (python-holidays 2024–2027)",
                 })
-                break
+        else:
+            # Fallback: proxy Ramadan/Lebaran (bulan 3–5) dan Natal/Tahun Baru
+            for offset in range(1, 31):
+                d = ref + timedelta(days=offset)
+                if d.month in (3, 4, 5):
+                    events.append({
+                        "jenis":         "hari_besar",
+                        "event":         "Musim Ramadan/Lebaran (proxy)",
+                        "tanggal":       str(date(d.year, 3, 1)),
+                        "hari_ke_depan": (date(d.year, 3, 1) - ref).days,
+                        "dampak_harga":  "+15–30% untuk cabai, bawang",
+                        "catatan":       "Proxy bulan 3-5; tidak ada data hari_besar di DB",
+                    })
+                    break
+            for offset in range(1, 31):
+                d = ref + timedelta(days=offset)
+                if d.month == 12 and d.day >= 20:
+                    events.append({
+                        "jenis":         "hari_besar",
+                        "event":         "Libur Natal & Tahun Baru (proxy)",
+                        "tanggal":       str(d),
+                        "hari_ke_depan": offset,
+                        "dampak_harga":  "+5–15% untuk daging, telur, sayuran",
+                        "catatan":       "Proxy; tidak ada data hari_besar di DB",
+                    })
+                    break
+
+        # ── 2. Musim Panen from DB ────────────────────────────────────────────
+        if not self.df_musim_panen.empty:
+            # Compute which months fall in the 30-day window
+            months_in_window: set[int] = set()
+            for offset in range(0, 31):
+                months_in_window.add((ref + timedelta(days=offset)).month)
+
+            for _, row in self.df_musim_panen.iterrows():
+                try:
+                    b_mulai    = int(row["bulan_mulai"])
+                    b_selesai  = int(row["bulan_selesai"])
+                except (ValueError, TypeError):
+                    continue
+
+                if b_mulai <= b_selesai:
+                    season_months = set(range(b_mulai, b_selesai + 1))
+                else:                          # wraps across December → January
+                    season_months = set(range(b_mulai, 13)) | set(range(1, b_selesai + 1))
+
+                if months_in_window & season_months:
+                    events.append({
+                        "jenis":         "musim_panen",
+                        "event":         f"Musim Panen: {row.get('komoditas_nama', '')}",
+                        "daerah_utama":  row.get("daerah_utama", ""),
+                        "bulan_mulai":   b_mulai,
+                        "bulan_selesai": b_selesai,
+                        "dampak_harga":  "Harga cenderung turun 10–20% saat panen raya di daerah produksi",
+                        "catatan":       row.get("catatan", ""),
+                    })
 
         if not events:
             events.append({
-                "event": "Tidak ada event besar dalam 30 hari ke depan",
+                "jenis":         "none",
+                "event":         "Tidak ada event besar dalam 30 hari ke depan",
                 "hari_ke_depan": None,
-                "dampak_harga_historis": "Normal seasonality",
+                "dampak_harga":  "Normal seasonality",
             })
 
         return {
             "tanggal_referensi": tanggal_referensi,
-            "window_hari": 30,
-            "events": events,
+            "window_hari":       30,
+            "total_events":      len(events),
+            "events":            events,
         }
 
     def get_het_breach_history(
@@ -593,7 +675,7 @@ class ReasoningAgent:
         result  = agent.decide(detection_result)
     """
 
-    MAX_ITERATIONS = 6    # maksimum tool call rounds sebelum force-stop
+    MAX_ITERATIONS = 3    # maksimum tool call rounds sebelum force-stop
     MODEL          = "google/gemini-2.5-flash"   # default: OpenRouter Gemini Flash
 
     def __init__(
@@ -648,13 +730,18 @@ class ReasoningAgent:
         except ImportError:
             logger.warning("openai package tidak terinstall. Akan menggunakan fallback.")
 
-    def _build_user_message(self, detection: DetectionResult) -> str:
-        """Format sinyal deteksi sebagai user message untuk LLM."""
+    def _build_user_message(
+        self,
+        detection: DetectionResult,
+        threat_assessment: "Any | None" = None,
+        shap_drivers: list | None = None,
+    ) -> str:
+        """Format sinyal deteksi + FTA threat context sebagai user message untuk LLM."""
         h  = detection.het_alert
         cp = detection.changepoint
         d  = detection.disparity
 
-        data = {
+        data: dict[str, Any] = {
             "komoditas": h.komoditas_nama,
             "kota": h.kota_nama,
             "tanggal": str(detection.tanggal),
@@ -676,6 +763,30 @@ class ReasoningAgent:
             "kota_termahal": d.kota_termahal if d else None,
         }
 
+        # Inject SHAP top-5 drivers (Lapis 1 context)
+        if shap_drivers:
+            data["shap_pendorong_7hari"] = [
+                {"fitur": drv["fitur"], "kontribusi_rp": round(drv["shap"], 0), "nilai": drv.get("nilai")}
+                for drv in shap_drivers[:5]
+            ]
+
+        # Inject FTA Threat Assessment (Bowtie context)
+        if threat_assessment is not None:
+            ta_dict = threat_assessment.to_dict() if hasattr(threat_assessment, "to_dict") else threat_assessment
+            active_threats = {
+                tid: {
+                    "label":    t["label"],
+                    "evidence": t["evidence"],
+                    "severity": t["severity"],
+                    "mitigasi": BOWTIE_MITIGATIONS.get(tid, ""),
+                }
+                for tid, t in ta_dict.get("threats", {}).items()
+                if t.get("active") is True
+            }
+            data["active_threats"]  = active_threats
+            data["siaga_level"]     = ta_dict.get("siaga_level", "aman")
+            data["threat_count"]    = ta_dict.get("active_count", 0)
+
         return (
             "Berikut data sinyal deteksi untuk dianalisis:\n\n"
             + json.dumps(data, ensure_ascii=False, indent=2)
@@ -687,6 +798,8 @@ class ReasoningAgent:
         client: Any,
         model: str,
         detection: DetectionResult,
+        threat_assessment: Any = None,
+        shap_drivers: list | None = None,
     ) -> DecisionResult:
         """
         Jalankan ReAct loop dengan client dan model yang diberikan.
@@ -704,7 +817,7 @@ class ReasoningAgent:
 
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": self._build_user_message(detection)},
+            {"role": "user",   "content": self._build_user_message(detection, threat_assessment, shap_drivers)},
         ]
 
         reasoning_trace = []
@@ -797,6 +910,7 @@ class ReasoningAgent:
                 tools_called          = tools_called,
                 confidence            = final_json.get("confidence", "medium"),
                 is_llm_generated      = True,
+                akar_masalah          = final_json.get("akar_masalah", []),
             )
         else:
             # LLM ran but JSON parse failed → rule-based fallback
@@ -808,9 +922,19 @@ class ReasoningAgent:
             result.tools_called    = tools_called
             return result
 
-    def decide(self, detection: DetectionResult) -> DecisionResult:
+    def decide(
+        self,
+        detection: DetectionResult,
+        threat_assessment: Any = None,
+        shap_drivers: list | None = None,
+    ) -> DecisionResult:
         """
         Jalankan ReAct loop dan return DecisionResult.
+
+        Args:
+            detection:         Lapis 2 detection result
+            threat_assessment: Lapis 2.5 FTA ThreatAssessment (opsional, inject ke LLM context)
+            shap_drivers:      Lapis 1 SHAP top-5 driver list (opsional, inject ke LLM context)
 
         Urutan fallback:
           1. Primary LLM (LLM_API_KEY / LLM_BASE_URL)
@@ -819,12 +943,25 @@ class ReasoningAgent:
         """
         if self._tool_context is None:
             logger.warning("Tool context tidak tersedia → menggunakan rule-based fallback")
-            return _rule_based_decision(detection, pd.DataFrame())
+            result = _rule_based_decision(detection, pd.DataFrame())
+            if threat_assessment is not None:
+                try:
+                    ta_dict = threat_assessment.to_dict() if hasattr(threat_assessment, "to_dict") else threat_assessment
+                    result.akar_masalah = [
+                        t["label"]
+                        for t in ta_dict.get("threats", {}).values()
+                        if t.get("active") is True
+                    ][:3]
+                except Exception:
+                    pass
+            return result
 
         # Try primary LLM
         if self._client is not None:
             try:
-                return self._decide_with_client(self._client, self._model, detection)
+                return self._decide_with_client(
+                    self._client, self._model, detection, threat_assessment, shap_drivers
+                )
             except Exception as e:
                 logger.warning(f"Primary LLM gagal ({e}). Mencoba Groq fallback...")
 
@@ -833,14 +970,23 @@ class ReasoningAgent:
             try:
                 logger.info(f"Menggunakan Groq fallback model: {self._fallback_model}")
                 return self._decide_with_client(
-                    self._fallback_client, self._fallback_model, detection
+                    self._fallback_client, self._fallback_model, detection, threat_assessment, shap_drivers
                 )
             except Exception as e:
                 logger.error(f"Groq fallback juga gagal ({e}). Menggunakan rule-based fallback.")
 
         # Final: rule-based fallback
         logger.warning("Semua LLM tidak tersedia → menggunakan rule-based fallback")
-        return _rule_based_decision(
-            detection,
-            self._tool_context.df,
-        )
+        result = _rule_based_decision(detection, self._tool_context.df)
+        # Populate akar_masalah from FTA even without LLM
+        if threat_assessment is not None:
+            try:
+                ta_dict = threat_assessment.to_dict() if hasattr(threat_assessment, "to_dict") else threat_assessment
+                result.akar_masalah = [
+                    t["label"]
+                    for t in ta_dict.get("threats", {}).values()
+                    if t.get("active") is True
+                ][:3]
+            except Exception:
+                pass
+        return result

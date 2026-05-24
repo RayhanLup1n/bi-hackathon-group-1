@@ -515,7 +515,7 @@
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-left">
-      <div class="logo-icon"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
+      <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
         <div class="header-sub">manajemen pengguna &nbsp;·&nbsp; admin panel &nbsp;·&nbsp; v0.5</div>
@@ -525,7 +525,6 @@
       <span class="user-badge" id="userBadge">-</span>
       <a href="/" class="nav-link nav-link-default">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
-      <a href="/rca" class="nav-link nav-link-default">RCA</a>
       <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
       <a href="/admin" class="nav-link nav-link-active">Admin</a>
       <button class="nav-link nav-link-danger" onclick="logout()">Keluar</button>
@@ -756,8 +755,8 @@
         <td class="id-cell">#${u.id}</td>
         <td class="username-cell">${escHtml(u.username)}</td>
         <td>
-          <span class="role-badge role-${u.role}">
-            ${ROLE_ICON[u.role] || '·'} ${u.role}
+          <span class="role-badge role-${escHtml(u.role)}">
+            ${ROLE_ICON[u.role] || '&middot;'} ${escHtml(u.role)}
           </span>
         </td>
         <td>

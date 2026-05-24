@@ -304,6 +304,89 @@
 
     .spinner { width: 18px; height: 18px; border: 3px solid rgba(46,204,136,0.2); border-top-color: var(--accent); }
 
+    /* -- FTA Threat badges -- */
+    .threat-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+    }
+    @media (max-width: 700px) { .threat-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 400px) { .threat-grid { grid-template-columns: 1fr; } }
+
+    .threat-badge-card {
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      padding: 12px 10px; text-align: center;
+    }
+    .threat-active  { background: #FEF2F2; border-color: #F87171; }
+    .threat-inactive { background: #F0FDF4; border-color: #86EFAC; }
+    .threat-unknown  { background: #F9FAFB; border-color: #D1D5DB; }
+
+    .threat-tid {
+      font-family: var(--mono); font-size: 16px; font-weight: 900; margin-bottom: 2px;
+    }
+    .threat-active  .threat-tid  { color: #DC2626; }
+    .threat-inactive .threat-tid { color: #16a34a; }
+    .threat-unknown  .threat-tid { color: #9CA3AF; }
+
+    .threat-label {
+      font-family: var(--mono); font-size: 9px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+    }
+    .threat-active  .threat-label  { color: #991B1B; }
+    .threat-inactive .threat-label { color: #166534; }
+    .threat-unknown  .threat-label { color: #6B7280; }
+
+    .threat-status {
+      font-family: var(--mono); font-size: 10px; font-weight: 800; margin-bottom: 6px;
+    }
+
+    .threat-evidence {
+      font-size: 10px; line-height: 1.4; color: var(--text2);
+    }
+    .threat-unknown .threat-evidence { color: var(--muted); }
+
+    .threat-severity-bar {
+      height: 4px; background: #FECACA; border-radius: 2px; margin-top: 6px; overflow: hidden;
+    }
+    .threat-severity-bar > div {
+      height: 100%; background: #DC2626; border-radius: 2px; transition: width 0.5s ease;
+    }
+
+    /* -- SHAP attribution bars -- */
+    .shap-row {
+      display: grid; grid-template-columns: 160px 1fr 80px 70px;
+      align-items: center; gap: 8px; padding: 5px 0;
+      border-bottom: 1px solid #E5E7EB;
+    }
+    .shap-row:last-child { border-bottom: none; }
+    @media (max-width: 560px) {
+      .shap-row { grid-template-columns: 120px 1fr 60px; }
+      .shap-actual { display: none; }
+    }
+
+    .shap-feature {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-transform: lowercase;
+    }
+    .shap-bar-wrap {
+      height: 10px; background: #F3F4F6; border-radius: 3px; overflow: hidden;
+    }
+    .shap-bar {
+      height: 100%; border-radius: 3px; transition: width 0.5s ease;
+      min-width: 2px;
+    }
+    .shap-pos { background: #F87171; }
+    .shap-neg { background: #34D399; }
+
+    .shap-value {
+      font-family: var(--mono); font-size: 10px; font-weight: 800; text-align: right;
+    }
+    .shap-value-pos { color: #DC2626; }
+    .shap-value-neg { color: #059669; }
+
+    .shap-actual {
+      font-family: var(--mono); font-size: 9px; color: var(--muted); text-align: right;
+    }
+
     /* -- Info banner -- */
     .info-banner {
       padding: 16px 20px; background: #DBEAFE;
@@ -340,7 +423,7 @@
   <!-- -- Header -- -->
   <header class="header">
     <div class="header-left">
-      <div class="logo-icon"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
+      <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
         <div class="header-sub">prediksi harga &nbsp;·&nbsp; machine learning &nbsp;·&nbsp; v0.5</div>
@@ -352,9 +435,6 @@
       </span>
       <a href="/" class="nav-link nav-link-default">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
-      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/rca" class="nav-link nav-link-default">RCA</a>
-      </template>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
         <a href="/prediksi" class="nav-link nav-link-active">Prediksi</a>
       </template>
@@ -452,9 +532,76 @@
 
       <!-- Loading -->
       <template x-if="mlLoading">
-        <div class="card" style="text-align:center;padding:40px;">
-          <div class="spinner" style="margin:0 auto 10px;display:block;"></div>
-          <div style="font-family:var(--mono);font-size:12px;color:var(--muted);">Menjalankan analisis 3-layer ML...</div>
+        <div class="ml-result-card">
+          <!-- Header -->
+          <div class="ml-result-header">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="spinner" style="flex-shrink:0;animation:spin 0.8s linear infinite;"></div>
+              <span class="ml-result-title">ANALISIS ML SEDANG BERJALAN</span>
+            </div>
+            <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--muted);"
+                  x-text="'⏱ ' + mlElapsed + 's'"></span>
+          </div>
+
+          <!-- Phase steps using detection-row layout -->
+          <div class="ml-result-body">
+            <div class="detection-row">
+
+              <!-- Phase 1: Forecast -->
+              <div class="detect-item"
+                   :style="mlPhase > 1 ? 'background:#F0FDF4;border-color:var(--accent);' : mlPhase === 1 ? 'background:#FFFBEB;border-color:var(--warn);' : 'opacity:0.45;'">
+                <div class="detect-label">LAPIS 1</div>
+                <div class="detect-value" style="font-size:18px;margin:6px 0;"
+                     x-text="mlPhase > 1 ? '✅' : mlPhase === 1 ? '⚙️' : '○'"></div>
+                <div style="font-family:var(--mono);font-size:11px;font-weight:800;margin-bottom:2px;">Forecast</div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.4;">LightGBM Quantile<br>T+7 & T+14</div>
+                <div style="margin-top:6px;">
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;border:1.5px solid var(--border);"
+                        :style="mlPhase > 1 ? 'background:var(--accent);color:#fff;' : mlPhase === 1 ? 'background:var(--warn);color:#fff;' : 'background:var(--surface2);color:var(--muted);'"
+                        x-text="mlPhase > 1 ? 'SELESAI' : mlPhase === 1 ? 'PROSES...' : 'MENUNGGU'"></span>
+                </div>
+              </div>
+
+              <!-- Phase 2: Detection -->
+              <div class="detect-item"
+                   :style="mlPhase > 2 ? 'background:#F0FDF4;border-color:var(--accent);' : mlPhase === 2 ? 'background:#FFFBEB;border-color:var(--warn);' : 'opacity:0.45;'">
+                <div class="detect-label">LAPIS 2</div>
+                <div class="detect-value" style="font-size:18px;margin:6px 0;"
+                     x-text="mlPhase > 2 ? '✅' : mlPhase === 2 ? '🔍' : '○'"></div>
+                <div style="font-family:var(--mono);font-size:11px;font-weight:800;margin-bottom:2px;">Detection</div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.4;">CUSUM + Z-score<br>Anomali & HET</div>
+                <div style="margin-top:6px;">
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;border:1.5px solid var(--border);"
+                        :style="mlPhase > 2 ? 'background:var(--accent);color:#fff;' : mlPhase === 2 ? 'background:var(--warn);color:#fff;' : 'background:var(--surface2);color:var(--muted);'"
+                        x-text="mlPhase > 2 ? 'SELESAI' : mlPhase === 2 ? 'PROSES...' : 'MENUNGGU'"></span>
+                </div>
+              </div>
+
+              <!-- Phase 3: LLM Agent -->
+              <div class="detect-item"
+                   :style="mlPhase === 3 ? 'background:#FFFBEB;border-color:var(--warn);' : 'opacity:0.45;'">
+                <div class="detect-label">LAPIS 3</div>
+                <div class="detect-value" style="font-size:18px;margin:6px 0;"
+                     x-text="mlPhase === 3 ? '🤖' : '○'"></div>
+                <div style="font-family:var(--mono);font-size:11px;font-weight:800;margin-bottom:2px;">LLM Agent</div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.4;">ReAct Reasoning<br>Rekomendasi</div>
+                <div style="margin-top:6px;">
+                  <span style="font-family:var(--mono);font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;border:1.5px solid var(--border);"
+                        :style="mlPhase === 3 ? 'background:var(--warn);color:#fff;' : 'background:var(--surface2);color:var(--muted);'"
+                        x-text="mlPhase === 3 ? 'PROSES...' : 'MENUNGGU'"></span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Note -->
+            <div class="reco-card" style="background:#DBEAFE;margin-top:4px;">
+              <div class="reco-label" style="color:#1D4ED8;">INFO</div>
+              <div class="reco-text" style="font-size:12px;color:#1e3a5f;">
+                Lapis 3 (LLM Agent) memerlukan waktu <strong>30–90 detik</strong> untuk menyelesaikan reasoning. Proses sedang berjalan — harap tunggu.
+              </div>
+            </div>
+          </div>
         </div>
       </template>
 
@@ -480,14 +627,58 @@
       <!-- ML Result -->
       <template x-if="!mlLoading && mlResult">
         <div>
+          <!-- Data staleness warning -->
+          <template x-if="mlResult.detection?.tanggal_data">
+            <div x-data="{
+              get staleDays() {
+                const d = new Date(mlResult.detection.tanggal_data);
+                const now = new Date();
+                return Math.floor((now - d) / 86400000);
+              }
+            }">
+              <template x-if="staleDays > 7">
+                <div style="background:#FEF3C7;border:2px solid #D97706;border-radius:var(--radius-sm);padding:8px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:14px;">⚠️</span>
+                  <span style="font-family:var(--mono);font-size:11px;color:#92400E;">
+                    Data harga terakhir:
+                    <strong x-text="new Date(mlResult.detection.tanggal_data).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})"></strong>
+                    (<span x-text="staleDays"></span> hari lalu) — prediksi dihitung dari data historis
+                  </span>
+                </div>
+              </template>
+            </div>
+          </template>
+
           <!-- Summary Cards -->
           <div class="summary-row">
             <div class="stat-card">
               <div class="stat-label">Prediksi 7 Hari (P50)</div>
+              <template x-if="mlResult.detection?.harga_aktual">
+                <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:2px;">
+                  Acuan: <span x-text="'Rp ' + Math.round(mlResult.detection.harga_aktual).toLocaleString('id-ID')"></span>
+                </div>
+              </template>
               <template x-if="mlResult.predictions.p50_7d">
                 <div>
                   <div class="stat-value" x-text="'Rp ' + Math.round(mlResult.predictions.p50_7d).toLocaleString('id-ID')"></div>
                   <div class="stat-sub" x-text="'P90: Rp ' + Math.round(mlResult.predictions.p90_7d || 0).toLocaleString('id-ID')"></div>
+                  <template x-if="mlResult.detection?.harga_aktual">
+                    <div style="margin-top:4px;display:flex;align-items:center;gap:4px;">
+                      <template x-if="mlResult.predictions.p50_7d > mlResult.detection.harga_aktual">
+                        <span style="font-family:var(--mono);font-size:11px;color:#DC2626;font-weight:700;"
+                              x-text="'↑ +Rp ' + Math.round(mlResult.predictions.p50_7d - mlResult.detection.harga_aktual).toLocaleString('id-ID') + ' (' + ((mlResult.predictions.p50_7d - mlResult.detection.harga_aktual) / mlResult.detection.harga_aktual * 100).toFixed(1) + '%)'">
+                        </span>
+                      </template>
+                      <template x-if="mlResult.predictions.p50_7d < mlResult.detection.harga_aktual">
+                        <span style="font-family:var(--mono);font-size:11px;color:#16a34a;font-weight:700;"
+                              x-text="'↓ -Rp ' + Math.round(mlResult.detection.harga_aktual - mlResult.predictions.p50_7d).toLocaleString('id-ID') + ' (' + ((mlResult.detection.harga_aktual - mlResult.predictions.p50_7d) / mlResult.detection.harga_aktual * 100).toFixed(1) + '%)'">
+                        </span>
+                      </template>
+                      <template x-if="mlResult.predictions.p50_7d === mlResult.detection.harga_aktual">
+                        <span style="font-family:var(--mono);font-size:11px;color:var(--muted);">→ Stabil</span>
+                      </template>
+                    </div>
+                  </template>
                 </div>
               </template>
               <template x-if="!mlResult.predictions.p50_7d">
@@ -496,10 +687,32 @@
             </div>
             <div class="stat-card">
               <div class="stat-label">Prediksi 14 Hari (P50)</div>
+              <template x-if="mlResult.detection?.harga_aktual">
+                <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:2px;">
+                  Acuan: <span x-text="'Rp ' + Math.round(mlResult.detection.harga_aktual).toLocaleString('id-ID')"></span>
+                </div>
+              </template>
               <template x-if="mlResult.predictions.p50_14d">
                 <div>
                   <div class="stat-value" x-text="'Rp ' + Math.round(mlResult.predictions.p50_14d).toLocaleString('id-ID')"></div>
                   <div class="stat-sub" x-text="'P90: Rp ' + Math.round(mlResult.predictions.p90_14d || 0).toLocaleString('id-ID')"></div>
+                  <template x-if="mlResult.detection?.harga_aktual">
+                    <div style="margin-top:4px;display:flex;align-items:center;gap:4px;">
+                      <template x-if="mlResult.predictions.p50_14d > mlResult.detection.harga_aktual">
+                        <span style="font-family:var(--mono);font-size:11px;color:#DC2626;font-weight:700;"
+                              x-text="'↑ +Rp ' + Math.round(mlResult.predictions.p50_14d - mlResult.detection.harga_aktual).toLocaleString('id-ID') + ' (' + ((mlResult.predictions.p50_14d - mlResult.detection.harga_aktual) / mlResult.detection.harga_aktual * 100).toFixed(1) + '%)'">
+                        </span>
+                      </template>
+                      <template x-if="mlResult.predictions.p50_14d < mlResult.detection.harga_aktual">
+                        <span style="font-family:var(--mono);font-size:11px;color:#16a34a;font-weight:700;"
+                              x-text="'↓ -Rp ' + Math.round(mlResult.detection.harga_aktual - mlResult.predictions.p50_14d).toLocaleString('id-ID') + ' (' + ((mlResult.detection.harga_aktual - mlResult.predictions.p50_14d) / mlResult.detection.harga_aktual * 100).toFixed(1) + '%)'">
+                        </span>
+                      </template>
+                      <template x-if="mlResult.predictions.p50_14d === mlResult.detection.harga_aktual">
+                        <span style="font-family:var(--mono);font-size:11px;color:var(--muted);">→ Stabil</span>
+                      </template>
+                    </div>
+                  </template>
                 </div>
               </template>
               <template x-if="!mlResult.predictions.p50_14d">
@@ -511,10 +724,64 @@
               <div>
                 <span class="alert-badge" :class="'alert-' + (mlResult.decision?.final_alert_level || mlResult.detection?.alert_level || 'unknown')"
                       x-text="(mlResult.decision?.final_alert_level || mlResult.detection?.alert_level || 'unknown').toUpperCase()"></span>
-                <div class="stat-sub" x-text="'Priority: ' + (mlResult.decision?.intervention_priority || '—')"></div>
+                <div class="stat-sub" style="margin-top:4px;">
+                  Priority:
+                  <strong x-text="mlResult.decision?.intervention_priority || '—'"></strong>/5
+                </div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;line-height:1.4;">
+                  1=Mendesak · 3=Waspada · 5=Rendah
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- ── SHAP — Faktor Pendorong Prediksi ───────────────────────── -->
+          <template x-if="mlResult.predictions?.shap_7d?.length > 0">
+            <div class="ml-result-card">
+              <div class="ml-result-header">
+                <span class="ml-result-title">LAPIS 1 — Faktor Pendorong Prediksi 7 Hari</span>
+                <span style="font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;">SHAP Top-5</span>
+              </div>
+              <div class="ml-result-body">
+                <div x-data="{
+                  get maxShap() {
+                    const vals = mlResult.predictions.shap_7d.map(d => Math.abs(d.shap));
+                    return vals.length ? Math.max(...vals) : 1;
+                  }
+                }">
+                  <div style="display:grid;grid-template-columns:160px 1fr 80px 70px;gap:8px;padding:0 0 6px;border-bottom:2px solid var(--border);margin-bottom:4px;">
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Fitur</span>
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Kontribusi</span>
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:right;">SHAP (Rp)</span>
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:right;">Nilai</span>
+                  </div>
+                  <template x-for="(driver, i) in mlResult.predictions.shap_7d" :key="i">
+                    <div class="shap-row">
+                      <div class="shap-feature" x-text="driver.fitur.replace(/_/g,' ')"></div>
+                      <div class="shap-bar-wrap">
+                        <div class="shap-bar"
+                             :class="driver.shap >= 0 ? 'shap-pos' : 'shap-neg'"
+                             :style="'width:' + Math.round(Math.abs(driver.shap) / maxShap * 100) + '%'">
+                        </div>
+                      </div>
+                      <div class="shap-value"
+                           :class="driver.shap >= 0 ? 'shap-value-pos' : 'shap-value-neg'"
+                           x-text="(driver.shap >= 0 ? '+' : '') + Math.round(driver.shap).toLocaleString('id-ID')">
+                      </div>
+                      <div class="shap-actual"
+                           x-text="driver.nilai != null ? Math.round(driver.nilai).toLocaleString('id-ID') : '—'">
+                      </div>
+                    </div>
+                  </template>
+                </div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:10px;line-height:1.6;">
+                  Nilai SHAP = kontribusi fitur terhadap prediksi harga (Rp). &nbsp;
+                  <span style="color:#DC2626;font-weight:700;">■ Merah = mendorong naik</span>&nbsp;·&nbsp;
+                  <span style="color:#059669;font-weight:700;">■ Hijau = menekan turun</span>
+                </div>
+              </div>
+            </div>
+          </template>
 
           <!-- Detection Details -->
           <div class="ml-result-card" x-show="mlResult.detection && Object.keys(mlResult.detection).length > 0">
@@ -526,9 +793,10 @@
             <div class="ml-result-body">
               <div class="detection-row">
                 <div class="detect-item">
-                  <div class="detect-label">Changepoint</div>
+                  <div class="detect-label" title="Lonjakan harga struktural yang persisten — bukan fluktuasi harian biasa, tapi perubahan level harga yang bertahan">Changepoint <span style="font-size:9px;opacity:0.6;">ⓘ</span></div>
                   <div class="detect-value" :style="mlResult.detection?.is_changepoint ? 'color:#DC2626' : 'color:var(--success)'"
                        x-text="mlResult.detection?.is_changepoint ? 'TERDETEKSI' : 'Tidak ada'"></div>
+                  <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">lonjakan struktural persisten</div>
                 </div>
                 <div class="detect-item">
                   <div class="detect-label">CUSUM Drift</div>
@@ -537,17 +805,92 @@
                 </div>
                 <div class="detect-item">
                   <div class="detect-label">Jarak ke HET</div>
-                  <div class="detect-value" x-text="mlResult.detection?.jarak_ke_het_pct != null ? (mlResult.detection.jarak_ke_het_pct > 0 ? '+' : '') + mlResult.detection.jarak_ke_het_pct.toFixed(1) + '%' : '—'"></div>
+                  <div class="detect-value"
+                       :style="mlResult.detection?.jarak_ke_het_pct == null ? '' :
+                               mlResult.detection.jarak_ke_het_pct > 15 ? 'color:#DC2626;font-weight:800;' :
+                               mlResult.detection.jarak_ke_het_pct > 0  ? 'color:#D97706;font-weight:700;' :
+                                                                           'color:#16a34a;font-weight:700;'"
+                       x-text="mlResult.detection?.jarak_ke_het_pct != null
+                         ? (mlResult.detection.jarak_ke_het_pct > 0 ? '▲ +' : (mlResult.detection.jarak_ke_het_pct < 0 ? '▼ ' : '')) + mlResult.detection.jarak_ke_het_pct.toFixed(1) + '%'
+                         : '—'">
+                  </div>
+                  <div x-show="mlResult.detection?.het_harga" style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;"
+                       x-text="'HET: Rp ' + (mlResult.detection.het_harga || 0).toLocaleString('id-ID')"></div>
                 </div>
               </div>
               <template x-if="mlResult.detection?.disparity_score != null">
-                <div style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;margin-top:4px;">
-                  Disparity Score: <strong x-text="mlResult.detection.disparity_score.toFixed(3)"></strong>
-                  (ketimpangan harga antar kota)
+                <div style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;margin-top:8px;padding:6px 8px;background:var(--surface2);border-radius:var(--radius-sm);border:1.5px solid var(--border);">
+                  <span style="color:var(--border);">📍 Ketimpangan Harga Antar Kota</span><br>
+                  <span style="font-size:10px;">Disparity Score: </span><strong x-text="mlResult.detection.disparity_score.toFixed(3)"></strong>
+                  <template x-if="mlResult.detection?.kota_termahal && mlResult.detection?.kota_termurah">
+                    <span style="font-size:10px;">
+                      &nbsp;·&nbsp;
+                      <span style="color:#DC2626;" x-text="mlResult.detection.kota_termahal + ' (termahal)'"></span>
+                      &nbsp;↔&nbsp;
+                      <span style="color:#16a34a;" x-text="mlResult.detection.kota_termurah + ' (termurah)'"></span>
+                    </span>
+                  </template>
                 </div>
               </template>
             </div>
           </div>
+
+          <!-- ── FTA Threat Assessment ─────────────────────────────────── -->
+          <template x-if="mlResult.threat_assessment">
+            <div class="ml-result-card">
+              <div class="ml-result-header">
+                <span class="ml-result-title">LAPIS 2.5 — Ancaman Aktif (FTA)</span>
+                <span class="alert-badge" :class="{
+                  'alert-green':  mlResult.threat_assessment.siaga_level === 'aman',
+                  'alert-yellow': mlResult.threat_assessment.siaga_level === 'waspada',
+                  'alert-red':    ['siaga','kritis'].includes(mlResult.threat_assessment.siaga_level)
+                }" x-text="mlResult.threat_assessment.siaga_level.toUpperCase()"></span>
+              </div>
+              <div class="ml-result-body">
+                <div class="threat-grid">
+                  <template x-for="[tid, t] in Object.entries(mlResult.threat_assessment.threats)" :key="tid">
+                    <div class="threat-badge-card"
+                         :class="t.active === true ? 'threat-active' : t.active === false ? 'threat-inactive' : 'threat-unknown'">
+                      <div class="threat-tid" x-text="tid"></div>
+                      <div class="threat-label" x-text="t.label"></div>
+                      <div class="threat-status">
+                        <template x-if="t.active === true"><span>⚠️ AKTIF</span></template>
+                        <template x-if="t.active === false"><span>✅ AMAN</span></template>
+                        <template x-if="t.active === null"><span>❓ N/A</span></template>
+                      </div>
+                      <div class="threat-evidence" x-text="t.evidence"></div>
+                      <template x-if="t.active === true && t.severity > 0">
+                        <div class="threat-severity-bar">
+                          <div :style="'width:' + Math.min(100, Math.round(t.severity * 100)) + '%'"></div>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+
+                <!-- Akar Masalah dari Bowtie LLM -->
+                <template x-if="mlResult.decision?.akar_masalah?.length > 0">
+                  <div style="margin-top:12px;padding:10px 14px;background:#FFF7ED;border:1.5px solid #D97706;border-radius:var(--radius-sm);">
+                    <div style="font-family:var(--mono);font-size:10px;font-weight:800;color:#92400E;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">⚑ Akar Masalah (Bowtie Analysis)</div>
+                    <template x-for="(am, i) in mlResult.decision.akar_masalah" :key="i">
+                      <div style="font-size:12px;color:#78350F;margin-bottom:3px;display:flex;gap:6px;line-height:1.5;">
+                        <span style="flex-shrink:0;">•</span>
+                        <span x-text="am"></span>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+
+                <!-- Severity summary -->
+                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">
+                    Threats aktif: <strong x-text="mlResult.threat_assessment.active_count"></strong>
+                    &nbsp;·&nbsp; Severity: <strong x-text="mlResult.threat_assessment.severity_score.toFixed(2)"></strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </template>
 
           <!-- LLM Recommendation -->
           <template x-if="mlResult.decision && mlResult.decision.rekomendasi">
@@ -558,15 +901,44 @@
                       x-text="mlResult.decision.final_alert_level.toUpperCase()"></span>
               </div>
               <div class="ml-result-body">
+                <!-- Tools used badges -->
+                <template x-if="mlResult.decision.tools_called?.length > 0">
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+                    <span style="font-family:var(--mono);font-size:9px;color:var(--muted);align-self:center;">Tools:</span>
+                    <template x-for="tool in [...new Set(mlResult.decision.tools_called)]" :key="tool">
+                      <span style="font-family:var(--mono);font-size:9px;background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;padding:2px 7px;" x-text="tool"></span>
+                    </template>
+                  </div>
+                </template>
+
                 <div class="reco-card">
                   <div class="reco-label">Rekomendasi</div>
                   <div class="reco-text" x-text="mlResult.decision.rekomendasi"></div>
-                  <div class="reco-meta">
-                    Confidence: <strong x-text="mlResult.decision.confidence"></strong>
-                    &middot; <span x-text="mlResult.decision.is_llm_generated ? 'LLM-generated' : 'Rule-based fallback'"></span>
-                    &middot; Priority: <strong x-text="mlResult.decision.intervention_priority"></strong>/5
+                  <div class="reco-meta" style="margin-top:8px;">
+                    <span style="font-family:var(--mono);font-size:10px;"
+                          :style="mlResult.decision.confidence === 'high' ? 'color:#16a34a' : mlResult.decision.confidence === 'low' ? 'color:#DC2626' : 'color:#D97706'"
+                          x-text="'● ' + (mlResult.decision.confidence === 'high' ? 'Keyakinan Tinggi' : mlResult.decision.confidence === 'low' ? 'Keyakinan Rendah' : 'Keyakinan Sedang')"></span>
+                    &nbsp;&middot;&nbsp;
+                    <span x-text="mlResult.decision.is_llm_generated ? '🤖 AI-generated' : '⚙️ Rule-based'"></span>
+                    &nbsp;&middot;&nbsp;
+                    Prioritas <strong x-text="mlResult.decision.intervention_priority"></strong>/5
+                    <span style="font-family:var(--mono);font-size:9px;color:var(--muted);">
+                      (<span x-text="mlResult.decision.intervention_priority == 1 ? 'Paling mendesak' : mlResult.decision.intervention_priority == 2 ? 'Mendesak' : mlResult.decision.intervention_priority == 3 ? 'Perlu perhatian' : mlResult.decision.intervention_priority == 4 ? 'Pantau' : 'Rendah'"></span>)
+                    </span>
                   </div>
                 </div>
+
+                <!-- Reasoning Trace (collapsible) -->
+                <template x-if="mlResult.decision.reasoning_trace?.length > 0">
+                  <details style="margin-top:10px;">
+                    <summary style="font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;color:var(--muted);letter-spacing:0.5px;user-select:none;">▶ Alur Penalaran AI (<span x-text="mlResult.decision.reasoning_trace.length"></span> langkah)</summary>
+                    <div style="margin-top:8px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);border:1.5px solid var(--border);">
+                      <template x-for="(step, i) in mlResult.decision.reasoning_trace" :key="i">
+                        <div style="font-family:var(--mono);font-size:10px;line-height:1.6;color:#374151;padding:3px 0;border-bottom:1px solid #e5e7eb;" x-text="step"></div>
+                      </template>
+                    </div>
+                  </details>
+                </template>
               </div>
             </div>
           </template>
@@ -601,9 +973,9 @@
           <template x-if="nextPrediction">
             <div>
               <div class="stat-value" :class="nextPrediction.trend > 0 ? 'trend-up' : (nextPrediction.trend < 0 ? 'trend-down' : '')"
-                   x-text="'Rp ' + nextPrediction.price.toLocaleString('id-ID')"></div>
+                   x-text="'Rp ' + (nextPrediction.price || 0).toLocaleString('id-ID')"></div>
               <div class="stat-sub">
-                <span x-text="'CI: ' + nextPrediction.lower.toLocaleString('id-ID') + ' — ' + nextPrediction.upper.toLocaleString('id-ID')"></span>
+                <span x-text="'CI: ' + (nextPrediction.lower || 0).toLocaleString('id-ID') + ' - ' + (nextPrediction.upper || 0).toLocaleString('id-ID')"></span>
               </div>
             </div>
           </template>
@@ -665,7 +1037,7 @@
                     <td x-text="p.kota_id"></td>
                     <td>
                       <span :class="p.predicted_price > (currentPrice || 0) ? 'trend-up' : 'trend-down'"
-                            x-text="'Rp ' + p.predicted_price.toLocaleString('id-ID')"></span>
+                            x-text="'Rp ' + (p.predicted_price || 0).toLocaleString('id-ID')"></span>
                     </td>
                     <td>
                       <span style="font-family:var(--mono);font-size:10px;color:var(--muted);"
@@ -699,10 +1071,11 @@
   <div class="info-banner">
     <span class="info-icon">💡</span>
     <div class="info-text">
-      <strong>Arsitektur 3 Lapis:</strong>
-      Lapis 1 (LightGBM Quantile) memprediksi harga 7 & 14 hari ke depan.
-      Lapis 2 (Detection) mendeteksi changepoint dan pelanggaran HET.
-      Lapis 3 (LLM Agent) memberikan rekomendasi intervensi.
+      <strong>Arsitektur 4 Lapis:</strong>
+      <strong>Lapis 1</strong> (LightGBM Quantile) memprediksi harga 7 &amp; 14 hari ke depan beserta faktor pendorong utama (SHAP).
+      <strong>Lapis 2</strong> (Detection) mendeteksi <em>changepoint</em> — lonjakan harga struktural yang persisten, bukan sekadar fluktuasi harian — serta pelanggaran HET dan ketimpangan harga antar kota.
+      <strong>Lapis 2.5</strong> (FTA) mengklasifikasi ancaman penyebab (T1 Hari Raya, T2 Inflasi, T3 Cuaca, T4 Defisit Stok, T5 Distribusi) dengan tingkat siaga kritis/siaga/waspada/aman.
+      <strong>Lapis 3</strong> (LLM Agent) mensintesis seluruh sinyal di atas menjadi rekomendasi intervensi berbasis Bowtie.
       <br>
       <strong>ML = Predictor</strong> (mempersiapkan) · <strong>RCA = Validator</strong> (mengkonfirmasi real-time)
     </div>
@@ -732,6 +1105,10 @@ function prediksiPage() {
     mlResult: null,              // FullAnalysisResult
     mlLoading: false,
     mlError: null,
+    mlPhase: 0,              // 0=idle, 1=forecast, 2=detection, 3=llm
+    mlElapsed: 0,            // seconds elapsed since analyze() started
+    _mlElapsedTimer: null,
+    _mlPhaseTimers: [],
 
     // -- DB source state --
     commodities: [],
@@ -838,6 +1215,18 @@ function prediksiPage() {
       this.mlLoading = true;
       this.mlError = null;
       this.mlResult = null;
+      this.mlPhase = 1;
+      this.mlElapsed = 0;
+
+      // Elapsed counter
+      this._mlElapsedTimer = setInterval(() => { this.mlElapsed++; }, 1000);
+
+      // Phase advance: Lapis 1→2 after ~3s, Lapis 2→3 after ~6s
+      // (approximate — actual duration depends on server load)
+      this._mlPhaseTimers = [
+        setTimeout(() => { if (this.mlLoading) this.mlPhase = 2; }, 3000),
+        setTimeout(() => { if (this.mlLoading) this.mlPhase = 3; }, 6500),
+      ];
 
       try {
         const r = await fetch('/api/ml/analyze', {
@@ -863,6 +1252,11 @@ function prediksiPage() {
         this.mlError = 'Gagal terhubung ke ML server: ' + e.message;
       }
 
+      // Clean up phase timers
+      clearInterval(this._mlElapsedTimer);
+      this._mlPhaseTimers.forEach(t => clearTimeout(t));
+      this._mlPhaseTimers = [];
+      this.mlPhase = 0;
       this.mlLoading = false;
     },
 

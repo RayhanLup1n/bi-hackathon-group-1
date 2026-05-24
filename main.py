@@ -1,14 +1,18 @@
+import logging
+import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response as FastAPIResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
-from src.api.routes import router, het_router, cuaca_router, stok_router, predictions_router, data_quality_router
-from src.api.auth_routes import auth_router
-from src.api.ml_routes import ml_router
-
-import os
+# Configure logging before anything else
+logging.basicConfig(
+    level=logging.DEBUG if os.environ.get("DEBUG", "false").lower() == "true" else logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 def _load_env() -> None:
@@ -23,8 +27,14 @@ def _load_env() -> None:
                     os.environ.setdefault(key.strip(), value.strip())
 
 
-# Load env before anything else
+# Load env BEFORE importing modules that read env vars at import time
+# (e.g. auth_routes reads JWT_SECRET, DEBUG at module level)
 _load_env()
+
+# Now safe to import app modules that depend on env vars
+from src.api.routes import router, het_router, cuaca_router, stok_router, predictions_router, data_quality_router  # noqa: E402
+from src.api.auth_routes import auth_router  # noqa: E402
+from src.api.ml_routes import ml_router  # noqa: E402
 
 
 @asynccontextmanager
@@ -50,16 +60,64 @@ async def lifespan(app: FastAPI):
 
     # Cleanup on shutdown
     close_pool()
+    # Close BigQuery client if it was initialized
+    from src.data.bigquery_client import close_bq_client
+    close_bq_client()
 
+
+_DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 
 app = FastAPI(
     title="R.A.D.A.R Pangan",
+    version="0.6.0",
     description=(
         "Real-time Anti-inflation Detection, Analysis & Response. "
         "Platform pemantauan inflasi pangan berbasis data PIHPS."
     ),
     lifespan=lifespan,
+    docs_url="/docs" if _DEBUG else None,
+    redoc_url="/redoc" if _DEBUG else None,
+    openapi_url="/api/openapi.json" if _DEBUG else None,
 )
+
+# CORS middleware - allow same-origin + localhost dev servers
+_allowed_origins = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:3000",  # frontend dev server if any
+]
+# Allow ngrok origins for demo (wildcard subdomain)
+if os.environ.get("DEBUG", "false").lower() == "true":
+    _allowed_origins.append("https://*.ngrok-free.app")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # CSP: allow inline scripts (Alpine.js), CDN for Chart.js, self for everything else
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self'"
+    )
+    return response
 
 app.include_router(router)
 app.include_router(het_router)

@@ -334,7 +334,7 @@
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-left">
-      <div class="logo-icon"><img src="/assets/temp_logo.jpeg" alt="RADAR Pangan"></div>
+      <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
         <div class="header-sub">analisis root cause &nbsp;·&nbsp; v0.5</div>
@@ -602,7 +602,7 @@ function rcaPage() {
         const me = await r.json();
         this.user = me;
         // Viewer cannot access RCA page
-        if (!me.is_admin && !me.is_analyst && me.role === 'viewer') {
+        if (!me.is_admin && !me.is_analyst) {
           window.location.replace('/');
           return;
         }

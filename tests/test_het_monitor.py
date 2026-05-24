@@ -45,11 +45,18 @@ class TestCheckHetStatus:
         assert result.status == HETStatus.WASPADA
         assert result.pct_of_het == 80.0
 
-    def test_waspada_between_80_and_100(self):
-        """Price 95% of HET → WASPADA."""
+    def test_waspada_between_80_and_95(self):
+        """Price 90% of HET -> WASPADA."""
+        result = check_het_status("com_11", 36_000, "Bawang Merah")
+        # 36,000/40,000 = 90%
+        assert result.status == HETStatus.WASPADA
+        assert result.pct_of_het == 90.0
+
+    def test_kritis_at_95_percent(self):
+        """Price 95% of HET -> KRITIS (approaching limit)."""
         result = check_het_status("com_11", 38_000, "Bawang Merah")
         # 38,000/40,000 = 95%
-        assert result.status == HETStatus.WASPADA
+        assert result.status == HETStatus.KRITIS
         assert result.pct_of_het == 95.0
 
     def test_kritis_at_100_percent(self):

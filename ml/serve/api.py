@@ -24,22 +24,29 @@ from contextlib import asynccontextmanager
 from datetime import date
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from pydantic import BaseModel, Field
+
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 from ml.src.pipeline import FullAnalysisResult, RadarPipeline
 
-# ── Load .env (ml/.env jika ada, fallback ke .env di working dir) ─────────────
-load_dotenv("ml/.env", override=False)
+# ── Paths relative to this file (repo-root-independent) ──────────────────────
+_API_DIR  = Path(__file__).resolve().parent          # ml/serve/
+_ML_DIR   = _API_DIR.parent                          # ml/
+_REPO_DIR = _ML_DIR.parent                           # repo root
+
+# ── Load .env (ml/.env relative to this file) ─────────────────────────────────
+load_dotenv(_ML_DIR / ".env", override=False)
 
 # ── Config dari environment ───────────────────────────────────────────────────
 
-MODELS_DIR    = os.environ.get("ML_MODELS_DIR",    "ml/models")
-HET_CSV       = os.environ.get("ML_HET_CSV",       "ml/data/het_reference.csv")
+MODELS_DIR    = os.environ.get("ML_MODELS_DIR",    str(_ML_DIR / "models"))
+HET_CSV       = os.environ.get("ML_HET_CSV",       str(_ML_DIR / "data" / "het_reference.csv"))
 LLM_API_KEY   = os.environ.get("LLM_API_KEY",      "")
 LLM_BASE_URL  = os.environ.get("LLM_BASE_URL",     "https://openrouter.ai/api/v1")
 LLM_MODEL     = os.environ.get("LLM_MODEL",        "google/gemini-2.5-flash")
@@ -134,9 +141,104 @@ class AlertsQuery(BaseModel):
     min_alert_level: str  = Field(default="yellow", pattern="^(yellow|red)$")
 
 
+class SimulateScenario(BaseModel):
+    harga_intervensi: float | None = Field(None, description="Harga target setelah intervensi (Rp)")
+    pct_shock:        float | None = Field(None, description="Persen perubahan harga (negatif = turun, mis. -15 = -15%)")
+
+
 def _serialize_result(result: FullAnalysisResult) -> dict[str, Any]:
     """Convert FullAnalysisResult ke JSON-serializable dict."""
     return result.to_dict()
+
+
+def _persist_predictions(result: FullAnalysisResult) -> None:
+    """
+    Insert predictions from FullAnalysisResult into app.ml_predictions.
+    Skips gracefully if predictions are null or DB not available.
+    Runs as a fire-and-forget background task.
+    """
+    if not PG_CONN_STRING:
+        return
+
+    # Only insert if we have at least one non-null prediction
+    has_pred = any([
+        result.pred_p50_7d, result.pred_p90_7d,
+        result.pred_p50_14d, result.pred_p90_14d,
+    ])
+    if not has_pred:
+        return
+
+    # Look up comcat_id + kota_id from the in-memory DataFrame
+    df = _pipeline._df if _pipeline else None
+    if df is None or df.empty:
+        return
+
+    sub = df[df["komoditas_nama"] == result.komoditas_nama]
+    if sub.empty:
+        return
+    comcat_id = str(sub["comcat_id"].iloc[0])
+
+    sub_kota = df[df["kota_nama"] == result.kota_nama]
+    if sub_kota.empty:
+        return
+    kota_id = int(sub_kota["kota_id"].iloc[0])
+
+    from datetime import timedelta
+    import psycopg2
+
+    rows: list[tuple] = []
+    for horizon, p50, p90 in [
+        (7,  result.pred_p50_7d,  result.pred_p90_7d),
+        (14, result.pred_p50_14d, result.pred_p90_14d),
+    ]:
+        if p50 is None:
+            continue
+        target_date = result.tanggal + timedelta(days=horizon)
+        rows.append((
+            comcat_id,
+            kota_id,
+            result.tanggal,
+            target_date,
+            round(p50, 2),
+            None,                  # confidence_lower — no P10 model
+            round(p90, 2) if p90 else None,
+            f"lgbm_q50_t{horizon}+q90_t{horizon}",
+        ))
+
+    if not rows:
+        return
+
+    try:
+        conn = psycopg2.connect(PG_CONN_STRING)
+        cur  = conn.cursor()
+        for row in rows:
+            # Upsert: delete existing then insert
+            cur.execute(
+                """
+                DELETE FROM app.ml_predictions
+                WHERE komoditas_id = %s AND kota_id = %s
+                  AND prediction_date = %s AND target_date = %s
+                """,
+                (row[0], row[1], row[2], row[3]),
+            )
+            cur.execute(
+                """
+                INSERT INTO app.ml_predictions
+                    (komoditas_id, kota_id, prediction_date, target_date,
+                     predicted_price, confidence_lower, confidence_upper, model_version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                row,
+            )
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info(
+            f"Saved {len(rows)} predictions for "
+            f"({result.komoditas_nama}, {result.kota_nama}, {result.tanggal})"
+        )
+    except Exception as exc:
+        logger.warning(f"Gagal simpan prediksi ke DB: {exc}")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -165,7 +267,7 @@ def health_check():
 
 
 @app.post("/api/v1/analyze", tags=["inference"])
-def analyze_single(req: AnalyzeRequest) -> dict[str, Any]:
+def analyze_single(req: AnalyzeRequest, background_tasks: BackgroundTasks) -> dict[str, Any]:
     """
     Analisis tunggal untuk satu (komoditas, kota, tanggal).
 
@@ -187,11 +289,12 @@ def analyze_single(req: AnalyzeRequest) -> dict[str, Any]:
         logger.error(f"analyze() error: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    background_tasks.add_task(_persist_predictions, result)
     return _serialize_result(result)
 
 
 @app.post("/api/v1/batch", tags=["inference"])
-def analyze_batch(req: BatchAnalyzeRequest) -> list[dict[str, Any]]:
+def analyze_batch(req: BatchAnalyzeRequest, background_tasks: BackgroundTasks) -> list[dict[str, Any]]:
     """
     Batch analisis untuk multiple (komoditas, kota).
 
@@ -208,6 +311,7 @@ def analyze_batch(req: BatchAnalyzeRequest) -> list[dict[str, Any]]:
             tanggal=tanggal,
         )
         results.append(_serialize_result(result))
+        background_tasks.add_task(_persist_predictions, result)
 
     return results
 
@@ -230,6 +334,7 @@ def get_active_alerts(
     alerts = pipeline.get_active_alerts(
         tanggal=tanggal,
         min_alert_level=min_alert_level,  # type: ignore[arg-type]
+        with_llm=False,
     )
 
     return {
@@ -280,7 +385,7 @@ def daily_summary(tanggal: date) -> dict[str, Any]:
     """
     pipeline = _require_pipeline()
 
-    all_results = pipeline.analyze_all(tanggal)
+    all_results = pipeline.analyze_all(tanggal, with_llm=False)
 
     if not all_results:
         return {
@@ -310,3 +415,170 @@ def daily_summary(tanggal: date) -> dict[str, Any]:
             for i, r in enumerate(top5)
         ],
     }
+
+
+class SimulateRequest(BaseModel):
+    komoditas_nama: str  = Field(..., example="Bawang Merah Ukuran Sedang")
+    kota_nama:      str  = Field(..., example="Kota Bandung")
+    tanggal:        date = Field(default_factory=date.today)
+    scenario:       SimulateScenario
+    with_llm:       bool = Field(False, description="Jalankan LLM reasoning untuk simulasi (lebih lambat)")
+
+
+@app.post("/api/v1/simulate", tags=["simulation"])
+def simulate_intervention(req: SimulateRequest) -> dict[str, Any]:
+    """
+    Simulasi 'bagaimana jika' harga berubah setelah intervensi.
+
+    Berguna untuk:
+    - Evaluasi efektivitas operasi pasar (harga turun ke HET)
+    - Simulasi dampak kebijakan (pct_shock = -20% → apakah alert berubah?)
+
+    Kembalikan: baseline vs simulated (Lapis 1 + 2), plus delta ringkasan.
+    """
+    import pandas as pd
+    from ml.src.detect import run_detection
+    from ml.src.pipeline import FullAnalysisResult
+
+    pipeline = _require_pipeline()
+
+    # Validate scenario
+    if req.scenario.harga_intervensi is None and req.scenario.pct_shock is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Isi salah satu: scenario.harga_intervensi (harga absolut) atau scenario.pct_shock (persen perubahan).",
+        )
+
+    # 1. Get feature row
+    row = pipeline._get_row(req.komoditas_nama, req.kota_nama, req.tanggal)
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Data tidak ditemukan: ({req.komoditas_nama}, {req.kota_nama}, {req.tanggal})",
+        )
+
+    original_harga = float(row.get("harga_aktual", 0) or 0)
+
+    # 2. Baseline — Lapis 1 + 2 only (no LLM, fast)
+    base_p50_7d,  base_p90_7d  = pipeline._predict(row, horizon=7)
+    base_p50_14d, base_p90_14d = pipeline._predict(row, horizon=14)
+    base_detection = None
+    if pipeline._df is not None and not pipeline._df.empty:
+        history_df = pipeline._df[
+            (pipeline._df["comcat_id"] == row["comcat_id"]) &
+            (pipeline._df["kota_nama"] == req.kota_nama) &
+            (pipeline._df["tanggal"] <= pd.Timestamp(req.tanggal))
+        ].copy()
+        base_day_df = pipeline._df[
+            (pipeline._df["komoditas_nama"] == req.komoditas_nama) &
+            (pipeline._df["tanggal"] == pd.Timestamp(req.tanggal))
+        ].copy()
+        base_detection = run_detection(
+            row=row,
+            history_df=history_df,
+            day_df=base_day_df,
+            pred_p50=base_p50_7d,
+            pred_p90=base_p90_7d,
+        )
+
+    # 3. Compute simulated price
+    if req.scenario.harga_intervensi is not None:
+        sim_harga = float(req.scenario.harga_intervensi)
+    else:
+        sim_harga = original_harga * (1 + (req.scenario.pct_shock or 0) / 100)  # type: ignore[operator]
+
+    # 4. Build simulated feature row
+    sim_row = row.copy()
+    sim_row["harga_aktual"] = sim_harga
+
+    lag_1d       = float(row.get("harga_lag_1d",    sim_harga) or sim_harga)
+    lag_7d       = float(row.get("harga_lag_7d",    sim_harga) or sim_harga)
+    nat_avg      = float(row.get("avg_harga_nasional", sim_harga) or sim_harga)
+    roll_avg_30d = float(row.get("rolling_avg_30d", sim_harga) or sim_harga)
+    roll_std_30d = float(row.get("rolling_std_30d", 1.0) or 1.0) or 1.0
+
+    sim_row["delta_harga_1d"]       = sim_harga - lag_1d
+    sim_row["delta_harga_7d"]       = sim_harga - lag_7d
+    sim_row["pct_change_1d"]        = (sim_harga - lag_1d) / lag_1d * 100 if lag_1d else 0.0
+    sim_row["pct_change_7d"]        = (sim_harga - lag_7d) / lag_7d * 100 if lag_7d else 0.0
+    sim_row["harga_ratio_nasional"] = sim_harga / nat_avg if nat_avg else 1.0
+    sim_row["harga_zscore_30d"]     = (sim_harga - roll_avg_30d) / roll_std_30d
+
+    # 5. Lapis 1 — predictions on modified row
+    sim_p50_7d,  sim_p90_7d  = pipeline._predict(sim_row, horizon=7)
+    sim_p50_14d, sim_p90_14d = pipeline._predict(sim_row, horizon=14)
+
+    # 6. Lapis 2 — detection on modified row
+    sim_detection = None
+    if pipeline._df is not None and not pipeline._df.empty:
+        day_df = pipeline._df[
+            (pipeline._df["komoditas_nama"] == req.komoditas_nama) &
+            (pipeline._df["tanggal"] == pd.Timestamp(req.tanggal))
+        ].copy()
+        # Inject simulated price for this kota in day_df
+        day_df.loc[day_df["kota_nama"] == req.kota_nama, "harga_aktual"] = sim_harga
+
+        sim_detection = run_detection(
+            row=sim_row,
+            history_df=history_df,
+            day_df=day_df,
+            pred_p50=sim_p50_7d,
+            pred_p90=sim_p90_7d,
+        )
+
+    # 7. Lapis 3 — optional LLM for simulated scenario only
+    sim_decision = None
+    if req.with_llm and sim_detection and pipeline._agent:
+        sim_decision = pipeline._agent.decide(sim_detection)
+
+    # 8. Build result objects
+    baseline = FullAnalysisResult(
+        komoditas_nama=req.komoditas_nama,
+        kota_nama=req.kota_nama,
+        tanggal=req.tanggal,
+        pred_p50_7d=base_p50_7d,
+        pred_p90_7d=base_p90_7d,
+        pred_p50_14d=base_p50_14d,
+        pred_p90_14d=base_p90_14d,
+        detection=base_detection,
+    )
+    sim_result = FullAnalysisResult(
+        komoditas_nama=req.komoditas_nama,
+        kota_nama=req.kota_nama,
+        tanggal=req.tanggal,
+        pred_p50_7d=sim_p50_7d,
+        pred_p90_7d=sim_p90_7d,
+        pred_p50_14d=sim_p50_14d,
+        pred_p90_14d=sim_p90_14d,
+        detection=sim_detection,
+        decision=sim_decision,
+    )
+
+    # 9. Delta summary
+    b_p50 = base_p50_7d or 0.0
+    s_p50 = sim_p50_7d or 0.0
+
+    delta: dict[str, Any] = {
+        "harga_delta":          round(sim_harga - original_harga, 2),
+        "harga_pct_change":     round((sim_harga - original_harga) / original_harga * 100, 2) if original_harga else 0.0,
+        "p50_7d_delta":         round(s_p50 - b_p50, 2),
+        "p50_7d_pct_change":    round((s_p50 - b_p50) / b_p50 * 100, 2) if b_p50 else 0.0,
+        "alert_level_changed":  baseline.final_alert_level != sim_result.final_alert_level,
+        "baseline_alert":       baseline.final_alert_level,
+        "simulated_alert":      sim_result.final_alert_level,
+    }
+
+    return {
+        "komoditas_nama": req.komoditas_nama,
+        "kota_nama":      req.kota_nama,
+        "tanggal":        str(req.tanggal),
+        "scenario": {
+            "harga_original": round(original_harga, 2),
+            "harga_simulasi": round(sim_harga, 2),
+            "type": "harga_intervensi" if req.scenario.harga_intervensi is not None else "pct_shock",
+        },
+        "baseline":  _serialize_result(baseline),
+        "simulated": _serialize_result(sim_result),
+        "delta":     delta,
+    }
+

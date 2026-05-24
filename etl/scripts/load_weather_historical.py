@@ -31,6 +31,7 @@ from google.cloud import bigquery
 from loguru import logger
 
 from config.constants import WEATHER_LOCATIONS
+from config.log_config import setup_logging
 from extractors.openmeteo_extractor import OpenMeteoExtractor
 
 
@@ -176,4 +177,5 @@ def main():
 
 
 if __name__ == "__main__":
+    setup_logging()
     main()

@@ -28,6 +28,8 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from concurrent.futures import TimeoutError as FuturesTimeoutError
+from datetime import datetime, timedelta
 from typing import Optional
 
 from google.api_core.exceptions import GoogleAPIError
@@ -42,6 +44,13 @@ _lock = threading.Lock()
 
 # Default timeout for BigQuery queries (seconds)
 BQ_QUERY_TIMEOUT = 60
+
+# ── Thread-safe TTL cache ─────────────────────────────────────────────────────
+
+_cache: dict[str, tuple[list[dict], datetime]] = {}
+_cache_lock = threading.Lock()
+_CACHE_TTL_MINUTES = 5
+_CACHE_MAX_ENTRIES = 200
 
 
 def get_bq_client() -> bigquery.Client:
@@ -114,7 +123,7 @@ def bq_query(
     except GoogleAPIError as e:
         logger.error("BigQuery query failed: %s | SQL: %.200s", e, sql)
         raise
-    except TimeoutError:
+    except (TimeoutError, FuturesTimeoutError):
         logger.error("BigQuery query timed out after %ds | SQL: %.200s", timeout, sql)
         raise
 
@@ -131,3 +140,61 @@ def bq_query_one(
     """
     results = bq_query(sql, params, timeout=timeout)
     return results[0] if results else None
+
+
+def bq_query_cached(
+    sql: str,
+    params: Optional[list[bigquery.ScalarQueryParameter]] = None,
+    timeout: int = BQ_QUERY_TIMEOUT,
+    ttl_minutes: int = _CACHE_TTL_MINUTES,
+) -> list[dict]:
+    """
+    Execute a BigQuery query with thread-safe TTL caching.
+
+    Same interface as bq_query(), but caches results in memory.
+    Repeated identical queries return cached results until TTL expires.
+    Useful for dashboard endpoints that hit the same data repeatedly.
+
+    Args:
+        sql: BigQuery SQL query string.
+        params: Optional list of ScalarQueryParameter.
+        timeout: Query timeout in seconds.
+        ttl_minutes: Cache TTL in minutes (default: 5).
+
+    Returns:
+        List of dicts (column_name -> value), possibly from cache.
+    """
+    # Build cache key from SQL + serialized param values (not object repr)
+    param_key = tuple((p.name, p.value) for p in params) if params else ()
+    cache_key = f"{sql}|{param_key}"
+
+    # Check cache (read path - short lock)
+    with _cache_lock:
+        if cache_key in _cache:
+            result, expire_at = _cache[cache_key]
+            if datetime.now() < expire_at:
+                logger.debug("BQ cache HIT: %.80s", sql)
+                return result
+
+    # Cache miss - execute query (outside lock to avoid blocking)
+    logger.debug("BQ cache MISS: %.80s", sql)
+    result = bq_query(sql, params, timeout=timeout)
+
+    # Store in cache (write path - short lock)
+    with _cache_lock:
+        # Evict oldest entries if cache is full
+        if len(_cache) >= _CACHE_MAX_ENTRIES:
+            oldest_key = min(_cache, key=lambda k: _cache[k][1])
+            del _cache[oldest_key]
+        _cache[cache_key] = (result, datetime.now() + timedelta(minutes=ttl_minutes))
+
+    return result
+
+
+def clear_bq_cache() -> None:
+    """Clear all cached BigQuery results. Call when data is refreshed."""
+    with _cache_lock:
+        count = len(_cache)
+        _cache.clear()
+        if count:
+            logger.info("Cleared %d BigQuery cache entries", count)

@@ -11,6 +11,7 @@ Severity L0-L4 dihitung terpisah dari seluruh indikator yang tersedia.
 """
 
 import logging
+import threading
 from datetime import date
 
 from config.settings import (
@@ -113,38 +114,57 @@ SEVERITY_LABELS: dict[str, str] = {
 
 # -- Hari Besar cache (loaded from Supabase app.hari_besar, 91 rows) ----------
 # Format: list of (nama: str, tanggal: date)
+# Thread-safe: lock protects read/write, new list built then swapped atomically
+# Cache has 24h TTL - if DB was unreachable at startup, retry next day
 _hari_besar_cache: list[tuple[str, date]] | None = None
+_hari_besar_cache_time: float = 0.0
+_hari_besar_lock = threading.Lock()
+_HARI_BESAR_TTL_SECONDS = 86400  # 24 hours
 
 
 def _get_hari_besar_calendar() -> list[tuple[str, date]]:
-    """Get hari besar calendar from Supabase PostgreSQL, with in-memory cache.
+    """Get hari besar calendar from Supabase PostgreSQL, with thread-safe cache.
 
     Returns list of (nama, tanggal) tuples. Data source: app.hari_besar
     (91 rows from python-holidays, covering 2024-2027).
     Returns empty list if database is unreachable (hari raya check will be skipped).
+    Cache expires after 24 hours to allow retry on startup failure.
     """
-    global _hari_besar_cache
-    if _hari_besar_cache is not None:
+    global _hari_besar_cache, _hari_besar_cache_time
+    import time
+
+    now = time.monotonic()
+
+    # Fast path: cache loaded and not expired
+    if _hari_besar_cache is not None and (now - _hari_besar_cache_time) < _HARI_BESAR_TTL_SECONDS:
         return _hari_besar_cache
 
-    try:
-        from src.data.database import db_cursor
+    with _hari_besar_lock:
+        # Double-checked locking: re-check inside lock
+        if _hari_besar_cache is not None and (now - _hari_besar_cache_time) < _HARI_BESAR_TTL_SECONDS:
+            return _hari_besar_cache
 
-        with db_cursor() as cur:
-            cur.execute("SELECT nama, tanggal FROM app.hari_besar ORDER BY tanggal")
-            rows = cur.fetchall()
+        try:
+            from src.data.database import db_cursor
 
-        _hari_besar_cache = [(r["nama"], r["tanggal"]) for r in rows]
-        logger.info(
-            "Loaded %d hari besar from Supabase", len(_hari_besar_cache)
-        )
-        return _hari_besar_cache
-    except Exception:
-        logger.warning(
-            "Supabase hari_besar unavailable -- hari raya check will not trigger"
-        )
-        # Return empty so hari raya check gracefully reports "clear"
-        return []
+            with db_cursor() as cur:
+                cur.execute("SELECT nama, tanggal FROM app.hari_besar ORDER BY tanggal")
+                rows = cur.fetchall()
+
+            # Build new list then swap atomically
+            new_cache = [(r["nama"], r["tanggal"]) for r in rows]
+            _hari_besar_cache = new_cache
+            _hari_besar_cache_time = now
+            logger.info(
+                "Loaded %d hari besar from Supabase", len(_hari_besar_cache)
+            )
+            return _hari_besar_cache
+        except Exception:
+            logger.warning(
+                "Supabase hari_besar unavailable -- hari raya check will not trigger"
+            )
+            # Return empty so hari raya check gracefully reports "clear"
+            return []
 
 
 def _check_hari_raya(data: CommodityData, today: date) -> CheckResult:
@@ -212,6 +232,13 @@ def _check_persebaran_kota(data: CommodityData) -> CheckResult:
     """Check 3: Apakah kenaikan merata di banyak kota? (threshold default 60%)"""
     kota_naik = [k for k in data.kota_list if k.naik]
     total_kota = len(data.kota_list)
+    if total_kota == 0:
+        return CheckResult(
+            step=3,
+            nama="Cek Persebaran Kenaikan Antar Kota",
+            status="skip",
+            detail="Tidak ada data kota tersedia untuk analisis persebaran",
+        )
     pct = len(kota_naik) / total_kota
     nama_naik = ", ".join(k.nama for k in kota_naik) if kota_naik else "—"
     if pct >= data.threshold_kota:
@@ -329,8 +356,11 @@ def run_rca(data: CommodityData, today: date | None = None) -> RCAResult:
 
     checks: list[CheckResult] = []
 
-    # Hitung delta harga
-    delta_pct = ((data.price_now - data.price_prev) / data.price_prev) * 100
+    # Hitung delta harga (guard division by zero)
+    if data.price_prev == 0:
+        delta_pct = 0.0
+    else:
+        delta_pct = ((data.price_now - data.price_prev) / data.price_prev) * 100
     is_anomaly = delta_pct >= data.price_threshold
 
     # ── Check 1: Hari Raya ──────────────────────
