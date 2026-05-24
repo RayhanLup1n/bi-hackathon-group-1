@@ -115,8 +115,11 @@ SEVERITY_LABELS: dict[str, str] = {
 # -- Hari Besar cache (loaded from Supabase app.hari_besar, 91 rows) ----------
 # Format: list of (nama: str, tanggal: date)
 # Thread-safe: lock protects read/write, new list built then swapped atomically
+# Cache has 24h TTL - if DB was unreachable at startup, retry next day
 _hari_besar_cache: list[tuple[str, date]] | None = None
+_hari_besar_cache_time: float = 0.0
 _hari_besar_lock = threading.Lock()
+_HARI_BESAR_TTL_SECONDS = 86400  # 24 hours
 
 
 def _get_hari_besar_calendar() -> list[tuple[str, date]]:
@@ -125,15 +128,20 @@ def _get_hari_besar_calendar() -> list[tuple[str, date]]:
     Returns list of (nama, tanggal) tuples. Data source: app.hari_besar
     (91 rows from python-holidays, covering 2024-2027).
     Returns empty list if database is unreachable (hari raya check will be skipped).
+    Cache expires after 24 hours to allow retry on startup failure.
     """
-    global _hari_besar_cache
-    # Fast path: cache already loaded (no lock needed for read of immutable list)
-    if _hari_besar_cache is not None:
+    global _hari_besar_cache, _hari_besar_cache_time
+    import time
+
+    now = time.monotonic()
+
+    # Fast path: cache loaded and not expired
+    if _hari_besar_cache is not None and (now - _hari_besar_cache_time) < _HARI_BESAR_TTL_SECONDS:
         return _hari_besar_cache
 
     with _hari_besar_lock:
         # Double-checked locking: re-check inside lock
-        if _hari_besar_cache is not None:
+        if _hari_besar_cache is not None and (now - _hari_besar_cache_time) < _HARI_BESAR_TTL_SECONDS:
             return _hari_besar_cache
 
         try:
@@ -146,6 +154,7 @@ def _get_hari_besar_calendar() -> list[tuple[str, date]]:
             # Build new list then swap atomically
             new_cache = [(r["nama"], r["tanggal"]) for r in rows]
             _hari_besar_cache = new_cache
+            _hari_besar_cache_time = now
             logger.info(
                 "Loaded %d hari besar from Supabase", len(_hari_besar_cache)
             )

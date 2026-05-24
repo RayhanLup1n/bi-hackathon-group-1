@@ -23,6 +23,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
+import bcrypt
 import os
 
 from src.data.auth_db import (
@@ -33,6 +34,9 @@ from src.data.auth_db import (
     update_user,
     verify_password,
 )
+
+# Dummy hash for timing-safe login (prevents username enumeration)
+_DUMMY_HASH = bcrypt.hashpw(b"dummy-timing-safe", bcrypt.gensalt()).decode()
 
 # JWT secret from env var — required in production, dev fallback only if DEBUG=true
 _DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
@@ -150,7 +154,10 @@ def _require_admin(user: dict = Depends(_current_user)) -> dict:
 @auth_router.post("/login", summary="Login dan dapatkan JWT")
 def login(form: OAuth2PasswordRequestForm = Depends()):
     user = get_user_by_username(form.username)
-    if not user or not verify_password(form.password, user["password_hash"]):
+    # Always run verify_password to prevent timing-based username enumeration
+    hash_to_check = user["password_hash"] if user else _DUMMY_HASH
+    password_ok = verify_password(form.password, hash_to_check)
+    if not user or not password_ok:
         raise HTTPException(status_code=401, detail="Username atau password salah")
     # Block disabled accounts from logging in
     if not user.get("is_active", True):

@@ -352,12 +352,12 @@ def sync_bmkg_siaga() -> int:
     # Derive warning levels
     siaga_rows: list[tuple] = []
     for row in weather_rows:
-        tanggal = row[0]
-        provinsi_id = row[1]
-        precip = float(row[2] or 0)
-        rain = float(row[3] or 0)
-        wind = float(row[4] or 0)
-        temp = float(row[5] or 0)
+        tanggal = row["tanggal"]
+        provinsi_id = row["provinsi_id"]
+        precip = float(row["max_precip"] or 0)
+        rain = float(row["max_rain"] or 0)
+        wind = float(row["max_wind"] or 0)
+        temp = float(row["max_temp"] or 0)
 
         # Use max of precip and rain for threshold
         total_precip = max(precip, rain)

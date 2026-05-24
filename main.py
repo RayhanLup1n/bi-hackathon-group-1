@@ -60,15 +60,24 @@ async def lifespan(app: FastAPI):
 
     # Cleanup on shutdown
     close_pool()
+    # Close BigQuery client if it was initialized
+    from src.data.bigquery_client import close_bq_client
+    close_bq_client()
 
+
+_DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 
 app = FastAPI(
     title="R.A.D.A.R Pangan",
+    version="0.6.0",
     description=(
         "Real-time Anti-inflation Detection, Analysis & Response. "
         "Platform pemantauan inflasi pangan berbasis data PIHPS."
     ),
     lifespan=lifespan,
+    docs_url="/docs" if _DEBUG else None,
+    redoc_url="/redoc" if _DEBUG else None,
+    openapi_url="/api/openapi.json" if _DEBUG else None,
 )
 
 # CORS middleware - allow same-origin + localhost dev servers

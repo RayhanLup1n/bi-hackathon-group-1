@@ -164,8 +164,9 @@ def bq_query_cached(
     Returns:
         List of dicts (column_name -> value), possibly from cache.
     """
-    # Build cache key from SQL + params
-    cache_key = f"{sql}|{str(params)}"
+    # Build cache key from SQL + serialized param values (not object repr)
+    param_key = tuple((p.name, p.value) for p in params) if params else ()
+    cache_key = f"{sql}|{param_key}"
 
     # Check cache (read path - short lock)
     with _cache_lock:

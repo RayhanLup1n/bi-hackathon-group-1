@@ -374,20 +374,22 @@ def get_quality_report(_user: dict = Depends(_require_admin)) -> dict:
     try:
         return get_quality_summary()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Data quality check failed: {e}")
+        logger.error("Data quality check failed: %s", e)
+        raise HTTPException(status_code=500, detail="Data quality check gagal")
 
 
 @data_quality_router.get(
     "/coverage",
     summary="Data coverage summary (row counts, date range per komoditas)",
 )
-def get_coverage() -> dict:
+def get_coverage(_user: dict = Depends(_require_admin)) -> dict:
     from src.data.data_quality import get_data_coverage
 
     try:
         return get_data_coverage()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Coverage check failed: {e}")
+        logger.error("Coverage check failed: %s", e)
+        raise HTTPException(status_code=500, detail="Coverage check gagal")
 
 
 @data_quality_router.get(
@@ -397,6 +399,7 @@ def get_coverage() -> dict:
 def get_outliers(
     z_threshold: float = Query(default=3.0, ge=1.0, le=10.0),
     last_n_days: int = Query(default=90, ge=7, le=365),
+    _user: dict = Depends(_require_admin),
 ) -> dict:
     from src.data.data_quality import check_outliers
 
@@ -404,7 +407,8 @@ def get_outliers(
         items = check_outliers(z_threshold=z_threshold, last_n_days=last_n_days)
         return {"count": len(items), "z_threshold": z_threshold, "items": items}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Outlier check failed: {e}")
+        logger.error("Outlier check failed: %s", e)
+        raise HTTPException(status_code=500, detail="Outlier check gagal")
 
 
 @data_quality_router.get(
@@ -413,6 +417,7 @@ def get_outliers(
 )
 def get_missing_dates(
     last_n_days: int = Query(default=30, ge=7, le=365),
+    _user: dict = Depends(_require_admin),
 ) -> dict:
     from src.data.data_quality import check_missing_dates
 
@@ -420,19 +425,21 @@ def get_missing_dates(
         items = check_missing_dates(last_n_days=last_n_days)
         return {"count": len(items), "last_n_days": last_n_days, "items": items}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Missing dates check failed: {e}")
+        logger.error("Missing dates check failed: %s", e)
+        raise HTTPException(status_code=500, detail="Missing dates check gagal")
 
 
 @data_quality_router.get(
     "/duplicates",
     summary="Duplicate rows (same comcat_id + kota_id + tanggal)",
 )
-def get_duplicates() -> dict:
+def get_duplicates(_user: dict = Depends(_require_admin)) -> dict:
     from src.data.data_quality import check_duplicates
 
     try:
         items = check_duplicates()
         return {"count": len(items), "items": items}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Duplicates check failed: {e}")
+        logger.error("Duplicates check failed: %s", e)
+        raise HTTPException(status_code=500, detail="Duplicates check gagal")
 

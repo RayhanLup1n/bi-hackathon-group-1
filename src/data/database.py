@@ -29,7 +29,7 @@ import psycopg2
 import psycopg2.extras
 import psycopg2.pool
 
-_pool: psycopg2.pool.SimpleConnectionPool | None = None
+_pool: psycopg2.pool.ThreadedConnectionPool | None = None
 
 
 def _get_dsn() -> str:
@@ -40,15 +40,19 @@ def _get_dsn() -> str:
     user = os.getenv("SUPABASE_USER", "postgres")
     password = os.getenv("SUPABASE_PASSWORD", "")
 
-    return f"host={host} port={port} dbname={db} user={user} password={password} sslmode=require"
+    return (
+        f"host={host} port={port} dbname={db} user={user} password={password}"
+        f" sslmode=require connect_timeout=5"
+        f" options='-c statement_timeout=15000'"
+    )
 
 
-def init_pool(min_conn: int = 2, max_conn: int = 10) -> None:
-    """Initialize the connection pool. Call once at app startup."""
+def init_pool(min_conn: int = 2, max_conn: int = 20) -> None:
+    """Initialize the thread-safe connection pool. Call once at app startup."""
     global _pool
     if _pool is not None:
         return
-    _pool = psycopg2.pool.SimpleConnectionPool(min_conn, max_conn, _get_dsn())
+    _pool = psycopg2.pool.ThreadedConnectionPool(min_conn, max_conn, _get_dsn())
 
 
 def get_conn() -> psycopg2.extensions.connection:

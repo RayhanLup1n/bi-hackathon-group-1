@@ -602,7 +602,7 @@ function rcaPage() {
         const me = await r.json();
         this.user = me;
         // Viewer cannot access RCA page
-        if (!me.is_admin && !me.is_analyst && me.role === 'viewer') {
+        if (!me.is_admin && !me.is_analyst) {
           window.location.replace('/');
           return;
         }

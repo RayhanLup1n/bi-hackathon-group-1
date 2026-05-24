@@ -436,9 +436,6 @@
       <a href="/" class="nav-link nav-link-default">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/rca" class="nav-link nav-link-default">RCA</a>
-      </template>
-      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
         <a href="/prediksi" class="nav-link nav-link-active">Prediksi</a>
       </template>
       <template x-if="user?.is_admin || user?.role === 'admin'">
@@ -976,9 +973,9 @@
           <template x-if="nextPrediction">
             <div>
               <div class="stat-value" :class="nextPrediction.trend > 0 ? 'trend-up' : (nextPrediction.trend < 0 ? 'trend-down' : '')"
-                   x-text="'Rp ' + nextPrediction.price.toLocaleString('id-ID')"></div>
+                   x-text="'Rp ' + (nextPrediction.price || 0).toLocaleString('id-ID')"></div>
               <div class="stat-sub">
-                <span x-text="'CI: ' + nextPrediction.lower.toLocaleString('id-ID') + ' — ' + nextPrediction.upper.toLocaleString('id-ID')"></span>
+                <span x-text="'CI: ' + (nextPrediction.lower || 0).toLocaleString('id-ID') + ' - ' + (nextPrediction.upper || 0).toLocaleString('id-ID')"></span>
               </div>
             </div>
           </template>
@@ -1040,7 +1037,7 @@
                     <td x-text="p.kota_id"></td>
                     <td>
                       <span :class="p.predicted_price > (currentPrice || 0) ? 'trend-up' : 'trend-down'"
-                            x-text="'Rp ' + p.predicted_price.toLocaleString('id-ID')"></span>
+                            x-text="'Rp ' + (p.predicted_price || 0).toLocaleString('id-ID')"></span>
                     </td>
                     <td>
                       <span style="font-family:var(--mono);font-size:10px;color:var(--muted);"
