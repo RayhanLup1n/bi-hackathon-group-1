@@ -1,6 +1,6 @@
 # NEED_TO_FIX.md — Consolidated Testing Report
 
-> Updated: 2026-05-24 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
+> Updated: 2026-05-25 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
 > Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review
 
 ---
@@ -33,6 +33,10 @@
 ### ~~[PERF] BigQuery latency - no response caching~~ FIXED (2026-05-24)
 - **File**: `src/data/bigquery_client.py`
 - **What changed**: Added `bq_query_cached()` with thread-safe TTL cache (5-min default, max 200 entries, LRU eviction). Also added `clear_bq_cache()` for manual invalidation. Dashboard queries already use Supabase PostgreSQL (Gold layer) which is fast enough.
+
+### ~~[PERF] BigQuery cache key collision~~ FIXED (2026-05-24)
+- **File**: `src/data/bigquery_client.py`
+- **What changed**: `str(params)` on `ScalarQueryParameter` objects returned memory address, not values. Fixed with `tuple((p.name, p.value) for p in params)`.
 
 ### [DEPLOY] JWT_SECRET production setup
 - **Status**: Pending - needed before public deployment
@@ -75,6 +79,9 @@
 - NEW-0524: `dbt deps` removed invalid `--target-path` flag
 - NEW-0524: loguru stderr -> stdout (`etl/config/log_config.py`) for correct Kestra UI log levels
 
+### FIXED (Pipeline bug 2026-05-24)
+- `sync_gold_to_postgres.py`: `KeyError: 0` in `sync_bmkg_siaga` - `db_cursor()` returns `RealDictCursor` (dict rows), but code used numeric index `row[0]`. Fixed with column names `row["tanggal"]`, `row["provinsi_id"]`, etc.
+
 ### REMAINING (belum di-fix, low priority)
 - K-10: Python version tidak di-pin (pakai default dari Kestra base image)
 - K-12: `allowFailure: true` pada dbt test tanpa notifikasi
@@ -94,6 +101,46 @@
 ### ~~[SEC] S-06: No CORS middleware~~ FIXED (2026-05-24)
 - **File**: `main.py`
 - **What changed**: Added `CORSMiddleware` with explicit `allow_origins` (localhost:8000, 127.0.0.1:8000, localhost:3000). Ngrok wildcard added only in DEBUG mode.
+
+### ~~[SEC] S-14: Timing-safe login~~ FIXED (2026-05-24)
+- **File**: `src/api/auth_routes.py`
+- **What changed**: Always run `verify_password` even for non-existent usernames using a dummy bcrypt hash. Prevents username enumeration via response timing.
+
+### ~~[SEC] S-15: Generic error messages in API~~ FIXED (2026-05-24)
+- **File**: `src/api/routes.py`
+- **What changed**: Error messages changed from `f"... failed: {e}"` to generic messages. Internal details logged via `logger.error()` instead of exposed to client.
+
+### ~~[SEC] S-16: Hide Swagger/ReDoc in production~~ FIXED (2026-05-24)
+- **File**: `main.py`
+- **What changed**: `docs_url`, `redoc_url`, `openapi_url` set to `None` when `DEBUG != true`. Only accessible in debug mode.
+
+### ~~[SEC] S-18: XSS in admin page role display~~ FIXED (2026-05-24)
+- **File**: `frontend/admin.html`
+- **What changed**: `u.role` escaped with `escHtml()` in both class attribute and text content.
+
+### ~~[INFRA] ThreadedConnectionPool + timeouts~~ FIXED (2026-05-24)
+- **File**: `src/data/database.py`
+- **What changed**: `SimpleConnectionPool` replaced with `ThreadedConnectionPool` (thread-safe for concurrent FastAPI requests). Added `connect_timeout=5` and `statement_timeout=15000` (15s) to DSN. Pool size increased to min=2, max=20.
+
+### ~~[INFRA] Hari besar cache 24h TTL~~ FIXED (2026-05-24)
+- **File**: `src/engine/rca_engine.py`
+- **What changed**: Cache now has 24h TTL using `time.monotonic()`. If DB was unreachable at startup, retry next day instead of being stuck with empty cache forever.
+
+### ~~[INFRA] Close BigQuery client on shutdown~~ FIXED (2026-05-24)
+- **File**: `main.py`
+- **What changed**: `close_bq_client()` called in lifespan shutdown. Prevents resource leak.
+
+### ~~[INFRA] Dockerfile workers~~ FIXED (2026-05-24)
+- **File**: `Dockerfile`
+- **What changed**: `--workers 2` added to uvicorn CMD for concurrent request handling.
+
+### ~~[BUG] Role guard fix in RCA page~~ FIXED (2026-05-24)
+- **File**: `frontend/rca.html`
+- **What changed**: `if (!me.is_admin && !me.is_analyst && me.role === 'viewer')` simplified to `if (!me.is_admin && !me.is_analyst)`. Old check was fragile - depended on `me.role` string.
+
+### ~~[BUG] Null guard on toLocaleString in prediksi page~~ FIXED (2026-05-24)
+- **File**: `frontend/prediksi.html`
+- **What changed**: `nextPrediction.price.toLocaleString()` wrapped with `(nextPrediction.price || 0)`. Same for `.lower` and `.upper`. Prevents crash when ML predictions have null values.
 
 ### [SEC] S-07: No rate limiting on /login
 - **File**: `src/api/auth_routes.py:124-136`
@@ -132,7 +179,7 @@
 
 ### ~~[SEC] S-17: /api/data-quality endpoints unauthenticated~~ FIXED (2026-05-24)
 - **File**: `src/api/routes.py`
-- **What changed**: Full report requires `_require_admin`, sub-endpoints accessible to authenticated users.
+- **What changed**: All 4 sub-endpoints (`/coverage`, `/outliers`, `/missing`, `/duplicates`) require `_require_admin`. Error responses use generic messages.
 
 ### ~~[ARCH] Cross-layer ETL import in API routes~~ FIXED (2026-05-24)
 - **File**: `src/api/routes.py`
@@ -141,6 +188,20 @@
 ### ~~[ARCH] Thread-safe caches with Lock pattern~~ FIXED (2026-05-24)
 - **Files**: `src/engine/rca_engine.py`, `src/data/commodity_data.py`
 - **What changed**: Added `threading.Lock()` with double-checked locking. Build new dict then swap atomically under lock.
+
+### [SEC] S-19: debug.html exposed via /static mount
+- **File**: `main.py`, `frontend/debug.html`
+- **Problem**: `debug.html` (DB inspector) accessible via `/static/debug.html` to anyone. No auth check.
+- **Fix**: Remove from production build, or add auth guard, or move to admin-only route.
+- **Effort**: 10 min
+- **Priority**: Medium (exposes internal DB structure)
+
+### [BUG] Drought detection multi-location bug
+- **File**: `src/data/weather_data.py`
+- **Problem**: Drought detection checks first location only, not all locations. If drought in Makassar but not Jakarta, it may be missed depending on iteration order.
+- **Fix**: Check all locations and pick most severe drought signal.
+- **Effort**: 15 min
+- **Priority**: Medium (affects RCA accuracy for drought scenarios)
 
 ### [ARCH] API reads raw.* instead of marts.*
 - **File**: `src/data/commodity_data.py`
@@ -164,7 +225,7 @@
 |-------|------|--------|
 | Directory Layout | 3/5 | Logical, tapi `config/` vs `etl/config/` membingungkan |
 | Module Organization | 3/5 | 2 "god modules" (`routes.py`, `commodity_data.py`) |
-| Import Graph | **2/5** | Cross-layer `src/ -> etl/`, 3x duplikasi constants |
+| Import Graph | **2/5** | Cross-layer `src/ -> etl/` FIXED, 3x duplikasi constants |
 | Naming Conventions | 4/5 | Konsisten dan deskriptif |
 | Separation of Concerns | 3/5 | Engine dan data terpisah, tapi routes campur SQL |
 | Config Management | **2/5** | Constants tersebar di 4 tempat |
@@ -219,13 +280,13 @@ tests/
 ```
 
 ### Refactor Priority
-| # | Task | Effort | Impact |
-|---|------|--------|--------|
-| 1 | **`config/constants.py`** - single source of truth | 30 min | High |
-| 2 | **Extract predictions SQL** ke `src/data/` | 15 min | High |
-| 3 | **Split `routes.py`** -> 5 domain files | 45 min | Medium |
-| 4 | **Extract `price_data.py`** | 20 min | Medium |
-| 5 | Restructure `tests/` -> `unit/` + `integration/` + `e2e/` | 20 min | Low |
+| # | Task | Effort | Impact | Status |
+|---|------|--------|--------|--------|
+| 1 | **`config/constants.py`** - single source of truth | 30 min | High | TODO |
+| 2 | **Extract predictions SQL** ke `src/data/` | 15 min | High | TODO |
+| 3 | **Split `routes.py`** -> 5 domain files | 45 min | Medium | TODO |
+| 4 | **Extract `price_data.py`** | 20 min | Medium | TODO |
+| 5 | Restructure `tests/` -> `unit/` + `integration/` + `e2e/` | 20 min | Low | TODO |
 
 ---
 
@@ -273,6 +334,16 @@ tests/
 - **Fix**: Use `X | None` syntax, add `from __future__ import annotations`.
 - **Priority**: Cosmetic
 
+### [CODE] No token revocation mechanism
+- **Problem**: JWT tokens valid for 8 hours with no server-side revocation.
+- **Fix**: Add token blacklist (Redis/in-memory) or reduce TTL.
+- **Priority**: Post-demo
+
+### [CODE] Default credentials (admin/admin123, analyst/analyst123)
+- **Problem**: Seeded users have weak passwords.
+- **Fix**: Force password change on first login, or use env vars for initial passwords.
+- **Priority**: Post-demo (acceptable for demo environment)
+
 ---
 
 ## P3 - Test Improvements
@@ -297,16 +368,26 @@ tests/
 - **Fix**: Add test suite with mocked `bq_query`.
 - **Priority**: Low (admin-only feature, requires BigQuery mock)
 
+### [TEST] No auth integration tests
+- **Problem**: Auth endpoints (login, register, me, CRUD) have no test coverage.
+- **Fix**: Add tests with mocked database for auth flow.
+- **Priority**: Medium
+
+### [TEST] No API response model tests
+- **Problem**: No tests verify API response shapes match frontend expectations.
+- **Fix**: Add response model validation tests.
+- **Priority**: Low
+
 ---
 
 ## UAT / HTML Issues
 
-| Page | Issue | Severity |
-|------|-------|----------|
-| admin.html | Not using Alpine.js (vanilla JS) | Medium |
-| index.html | Date input missing `aria-label` | Low |
-| rca.html | Date input missing `aria-label` | Low |
-| prediksi.html | Date input missing `aria-label` | Low |
+| Page | Issue | Severity | Status |
+|------|-------|----------|--------|
+| admin.html | Not using Alpine.js (vanilla JS) | Medium | TODO |
+| index.html | Date input missing `aria-label` | Low | TODO |
+| rca.html | Date input missing `aria-label` | Low | TODO |
+| prediksi.html | Date input missing `aria-label` | Low | TODO |
 
 ### E2E Test Setup
 ```bash
@@ -318,6 +399,24 @@ uv run pytest tests/e2e/             # headless
 
 ---
 
+## Frontend Updates (2026-05-25)
+
+### ~~[UI] Hide RCA from navigation~~ DONE (2026-05-25)
+- **Files**: `index.html`, `admin.html`, `prediksi.html`, `guide.html`
+- **What changed**: RCA nav links removed from all pages. Page still accessible via direct URL `/rca`. Route kept in `main.py` for backward compatibility.
+
+### ~~[UI] Guide page rewrite - FTA + Bowtie~~ DONE (2026-05-25)
+- **File**: `frontend/guide.html`
+- **What changed**: Complete content rewrite from old 4-step RCA methodology to FTA + Bowtie:
+  - Section 1: Platform overview (R.A.D.A.R Pangan)
+  - Section 2: FTA - 6 threats (2 demand + 4 supply) with OR gate
+  - Section 3: Bowtie - prevention + mitigation barriers per threat
+  - Section 4: AND-Gate compound conditions with escalation levels
+  - Section 5: Severity levels (L0-L4) - unchanged from engine
+  - Section 6: Data sources and references
+
+---
+
 ## Architecture Quick Wins (for Demo)
 
 | # | Action | Impact | Effort | Status |
@@ -326,3 +425,33 @@ uv run pytest tests/e2e/             # headless
 | 2 | Move ETL constants to config/ | Remove cross-layer coupling | Tiny | TODO |
 | 3 | ~~Fix SQL injection pattern~~ | Security | Small | DONE |
 | 4 | Add `last_updated` timestamp in API responses | Better demo UX | Small | TODO |
+| 5 | ~~Fix BQ cache key collision~~ | Correct caching | Small | DONE |
+| 6 | ~~ThreadedConnectionPool + timeouts~~ | Concurrent safety | Small | DONE |
+| 7 | ~~Hide Swagger/ReDoc in production~~ | Security | Tiny | DONE |
+
+---
+
+## Post-Demo Backlog
+
+Items below are tracked but intentionally deferred past the June 4 demo.
+
+| # | Item | Category | Effort |
+|---|------|----------|--------|
+| 1 | Rate limiting on /login (`slowapi`) | Security | 15 min |
+| 2 | Token revocation mechanism | Security | Medium |
+| 3 | Force password change for default credentials | Security | 30 min |
+| 4 | `debug.html` access control | Security | 10 min |
+| 5 | Drought multi-location detection fix | Bug | 15 min |
+| 6 | Weather "most severe" vs "first found" fix | Bug | 15 min |
+| 7 | Query marts.* instead of raw.* | Performance | Medium |
+| 8 | Async httpx client for ML proxy | Performance | 30 min |
+| 9 | N+1 query pattern in HET endpoints | Performance | 30 min |
+| 10 | Split `routes.py` into domain files | Architecture | 45 min |
+| 11 | Consolidate MVP constants to `config/constants.py` | Architecture | 30 min |
+| 12 | Extract `price_data.py` from commodity_data | Architecture | 20 min |
+| 13 | Auth integration tests | Testing | 1 hour |
+| 14 | API response model validation tests | Testing | 30 min |
+| 15 | Migrate admin.html to Alpine.js | Frontend | 1 hour |
+| 16 | Add `aria-label` to date inputs | Accessibility | 10 min |
+| 17 | Replace custom .env parser with python-dotenv | Tech Debt | 15 min |
+| 18 | `Optional` -> `X | None` syntax migration | Tech Debt | 20 min |
