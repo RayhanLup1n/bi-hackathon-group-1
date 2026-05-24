@@ -28,6 +28,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -122,7 +123,7 @@ def bq_query(
     except GoogleAPIError as e:
         logger.error("BigQuery query failed: %s | SQL: %.200s", e, sql)
         raise
-    except TimeoutError:
+    except (TimeoutError, FuturesTimeoutError):
         logger.error("BigQuery query timed out after %ds | SQL: %.200s", timeout, sql)
         raise
 

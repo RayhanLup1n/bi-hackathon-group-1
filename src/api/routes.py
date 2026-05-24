@@ -37,6 +37,8 @@ router = APIRouter(prefix="/api", tags=["RCA & Harga"])
 het_router = APIRouter(prefix="/api/het", tags=["HET Monitor"])
 cuaca_router = APIRouter(prefix="/api/cuaca", tags=["Cuaca"])
 stok_router = APIRouter(prefix="/api/stok", tags=["Stok"])
+predictions_router = APIRouter(prefix="/api/predictions", tags=["ML Predictions"])
+data_quality_router = APIRouter(prefix="/api/data-quality", tags=["Data Quality"])
 
 
 # ── RBAC guard: analyst or admin required ─────────────────────────────────────
@@ -175,8 +177,25 @@ def get_stok_by_key(key: str, sim_date: Optional[date] = Query(None)) -> list[di
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# HET MONITOR — Bandingkan harga aktual vs HET reference
+# HET MONITOR - Bandingkan harga aktual vs HET reference
 # ─────────────────────────────────────────────────────────────────────────────
+
+def _build_commodity_prices(
+    sim_date: Optional[date] = None,
+) -> dict[str, tuple[int, str]]:
+    """Build {comcat_id: (price, name)} for all MVP commodities.
+
+    Shared helper to avoid duplicate data loading in HET endpoints.
+    """
+    prices: dict[str, tuple[int, str]] = {}
+    for key in get_all_commodities():
+        data = get_commodity_data(key, tanggal=sim_date)
+        if data:
+            info = KOMODITAS_MAP.get(key, {})
+            comcat_id = info.get("comcat_id", "")
+            prices[comcat_id] = (data.price_now, data.name)
+    return prices
+
 
 @het_router.get(
     "",
@@ -187,14 +206,7 @@ def get_het_all(
     _user: dict = Depends(_current_user),
 ) -> list[dict]:
     """Check HET status for all MVP commodities."""
-    commodity_prices: dict[str, tuple[int, str]] = {}
-    for key in get_all_commodities():
-        data = get_commodity_data(key, tanggal=sim_date)
-        if data:
-            info = KOMODITAS_MAP.get(key, {})
-            comcat_id = info.get("comcat_id", "")
-            commodity_prices[comcat_id] = (data.price_now, data.name)
-
+    commodity_prices = _build_commodity_prices(sim_date)
     results = check_het_all(commodity_prices)
     return [r.model_dump() for r in results]
 
@@ -208,14 +220,7 @@ def get_het_summary_endpoint(
     _user: dict = Depends(_current_user),
 ) -> dict:
     """Get summary of HET status across all commodities."""
-    commodity_prices: dict[str, tuple[int, str]] = {}
-    for key in get_all_commodities():
-        data = get_commodity_data(key, tanggal=sim_date)
-        if data:
-            info = KOMODITAS_MAP.get(key, {})
-            comcat_id = info.get("comcat_id", "")
-            commodity_prices[comcat_id] = (data.price_now, data.name)
-
+    commodity_prices = _build_commodity_prices(sim_date)
     results = check_het_all(commodity_prices)
     return get_het_summary(results)
 
@@ -302,10 +307,8 @@ def get_cuaca_all_provinces(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ML PREDICTIONS — Read from app.ml_predictions
+# ML PREDICTIONS - Read from app.ml_predictions
 # ─────────────────────────────────────────────────────────────────────────────
-
-predictions_router = APIRouter(prefix="/api/predictions", tags=["ML Predictions"])
 
 
 @predictions_router.get(
@@ -356,9 +359,6 @@ def get_predictions(
 # ─────────────────────────────────────────────────────────────────────────────
 # DATA QUALITY — Validation checks on raw.harga_pangan
 # ─────────────────────────────────────────────────────────────────────────────
-
-data_quality_router = APIRouter(prefix="/api/data-quality", tags=["Data Quality"])
-
 
 @data_quality_router.get(
     "",

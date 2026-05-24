@@ -1,3 +1,5 @@
+import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response as FastAPIResponse
@@ -5,7 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
-import os
+# Configure logging before anything else
+logging.basicConfig(
+    level=logging.DEBUG if os.environ.get("DEBUG", "false").lower() == "true" else logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 def _load_env() -> None:

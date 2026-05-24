@@ -49,10 +49,9 @@ def make_commodity(**overrides) -> CommodityData:
         price_prev=18000,
         price_threshold=10.0,
         ml_pred=None,
-        hari_raya=None,
         cuaca=CuacaInfo(ekstrem=False, desc="Cerah", daerah=""),
         kota_list=default_kota_list,
-        stok=StokInfo(status="Normal", kelas="ok"),
+        stok=StokInfo(status="Normal", kelas="ok", pct=1.0),
     )
     defaults.update(overrides)
     return CommodityData(**defaults)
@@ -124,10 +123,11 @@ def test_supply_threshold_kota_batas():
 
 
 def test_supply_threshold_kota_bawah():
-    """Di bawah threshold 60% → tidak trigger supply."""
+    """Di bawah threshold 60% (2/8 = 25%) → persebaran kota tidak trigger."""
     data = make_commodity(kota_naik=2, total_kota=8)
     result = run_rca(data, today=DATE_NORMAL)
-    assert result.diagnosis != DiagnosisType.SUPPLY or result.checks[1].status == "triggered"
+    # Check 3 (persebaran kota) should be clear, not triggered
+    assert result.checks[2].status == "clear"
 
 
 # ── DISTRIBUSI ──────────────────────────────────────────────────────────────
@@ -191,3 +191,36 @@ def test_result_fields_not_empty():
     assert result.title
     assert result.description
     assert result.action
+
+
+# -- EDGE CASES ----------------------------------------------------------
+
+def test_price_prev_zero_no_division_error():
+    """price_prev=0 should not raise ZeroDivisionError, delta_pct should be 0."""
+    data = make_commodity(price_now=20000, price_prev=0)
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.price_delta_pct == 0.0
+    assert result.is_anomaly is False
+
+
+def test_empty_kota_list_no_error():
+    """Empty kota_list should not crash, persebaran check should be skipped."""
+    data = make_commodity(kota_naik=0, total_kota=0)
+    result = run_rca(data, today=DATE_NORMAL)
+    assert len(result.checks) == 4
+    # Persebaran kota check (index 2) should not crash
+    assert result.checks[2].status in ("clear", "skip")
+
+
+def test_het_boundary_exact_threshold():
+    """Exactly at kota threshold boundary (60%) should trigger."""
+    # 3/5 = 60% - exactly at threshold
+    data = make_commodity(kota_naik=3, total_kota=5, threshold_kota=0.6)
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.checks[2].status == "triggered"
+
+    # 2/5 = 40% - below threshold
+    data2 = make_commodity(kota_naik=2, total_kota=5, threshold_kota=0.6)
+    result2 = run_rca(data2, today=DATE_NORMAL)
+    assert result2.checks[2].status == "clear"
+

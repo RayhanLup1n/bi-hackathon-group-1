@@ -15,7 +15,7 @@ POST /api/auth/users           → tambah user baru (admin only)
 PATCH /api/auth/users/{id}     → edit password / flags (admin only)
 DELETE /api/auth/users/{id}    → hapus user (admin only)
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -89,13 +89,15 @@ class UserUpdate(BaseModel):
 
 def _make_token(user: dict) -> str:
     """Create JWT with boolean flags + computed role for backward compat."""
-    expire = datetime.utcnow() + timedelta(hours=_TOKEN_HOURS)
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(hours=_TOKEN_HOURS)
     return jwt.encode(
         {
             "sub": user["username"],
             "role": user["role"],  # computed by auth_db._compute_role
             "is_admin": user.get("is_admin", False),
             "is_analyst": user.get("is_analyst", False),
+            "iat": now,
             "exp": expire,
         },
         _SECRET,
@@ -201,4 +203,5 @@ def patch_user(user_id: int, data: UserUpdate, _: dict = Depends(_require_admin)
 def remove_user(user_id: int, current: dict = Depends(_require_admin)):
     if user_id == current["id"]:
         raise HTTPException(status_code=400, detail="Tidak bisa menghapus akun sendiri")
-    delete_user(user_id)
+    if not delete_user(user_id):
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")

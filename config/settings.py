@@ -1,6 +1,8 @@
 # config/settings.py
 # Semua parameter yang bisa di-tune tanpa ubah business logic
 
+import os
+
 # ── Anomali Detection ─────────────────────────────────────────────────────
 DEFAULT_PRICE_THRESHOLD_PCT = 10.0    # % kenaikan harga untuk flag anomali
 HARI_RAYA_WINDOW_DAYS = 14            # H-N s/d hari H dianggap window demand spike
@@ -54,4 +56,4 @@ OPENMETEO_API_URL = "https://archive-api.open-meteo.com/v1/archive"
 # ── App ───────────────────────────────────────────────────────────────────
 APP_HOST = "0.0.0.0"
 APP_PORT = 8000
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
