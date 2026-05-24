@@ -796,9 +796,10 @@
             <div class="ml-result-body">
               <div class="detection-row">
                 <div class="detect-item">
-                  <div class="detect-label">Changepoint</div>
+                  <div class="detect-label" title="Lonjakan harga struktural yang persisten — bukan fluktuasi harian biasa, tapi perubahan level harga yang bertahan">Changepoint <span style="font-size:9px;opacity:0.6;">ⓘ</span></div>
                   <div class="detect-value" :style="mlResult.detection?.is_changepoint ? 'color:#DC2626' : 'color:var(--success)'"
                        x-text="mlResult.detection?.is_changepoint ? 'TERDETEKSI' : 'Tidak ada'"></div>
+                  <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;">lonjakan struktural persisten</div>
                 </div>
                 <div class="detect-item">
                   <div class="detect-label">CUSUM Drift</div>
@@ -1073,10 +1074,11 @@
   <div class="info-banner">
     <span class="info-icon">💡</span>
     <div class="info-text">
-      <strong>Arsitektur 3 Lapis:</strong>
-      Lapis 1 (LightGBM Quantile) memprediksi harga 7 & 14 hari ke depan.
-      Lapis 2 (Detection) mendeteksi changepoint dan pelanggaran HET.
-      Lapis 3 (LLM Agent) memberikan rekomendasi intervensi.
+      <strong>Arsitektur 4 Lapis:</strong>
+      <strong>Lapis 1</strong> (LightGBM Quantile) memprediksi harga 7 &amp; 14 hari ke depan beserta faktor pendorong utama (SHAP).
+      <strong>Lapis 2</strong> (Detection) mendeteksi <em>changepoint</em> — lonjakan harga struktural yang persisten, bukan sekadar fluktuasi harian — serta pelanggaran HET dan ketimpangan harga antar kota.
+      <strong>Lapis 2.5</strong> (FTA) mengklasifikasi ancaman penyebab (T1 Hari Raya, T2 Inflasi, T3 Cuaca, T4 Defisit Stok, T5 Distribusi) dengan tingkat siaga kritis/siaga/waspada/aman.
+      <strong>Lapis 3</strong> (LLM Agent) mensintesis seluruh sinyal di atas menjadi rekomendasi intervensi berbasis Bowtie.
       <br>
       <strong>ML = Predictor</strong> (mempersiapkan) · <strong>RCA = Validator</strong> (mengkonfirmasi real-time)
     </div>
