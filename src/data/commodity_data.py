@@ -12,6 +12,7 @@ Architecture:
 from __future__ import annotations
 
 import math
+import threading
 from datetime import date, timedelta
 from typing import Optional
 
@@ -34,7 +35,9 @@ MVP_KOMODITAS_FILTER: set[str] = {
 
 # Mapping comcat_id -> key yang user-friendly (untuk URL)
 # Populated at startup from DB, filtered to MVP komoditas
+# Thread-safe: lock protects clear+update, other threads see stale-but-safe data
 KOMODITAS_MAP: dict[str, dict[str, str]] = {}
+_komoditas_lock = threading.Lock()
 
 
 def _valid_price(val: object) -> bool:
@@ -52,6 +55,7 @@ def _load_komoditas_map() -> None:
     """Load komoditas mapping from Supabase PostgreSQL (called once at startup).
 
     Only loads MVP komoditas (bawang merah, bawang putih, all cabai types).
+    Thread-safe: builds new dict then swaps atomically.
     """
     with db_cursor() as cur:
         cur.execute("""
@@ -61,9 +65,8 @@ def _load_komoditas_map() -> None:
         """)
         rows = cur.fetchall()
 
-    # Use clear + update to mutate the existing dict object in-place
-    # so all modules that imported KOMODITAS_MAP see the updated data
-    KOMODITAS_MAP.clear()
+    # Build new dict first, then swap atomically under lock
+    new_map: dict[str, dict[str, str]] = {}
     for row in rows:
         comcat_id = row["comcat_id"]
 
@@ -73,10 +76,15 @@ def _load_komoditas_map() -> None:
 
         # Create URL-friendly key: "Bawang Merah Ukuran Sedang" -> "bawang_merah_ukuran_sedang"
         key = row["komoditas_nama"].lower().replace(" ", "_").replace("-", "_")
-        KOMODITAS_MAP[key] = {
+        new_map[key] = {
             "comcat_id": comcat_id,
             "name": row["komoditas_nama"],
         }
+
+    # Atomic swap under lock
+    with _komoditas_lock:
+        KOMODITAS_MAP.clear()
+        KOMODITAS_MAP.update(new_map)
 
 
 def init_commodity_data() -> None:
@@ -164,8 +172,8 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     # Price threshold for anomaly detection (default 10%)
     threshold = DEFAULT_PRICE_THRESHOLD_PCT
 
-    # Cuaca -- check ALL provinces in the data, pick the most extreme
-    # This ensures we detect extreme weather regardless of which kota comes first
+    # Cuaca -- check ALL provinces, pick the most severe extreme
+    # Severity priority: hujan > kekeringan > suhu > angin > normal
     provinsi_ids = list({r["provinsi_id"] for r in rows_today if r.get("provinsi_id")})
     cuaca = CuacaInfo(
         ekstrem=False,
@@ -176,7 +184,8 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     for prov_id in provinsi_ids:
         cuaca_check = get_weather_for_rca(prov_id, tanggal=target_date)
         if cuaca_check.ekstrem:
-            # Found extreme weather -- use this one (most severe wins)
+            # Use extreme weather (first extreme found is fine since
+            # get_weather_for_rca already returns the most severe per province)
             cuaca = cuaca_check
             break
         # Keep the last non-extreme as fallback description

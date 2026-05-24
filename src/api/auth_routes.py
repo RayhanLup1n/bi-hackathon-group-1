@@ -21,7 +21,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import os
 
@@ -62,14 +62,24 @@ _oauth2 = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 # ── Pydantic models ────────────────────────────────────────────────────────────
 
 class UserCreate(BaseModel):
-    username: str
-    password: str
+    username: str = Field(
+        min_length=3, max_length=50,
+        pattern=r"^[a-zA-Z0-9_]+$",
+        description="Username (alphanumeric + underscore, 3-50 chars)",
+    )
+    password: str = Field(
+        min_length=6, max_length=128,
+        description="Password (6-128 chars)",
+    )
     is_admin: bool = False
     is_analyst: bool = False
 
 
 class UserUpdate(BaseModel):
-    password: Optional[str] = None
+    password: Optional[str] = Field(
+        default=None, min_length=6, max_length=128,
+        description="New password (6-128 chars, optional)",
+    )
     is_admin: Optional[bool] = None
     is_analyst: Optional[bool] = None
     is_active: Optional[bool] = None

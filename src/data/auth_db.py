@@ -144,36 +144,24 @@ def update_user(
     is_analyst: bool | None = None,
     is_active: bool | None = None,
 ) -> dict | None:
-    """Update user fields. Only non-None values are updated."""
-    updates = []
-    params = []
+    """Update user fields using fixed-column UPDATE with COALESCE pattern.
 
-    if new_password:
-        updates.append("password_hash = %s")
-        params.append(_hash_password(new_password))
-    if is_admin is not None:
-        updates.append("is_admin = %s")
-        params.append(is_admin)
-    if is_analyst is not None:
-        updates.append("is_analyst = %s")
-        params.append(is_analyst)
-    if is_active is not None:
-        updates.append("is_active = %s")
-        params.append(is_active)
-
-    if not updates:
-        return get_user_by_id(user_id)
-
-    params.append(user_id)
-    set_clause = ", ".join(updates)
+    Only non-None values are updated. Uses parameterized query throughout
+    (no f-string SQL construction).
+    """
+    # Hash password if provided (not empty string)
+    password_hash = _hash_password(new_password) if new_password else None
 
     with db_cursor() as cur:
-        cur.execute(f"""
+        cur.execute("""
             UPDATE app.users
-            SET {set_clause}
+            SET password_hash = COALESCE(%s, password_hash),
+                is_admin = COALESCE(%s, is_admin),
+                is_analyst = COALESCE(%s, is_analyst),
+                is_active = COALESCE(%s, is_active)
             WHERE id = %s
             RETURNING id, username, is_admin, is_analyst, is_active, created_at
-        """, params)
+        """, (password_hash, is_admin, is_analyst, is_active, user_id))
         row = cur.fetchone()
 
     return _user_to_dict(row) if row else None

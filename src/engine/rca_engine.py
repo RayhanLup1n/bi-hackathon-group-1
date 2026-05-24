@@ -11,6 +11,7 @@ Severity L0-L4 dihitung terpisah dari seluruh indikator yang tersedia.
 """
 
 import logging
+import threading
 from datetime import date
 
 from config.settings import (
@@ -113,38 +114,48 @@ SEVERITY_LABELS: dict[str, str] = {
 
 # -- Hari Besar cache (loaded from Supabase app.hari_besar, 91 rows) ----------
 # Format: list of (nama: str, tanggal: date)
+# Thread-safe: lock protects read/write, new list built then swapped atomically
 _hari_besar_cache: list[tuple[str, date]] | None = None
+_hari_besar_lock = threading.Lock()
 
 
 def _get_hari_besar_calendar() -> list[tuple[str, date]]:
-    """Get hari besar calendar from Supabase PostgreSQL, with in-memory cache.
+    """Get hari besar calendar from Supabase PostgreSQL, with thread-safe cache.
 
     Returns list of (nama, tanggal) tuples. Data source: app.hari_besar
     (91 rows from python-holidays, covering 2024-2027).
     Returns empty list if database is unreachable (hari raya check will be skipped).
     """
     global _hari_besar_cache
+    # Fast path: cache already loaded (no lock needed for read of immutable list)
     if _hari_besar_cache is not None:
         return _hari_besar_cache
 
-    try:
-        from src.data.database import db_cursor
+    with _hari_besar_lock:
+        # Double-checked locking: re-check inside lock
+        if _hari_besar_cache is not None:
+            return _hari_besar_cache
 
-        with db_cursor() as cur:
-            cur.execute("SELECT nama, tanggal FROM app.hari_besar ORDER BY tanggal")
-            rows = cur.fetchall()
+        try:
+            from src.data.database import db_cursor
 
-        _hari_besar_cache = [(r["nama"], r["tanggal"]) for r in rows]
-        logger.info(
-            "Loaded %d hari besar from Supabase", len(_hari_besar_cache)
-        )
-        return _hari_besar_cache
-    except Exception:
-        logger.warning(
-            "Supabase hari_besar unavailable -- hari raya check will not trigger"
-        )
-        # Return empty so hari raya check gracefully reports "clear"
-        return []
+            with db_cursor() as cur:
+                cur.execute("SELECT nama, tanggal FROM app.hari_besar ORDER BY tanggal")
+                rows = cur.fetchall()
+
+            # Build new list then swap atomically
+            new_cache = [(r["nama"], r["tanggal"]) for r in rows]
+            _hari_besar_cache = new_cache
+            logger.info(
+                "Loaded %d hari besar from Supabase", len(_hari_besar_cache)
+            )
+            return _hari_besar_cache
+        except Exception:
+            logger.warning(
+                "Supabase hari_besar unavailable -- hari raya check will not trigger"
+            )
+            # Return empty so hari raya check gracefully reports "clear"
+            return []
 
 
 def _check_hari_raya(data: CommodityData, today: date) -> CheckResult:
