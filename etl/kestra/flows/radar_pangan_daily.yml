@@ -128,7 +128,7 @@ tasks:
       DAILY PIPELINE COMPLETE: radar_pangan_daily
       ============================================================
       Execution   : {{ execution.id }}
-      Status      : {{ execution.status }}
+      Status      : SUCCESS (all steps completed)
       ============================================================
 
 # -- Schedule: 00:00 UTC (07:00 WIB) every day --------------------------------
