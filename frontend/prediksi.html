@@ -304,6 +304,89 @@
 
     .spinner { width: 18px; height: 18px; border: 3px solid rgba(46,204,136,0.2); border-top-color: var(--accent); }
 
+    /* -- FTA Threat badges -- */
+    .threat-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+    }
+    @media (max-width: 700px) { .threat-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 400px) { .threat-grid { grid-template-columns: 1fr; } }
+
+    .threat-badge-card {
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      padding: 12px 10px; text-align: center;
+    }
+    .threat-active  { background: #FEF2F2; border-color: #F87171; }
+    .threat-inactive { background: #F0FDF4; border-color: #86EFAC; }
+    .threat-unknown  { background: #F9FAFB; border-color: #D1D5DB; }
+
+    .threat-tid {
+      font-family: var(--mono); font-size: 16px; font-weight: 900; margin-bottom: 2px;
+    }
+    .threat-active  .threat-tid  { color: #DC2626; }
+    .threat-inactive .threat-tid { color: #16a34a; }
+    .threat-unknown  .threat-tid { color: #9CA3AF; }
+
+    .threat-label {
+      font-family: var(--mono); font-size: 9px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+    }
+    .threat-active  .threat-label  { color: #991B1B; }
+    .threat-inactive .threat-label { color: #166534; }
+    .threat-unknown  .threat-label { color: #6B7280; }
+
+    .threat-status {
+      font-family: var(--mono); font-size: 10px; font-weight: 800; margin-bottom: 6px;
+    }
+
+    .threat-evidence {
+      font-size: 10px; line-height: 1.4; color: var(--text2);
+    }
+    .threat-unknown .threat-evidence { color: var(--muted); }
+
+    .threat-severity-bar {
+      height: 4px; background: #FECACA; border-radius: 2px; margin-top: 6px; overflow: hidden;
+    }
+    .threat-severity-bar > div {
+      height: 100%; background: #DC2626; border-radius: 2px; transition: width 0.5s ease;
+    }
+
+    /* -- SHAP attribution bars -- */
+    .shap-row {
+      display: grid; grid-template-columns: 160px 1fr 80px 70px;
+      align-items: center; gap: 8px; padding: 5px 0;
+      border-bottom: 1px solid #E5E7EB;
+    }
+    .shap-row:last-child { border-bottom: none; }
+    @media (max-width: 560px) {
+      .shap-row { grid-template-columns: 120px 1fr 60px; }
+      .shap-actual { display: none; }
+    }
+
+    .shap-feature {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-transform: lowercase;
+    }
+    .shap-bar-wrap {
+      height: 10px; background: #F3F4F6; border-radius: 3px; overflow: hidden;
+    }
+    .shap-bar {
+      height: 100%; border-radius: 3px; transition: width 0.5s ease;
+      min-width: 2px;
+    }
+    .shap-pos { background: #F87171; }
+    .shap-neg { background: #34D399; }
+
+    .shap-value {
+      font-family: var(--mono); font-size: 10px; font-weight: 800; text-align: right;
+    }
+    .shap-value-pos { color: #DC2626; }
+    .shap-value-neg { color: #059669; }
+
+    .shap-actual {
+      font-family: var(--mono); font-size: 9px; color: var(--muted); text-align: right;
+    }
+
     /* -- Info banner -- */
     .info-banner {
       padding: 16px 20px; background: #DBEAFE;
@@ -655,6 +738,54 @@
             </div>
           </div>
 
+          <!-- ── SHAP — Faktor Pendorong Prediksi ───────────────────────── -->
+          <template x-if="mlResult.predictions?.shap_7d?.length > 0">
+            <div class="ml-result-card">
+              <div class="ml-result-header">
+                <span class="ml-result-title">LAPIS 1 — Faktor Pendorong Prediksi 7 Hari</span>
+                <span style="font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;">SHAP Top-5</span>
+              </div>
+              <div class="ml-result-body">
+                <div x-data="{
+                  get maxShap() {
+                    const vals = mlResult.predictions.shap_7d.map(d => Math.abs(d.shap));
+                    return vals.length ? Math.max(...vals) : 1;
+                  }
+                }">
+                  <div style="display:grid;grid-template-columns:160px 1fr 80px 70px;gap:8px;padding:0 0 6px;border-bottom:2px solid var(--border);margin-bottom:4px;">
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Fitur</span>
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Kontribusi</span>
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:right;">SHAP (Rp)</span>
+                    <span style="font-family:var(--mono);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:right;">Nilai</span>
+                  </div>
+                  <template x-for="(driver, i) in mlResult.predictions.shap_7d" :key="i">
+                    <div class="shap-row">
+                      <div class="shap-feature" x-text="driver.fitur.replace(/_/g,' ')"></div>
+                      <div class="shap-bar-wrap">
+                        <div class="shap-bar"
+                             :class="driver.shap >= 0 ? 'shap-pos' : 'shap-neg'"
+                             :style="'width:' + Math.round(Math.abs(driver.shap) / maxShap * 100) + '%'">
+                        </div>
+                      </div>
+                      <div class="shap-value"
+                           :class="driver.shap >= 0 ? 'shap-value-pos' : 'shap-value-neg'"
+                           x-text="(driver.shap >= 0 ? '+' : '') + Math.round(driver.shap).toLocaleString('id-ID')">
+                      </div>
+                      <div class="shap-actual"
+                           x-text="driver.nilai != null ? Math.round(driver.nilai).toLocaleString('id-ID') : '—'">
+                      </div>
+                    </div>
+                  </template>
+                </div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:10px;line-height:1.6;">
+                  Nilai SHAP = kontribusi fitur terhadap prediksi harga (Rp). &nbsp;
+                  <span style="color:#DC2626;font-weight:700;">■ Merah = mendorong naik</span>&nbsp;·&nbsp;
+                  <span style="color:#059669;font-weight:700;">■ Hijau = menekan turun</span>
+                </div>
+              </div>
+            </div>
+          </template>
+
           <!-- Detection Details -->
           <div class="ml-result-card" x-show="mlResult.detection && Object.keys(mlResult.detection).length > 0">
             <div class="ml-result-header">
@@ -705,6 +836,63 @@
               </template>
             </div>
           </div>
+
+          <!-- ── FTA Threat Assessment ─────────────────────────────────── -->
+          <template x-if="mlResult.threat_assessment">
+            <div class="ml-result-card">
+              <div class="ml-result-header">
+                <span class="ml-result-title">LAPIS 2.5 — Ancaman Aktif (FTA)</span>
+                <span class="alert-badge" :class="{
+                  'alert-green':  mlResult.threat_assessment.siaga_level === 'aman',
+                  'alert-yellow': mlResult.threat_assessment.siaga_level === 'waspada',
+                  'alert-red':    ['siaga','kritis'].includes(mlResult.threat_assessment.siaga_level)
+                }" x-text="mlResult.threat_assessment.siaga_level.toUpperCase()"></span>
+              </div>
+              <div class="ml-result-body">
+                <div class="threat-grid">
+                  <template x-for="[tid, t] in Object.entries(mlResult.threat_assessment.threats)" :key="tid">
+                    <div class="threat-badge-card"
+                         :class="t.active === true ? 'threat-active' : t.active === false ? 'threat-inactive' : 'threat-unknown'">
+                      <div class="threat-tid" x-text="tid"></div>
+                      <div class="threat-label" x-text="t.label"></div>
+                      <div class="threat-status">
+                        <template x-if="t.active === true"><span>⚠️ AKTIF</span></template>
+                        <template x-if="t.active === false"><span>✅ AMAN</span></template>
+                        <template x-if="t.active === null"><span>❓ N/A</span></template>
+                      </div>
+                      <div class="threat-evidence" x-text="t.evidence"></div>
+                      <template x-if="t.active === true && t.severity > 0">
+                        <div class="threat-severity-bar">
+                          <div :style="'width:' + Math.min(100, Math.round(t.severity * 100)) + '%'"></div>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+
+                <!-- Akar Masalah dari Bowtie LLM -->
+                <template x-if="mlResult.decision?.akar_masalah?.length > 0">
+                  <div style="margin-top:12px;padding:10px 14px;background:#FFF7ED;border:1.5px solid #D97706;border-radius:var(--radius-sm);">
+                    <div style="font-family:var(--mono);font-size:10px;font-weight:800;color:#92400E;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">⚑ Akar Masalah (Bowtie Analysis)</div>
+                    <template x-for="(am, i) in mlResult.decision.akar_masalah" :key="i">
+                      <div style="font-size:12px;color:#78350F;margin-bottom:3px;display:flex;gap:6px;line-height:1.5;">
+                        <span style="flex-shrink:0;">•</span>
+                        <span x-text="am"></span>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+
+                <!-- Severity summary -->
+                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">
+                    Threats aktif: <strong x-text="mlResult.threat_assessment.active_count"></strong>
+                    &nbsp;·&nbsp; Severity: <strong x-text="mlResult.threat_assessment.severity_score.toFixed(2)"></strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </template>
 
           <!-- LLM Recommendation -->
           <template x-if="mlResult.decision && mlResult.decision.rekomendasi">

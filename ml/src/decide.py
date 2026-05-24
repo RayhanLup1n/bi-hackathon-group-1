@@ -39,6 +39,16 @@ from loguru import logger
 
 from ml.src.detect import AlertLevel, DetectionResult
 
+# ── Bowtie Mitigations ────────────────────────────────────────────────────────
+# Maps each FTA threat ID → recommended intervention instrument (Bahasa Indonesia)
+BOWTIE_MITIGATIONS: dict[str, str] = {
+    "T1": "Lakukan operasi pasar H-7 s/d H+3 di pasar-pasar utama; koordinasi stok cadangan pemda",
+    "T2": "Percepat penyaluran subsidi pangan; prioritaskan Sembako murah di daerah inflasi tinggi",
+    "T3": "Aktivasi jalur distribusi alternatif; koordinasi stok antardaerah dari daerah tidak terdampak cuaca",
+    "T4": "Ajukan permintaan release stok cadangan pemerintah (CBP/CBAN); koordinasi dengan distributor nasional",
+    "T5": "Koordinasi pengiriman stok dari kota surplus ke kota defisit; sidak rantai distribusi dan cold chain",
+}
+
 # ── Data Classes ──────────────────────────────────────────────────────────────
 
 @dataclass
@@ -54,6 +64,7 @@ class DecisionResult:
     tools_called:         list[str]       # List tool names yang dipanggil
     confidence:           Literal["high", "medium", "low"]
     is_llm_generated:     bool            # True = LLM, False = rule-based fallback
+    akar_masalah:         list[str] = field(default_factory=list)  # Bowtie root causes
 
 
 # ── System Prompt ─────────────────────────────────────────────────────────────
@@ -83,13 +94,20 @@ ATURAN KEPUTUSAN:
 - LARANGAN KERAS: JANGAN PERNAH menyebut nama kota berdasarkan pengetahuan kamu sendiri. Kamu HANYA boleh menyebut kota yang secara eksplisit tertulis di hasil tool call. Jika kota tidak ada di output tool, kota itu tidak boleh muncul di rekomendasi dalam bentuk apapun — termasuk "jika logistik memungkinkan" atau frasa bersyarat lainnya.
 - Jangan hanya bilang "pantau terus" — itu bukan rekomendasi actionable
 
+BOWTIE ANALYSIS:
+Jika ada data 'active_threats' di input, kamu wajib:
+1. Identifikasi akar masalah berdasarkan threats yang aktif (gunakan label threat)
+2. Sertakan mitigasi Bowtie yang relevan dalam rekomendasi
+3. Field 'akar_masalah' berisi list singkat (max 3 item) penyebab aktif
+
 FORMAT JAWABAN AKHIR (JSON):
 {
   "final_alert_level": "green"|"yellow"|"red",
   "intervention_priority": 1-5,
   "rekomendasi": "...",
   "reasoning": "...",
-  "confidence": "high"|"medium"|"low"
+  "confidence": "high"|"medium"|"low",
+  "akar_masalah": ["...", "..."]
 }
 """.strip()
 
@@ -712,13 +730,18 @@ class ReasoningAgent:
         except ImportError:
             logger.warning("openai package tidak terinstall. Akan menggunakan fallback.")
 
-    def _build_user_message(self, detection: DetectionResult) -> str:
-        """Format sinyal deteksi sebagai user message untuk LLM."""
+    def _build_user_message(
+        self,
+        detection: DetectionResult,
+        threat_assessment: "Any | None" = None,
+        shap_drivers: list | None = None,
+    ) -> str:
+        """Format sinyal deteksi + FTA threat context sebagai user message untuk LLM."""
         h  = detection.het_alert
         cp = detection.changepoint
         d  = detection.disparity
 
-        data = {
+        data: dict[str, Any] = {
             "komoditas": h.komoditas_nama,
             "kota": h.kota_nama,
             "tanggal": str(detection.tanggal),
@@ -740,6 +763,30 @@ class ReasoningAgent:
             "kota_termahal": d.kota_termahal if d else None,
         }
 
+        # Inject SHAP top-5 drivers (Lapis 1 context)
+        if shap_drivers:
+            data["shap_pendorong_7hari"] = [
+                {"fitur": drv["fitur"], "kontribusi_rp": round(drv["shap"], 0), "nilai": drv.get("nilai")}
+                for drv in shap_drivers[:5]
+            ]
+
+        # Inject FTA Threat Assessment (Bowtie context)
+        if threat_assessment is not None:
+            ta_dict = threat_assessment.to_dict() if hasattr(threat_assessment, "to_dict") else threat_assessment
+            active_threats = {
+                tid: {
+                    "label":    t["label"],
+                    "evidence": t["evidence"],
+                    "severity": t["severity"],
+                    "mitigasi": BOWTIE_MITIGATIONS.get(tid, ""),
+                }
+                for tid, t in ta_dict.get("threats", {}).items()
+                if t.get("active") is True
+            }
+            data["active_threats"]  = active_threats
+            data["siaga_level"]     = ta_dict.get("siaga_level", "aman")
+            data["threat_count"]    = ta_dict.get("active_count", 0)
+
         return (
             "Berikut data sinyal deteksi untuk dianalisis:\n\n"
             + json.dumps(data, ensure_ascii=False, indent=2)
@@ -751,6 +798,8 @@ class ReasoningAgent:
         client: Any,
         model: str,
         detection: DetectionResult,
+        threat_assessment: Any = None,
+        shap_drivers: list | None = None,
     ) -> DecisionResult:
         """
         Jalankan ReAct loop dengan client dan model yang diberikan.
@@ -768,7 +817,7 @@ class ReasoningAgent:
 
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": self._build_user_message(detection)},
+            {"role": "user",   "content": self._build_user_message(detection, threat_assessment, shap_drivers)},
         ]
 
         reasoning_trace = []
@@ -861,6 +910,7 @@ class ReasoningAgent:
                 tools_called          = tools_called,
                 confidence            = final_json.get("confidence", "medium"),
                 is_llm_generated      = True,
+                akar_masalah          = final_json.get("akar_masalah", []),
             )
         else:
             # LLM ran but JSON parse failed → rule-based fallback
@@ -872,9 +922,19 @@ class ReasoningAgent:
             result.tools_called    = tools_called
             return result
 
-    def decide(self, detection: DetectionResult) -> DecisionResult:
+    def decide(
+        self,
+        detection: DetectionResult,
+        threat_assessment: Any = None,
+        shap_drivers: list | None = None,
+    ) -> DecisionResult:
         """
         Jalankan ReAct loop dan return DecisionResult.
+
+        Args:
+            detection:         Lapis 2 detection result
+            threat_assessment: Lapis 2.5 FTA ThreatAssessment (opsional, inject ke LLM context)
+            shap_drivers:      Lapis 1 SHAP top-5 driver list (opsional, inject ke LLM context)
 
         Urutan fallback:
           1. Primary LLM (LLM_API_KEY / LLM_BASE_URL)
@@ -883,12 +943,25 @@ class ReasoningAgent:
         """
         if self._tool_context is None:
             logger.warning("Tool context tidak tersedia → menggunakan rule-based fallback")
-            return _rule_based_decision(detection, pd.DataFrame())
+            result = _rule_based_decision(detection, pd.DataFrame())
+            if threat_assessment is not None:
+                try:
+                    ta_dict = threat_assessment.to_dict() if hasattr(threat_assessment, "to_dict") else threat_assessment
+                    result.akar_masalah = [
+                        t["label"]
+                        for t in ta_dict.get("threats", {}).values()
+                        if t.get("active") is True
+                    ][:3]
+                except Exception:
+                    pass
+            return result
 
         # Try primary LLM
         if self._client is not None:
             try:
-                return self._decide_with_client(self._client, self._model, detection)
+                return self._decide_with_client(
+                    self._client, self._model, detection, threat_assessment, shap_drivers
+                )
             except Exception as e:
                 logger.warning(f"Primary LLM gagal ({e}). Mencoba Groq fallback...")
 
@@ -897,14 +970,23 @@ class ReasoningAgent:
             try:
                 logger.info(f"Menggunakan Groq fallback model: {self._fallback_model}")
                 return self._decide_with_client(
-                    self._fallback_client, self._fallback_model, detection
+                    self._fallback_client, self._fallback_model, detection, threat_assessment, shap_drivers
                 )
             except Exception as e:
                 logger.error(f"Groq fallback juga gagal ({e}). Menggunakan rule-based fallback.")
 
         # Final: rule-based fallback
         logger.warning("Semua LLM tidak tersedia → menggunakan rule-based fallback")
-        return _rule_based_decision(
-            detection,
-            self._tool_context.df,
-        )
+        result = _rule_based_decision(detection, self._tool_context.df)
+        # Populate akar_masalah from FTA even without LLM
+        if threat_assessment is not None:
+            try:
+                ta_dict = threat_assessment.to_dict() if hasattr(threat_assessment, "to_dict") else threat_assessment
+                result.akar_masalah = [
+                    t["label"]
+                    for t in ta_dict.get("threats", {}).values()
+                    if t.get("active") is True
+                ][:3]
+            except Exception:
+                pass
+        return result
