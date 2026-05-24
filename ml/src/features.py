@@ -49,6 +49,9 @@ FEATURE_COLS = [
     # HET features (added here)
     "het_pct_utilization",  # harga / het_harga * 100 (null jika no HET)
     "jarak_ke_het_pct",     # (harga - het) / het * 100 (null jika no HET)
+    # Weather features
+    "precip_7d_avg",
+    "temp_max_7d",
     # Commodity & location encoding (categorical)
     "comcat_id_encoded",
     "kota_id",
@@ -140,6 +143,154 @@ def export_to_parquet(df: pd.DataFrame, output_path: str | Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(output_path, index=False)
     logger.info(f"Exported {len(df):,} rows to {output_path}")
+
+
+def load_from_harga_pangan(conn_string: str) -> pd.DataFrame:
+    """
+    Load raw app.harga_pangan dan hitung semua fitur ML on-the-fly.
+
+    Digunakan sebagai fallback ketika marts.mart_modelling_harga_pangan belum ada.
+    Output DataFrame memiliki kolom yang sama dengan mart sehingga pipeline
+    downstream tidak perlu modifikasi.
+    """
+    from sqlalchemy import create_engine, text
+
+    logger.info("Loading data from app.harga_pangan (fallback dari mart)...")
+    engine = create_engine(conn_string, connect_args={"options": "-c statement_timeout=0"})
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(
+                text("SELECT * FROM app.harga_pangan ORDER BY tanggal"),
+                conn,
+            )
+    finally:
+        engine.dispose()
+
+    logger.info(f"Loaded {len(df):,} raw rows from app.harga_pangan")
+
+    # Rename harga → harga_aktual (sesuai skema mart)
+    df = df.rename(columns={"harga": "harga_aktual"})
+    df["tanggal"] = pd.to_datetime(df["tanggal"])
+
+    # Jika ada duplikat (tanggal, comcat_id, kota_id) dari berbagai pasar_tipe,
+    # gunakan rata-rata per (tanggal, comcat_id, kota_id)
+    agg_cols = [c for c in df.columns if c not in ("id", "pasar_tipe")]
+    df = (
+        df.groupby(["tanggal", "comcat_id", "kota_id"])[
+            ["harga_aktual", "kota_nama", "provinsi_id", "provinsi_nama", "komoditas_nama", "satuan"]
+        ]
+        .agg({
+            "harga_aktual": "mean",
+            "kota_nama": "first",
+            "provinsi_id": "first",
+            "provinsi_nama": "first",
+            "komoditas_nama": "first",
+            "satuan": "first",
+        })
+        .reset_index()
+    )
+    df = df.sort_values(["comcat_id", "kota_id", "tanggal"]).reset_index(drop=True)
+
+    # ── Lag features ──────────────────────────────────────────────────────────
+    grp = df.groupby(["comcat_id", "kota_id"])["harga_aktual"]
+    df["harga_lag_1d"]  = grp.shift(1)
+    df["harga_lag_7d"]  = grp.shift(7)
+    df["harga_lag_14d"] = grp.shift(14)
+    df["harga_lag_30d"] = grp.shift(30)
+
+    df["delta_harga_1d"] = df["harga_aktual"] - df["harga_lag_1d"]
+    df["delta_harga_7d"] = df["harga_aktual"] - df["harga_lag_7d"]
+    df["pct_change_1d"]  = df["delta_harga_1d"] / df["harga_lag_1d"] * 100
+    df["pct_change_7d"]  = df["delta_harga_7d"] / df["harga_lag_7d"] * 100
+
+    # ── Rolling stats ─────────────────────────────────────────────────────────
+    def _rolling(series: pd.Series, window: int, fn: str) -> pd.Series:
+        return series.groupby(df["comcat_id"].astype(str) + "_" + df["kota_id"].astype(str)).transform(
+            lambda x: getattr(x.rolling(window, min_periods=1), fn)()
+        )
+
+    df["rolling_avg_7d"]  = _rolling(df["harga_aktual"], 7,  "mean")
+    df["rolling_std_7d"]  = _rolling(df["harga_aktual"], 7,  "std")
+    df["rolling_avg_30d"] = _rolling(df["harga_aktual"], 30, "mean")
+    df["rolling_std_30d"] = _rolling(df["harga_aktual"], 30, "std")
+    df["rolling_min_30d"] = _rolling(df["harga_aktual"], 30, "min")
+    df["rolling_max_30d"] = _rolling(df["harga_aktual"], 30, "max")
+
+    # ── Cross-wilayah features ────────────────────────────────────────────────
+    nat_avg = df.groupby(["tanggal", "comcat_id"])["harga_aktual"].transform("mean")
+    df["avg_harga_nasional"] = nat_avg
+    df["harga_ratio_nasional"] = df["harga_aktual"] / nat_avg
+    std_30 = df["rolling_std_30d"].replace(0, np.nan)
+    df["harga_zscore_30d"] = (df["harga_aktual"] - df["rolling_avg_30d"]) / std_30
+
+    # ── Calendar features ─────────────────────────────────────────────────────
+    df["bulan"]              = df["tanggal"].dt.month
+    df["kuartal"]            = df["tanggal"].dt.quarter
+    df["hari_dalam_minggu"]  = df["tanggal"].dt.dayofweek
+    df["is_weekday"]         = (df["hari_dalam_minggu"] < 5).astype(int)
+    df["is_ramadan_season"]  = df["bulan"].isin([3, 4]).astype(int)
+    df["is_year_end_season"] = df["bulan"].isin([12, 1]).astype(int)
+
+    # ── Weather features ─────────────────────────────────────────────────────
+    # Mapping dari kota_nama → lokasi_label di app.cuaca_harian
+    _KOTA_TO_WEATHER: dict[str, str] = {
+        "Kota Bandung":       "Bandung",
+        "Kab. Tasikmalaya":   "Bandung",
+        "Kota Tasikmalaya":   "Bandung",
+        "Kota Sukabumi":      "Bandung",
+        "Kab. Cirebon":       "Cirebon",
+        "Kota Cirebon":       "Cirebon",
+        "Kota Bekasi":        "Jakarta",
+        "Kota Depok":         "Jakarta",
+        "Kota Bogor":         "Jakarta",
+        "Kota Jakarta Pusat": "Jakarta",
+        "Kota Cilegon":       "Tangerang",
+        "Kota Serang":        "Tangerang",
+        "Kota Tangerang":     "Tangerang",
+        "Kota Makassar":      "Makassar",
+        "Kab. Bulukumba":     "Makassar",
+        "Kota Palopo":        "Makassar",
+        "Kota Parepare":      "Makassar",
+        "Kota Watampone":     "Makassar",
+    }
+    weather_engine = create_engine(conn_string, connect_args={"options": "-c statement_timeout=0"})
+    try:
+        with weather_engine.connect() as conn:
+            weather_df = pd.read_sql(
+                text("SELECT tanggal, lokasi_label, precipitation_sum, temperature_max FROM app.cuaca_harian ORDER BY lokasi_label, tanggal"),
+                conn,
+            )
+        weather_df["tanggal"] = pd.to_datetime(weather_df["tanggal"])
+        weather_df = weather_df.sort_values(["lokasi_label", "tanggal"])
+        weather_df["precip_7d_avg"] = (
+            weather_df.groupby("lokasi_label")["precipitation_sum"]
+            .transform(lambda x: x.rolling(7, min_periods=1).mean())
+        )
+        weather_df["temp_max_7d"] = (
+            weather_df.groupby("lokasi_label")["temperature_max"]
+            .transform(lambda x: x.rolling(7, min_periods=1).mean())
+        )
+        weather_df = weather_df[["tanggal", "lokasi_label", "precip_7d_avg", "temp_max_7d"]]
+
+        df["_weather_station"] = df["kota_nama"].map(_KOTA_TO_WEATHER)
+        df = df.merge(
+            weather_df,
+            left_on=["_weather_station", "tanggal"],
+            right_on=["lokasi_label", "tanggal"],
+            how="left",
+        )
+        df = df.drop(columns=["_weather_station", "lokasi_label"], errors="ignore")
+        n_weather = int(df["precip_7d_avg"].notna().sum())
+        logger.info(f"Weather features joined: {n_weather:,}/{len(df):,} rows have weather data")
+    except Exception as exc_weather:
+        logger.warning(f"Weather features tidak tersedia ({exc_weather}), menggunakan NaN.")
+        df["precip_7d_avg"] = float("nan")
+        df["temp_max_7d"]   = float("nan")
+    finally:
+        weather_engine.dispose()
+
+    logger.info(f"Features computed: {len(df):,} rows, {df.shape[1]} columns")
+    return df
 
 
 # ── HET Reference Loading & Joining ──────────────────────────────────────────

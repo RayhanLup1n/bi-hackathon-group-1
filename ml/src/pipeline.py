@@ -37,6 +37,7 @@ from loguru import logger
 
 from ml.src.decide import DecisionResult, ReasoningAgent, ToolContext
 from ml.src.detect import AlertLevel, DetectionResult, run_detection
+from ml.src.threat import ThreatAssessment, ThreatClassifier
 from ml.src.features import (
     add_het_features,
     add_targets,
@@ -63,6 +64,13 @@ class FullAnalysisResult:
     pred_p50_14d:    float | None = None
     pred_p90_14d:    float | None = None
 
+    # Lapis 1 — SHAP Attribution (top-5 drivers)
+    shap_drivers_7d:  list[dict] = field(default_factory=list)
+    shap_drivers_14d: list[dict] = field(default_factory=list)
+
+    # Lapis 2.5 — FTA Threat Assessment
+    threat_assessment: ThreatAssessment | None = None
+
     # Lapis 2 — Detection
     detection:       DetectionResult | None = None
 
@@ -88,10 +96,12 @@ class FullAnalysisResult:
             "kota_nama":        self.kota_nama,
             "tanggal":          str(self.tanggal),
             "predictions": {
-                "p50_7d":  self.pred_p50_7d,
-                "p90_7d":  self.pred_p90_7d,
-                "p50_14d": self.pred_p50_14d,
-                "p90_14d": self.pred_p90_14d,
+                "p50_7d":   self.pred_p50_7d,
+                "p90_7d":   self.pred_p90_7d,
+                "p50_14d":  self.pred_p50_14d,
+                "p90_14d":  self.pred_p90_14d,
+                "shap_7d":  self.shap_drivers_7d,
+                "shap_14d": self.shap_drivers_14d,
             },
             "detection": {
                 "alert_level":       self.detection.het_alert.alert_level if self.detection else None,
@@ -125,7 +135,9 @@ class FullAnalysisResult:
                 "is_llm_generated":      bool(self.decision.is_llm_generated),
                 "reasoning_trace":       self.decision.reasoning_trace,
                 "tools_called":          self.decision.tools_called,
+                "akar_masalah":          self.decision.akar_masalah,
             } if self.decision else {},
+            "threat_assessment": self.threat_assessment.to_dict() if self.threat_assessment else None,
         }
 
 
@@ -165,6 +177,7 @@ class RadarPipeline:
         self._df: pd.DataFrame | None = None
         self._models: dict[str, Any]  = {}      # model_name → (model, feature_cols)
         self._agent: ReasoningAgent | None = None
+        self._classifier: ThreatClassifier | None = None
         self._loaded = False
 
     @classmethod
@@ -280,8 +293,9 @@ class RadarPipeline:
             logger.warning(f"Tidak ada model ditemukan di {self.models_dir}. Jalankan train.py dulu.")
 
         # 3. Load reference tables for LLM tool context
-        self._df_hari_besar: pd.DataFrame  = pd.DataFrame()
+        self._df_hari_besar:  pd.DataFrame = pd.DataFrame()
         self._df_musim_panen: pd.DataFrame = pd.DataFrame()
+        self._df_inflasi:     pd.DataFrame = pd.DataFrame()
 
         if pg_conn_string:
             try:
@@ -295,11 +309,16 @@ class RadarPipeline:
                     "SELECT komoditas_nama, bulan_mulai, bulan_selesai, daerah_utama, catatan FROM app.musim_panen",
                     _ref_conn,
                 )
+                self._df_inflasi = pd.read_sql(
+                    "SELECT tahun, bulan, komoditas_id, inflasi_mtm, inflasi_ytd FROM app.inflasi_bulanan ORDER BY tahun, bulan",
+                    _ref_conn,
+                )
                 _ref_conn.close()
                 logger.info(
                     f"Loaded reference tables: "
                     f"{len(self._df_hari_besar)} hari_besar, "
-                    f"{len(self._df_musim_panen)} musim_panen"
+                    f"{len(self._df_musim_panen)} musim_panen, "
+                    f"{len(self._df_inflasi)} inflasi records"
                 )
             except Exception as exc_ref:
                 logger.warning(f"Gagal load hari_besar/musim_panen: {exc_ref}")
@@ -318,6 +337,14 @@ class RadarPipeline:
             fallback_api_key=self.llm_fallback_api_key,
             fallback_base_url=self.llm_fallback_base_url,
             fallback_model=self.llm_fallback_model,
+        )
+
+        # 5. Init FTA Threat Classifier (Lapis 2.5)
+        self._classifier = ThreatClassifier(
+            df             = self._df if self._df is not None else pd.DataFrame(),
+            df_hari_besar  = self._df_hari_besar,
+            df_musim_panen = self._df_musim_panen,
+            df_inflasi     = self._df_inflasi,
         )
 
         self._loaded = True
@@ -400,6 +427,44 @@ class RadarPipeline:
             logger.warning(f"Prediction error: {e}")
             return None, None
 
+    def _explain_prediction(self, row: pd.Series, horizon: int) -> list[dict]:
+        """
+        Hitung SHAP attribution untuk prediksi P50 pada horizon tertentu.
+        Mengembalikan top-5 fitur yang paling berkontribusi terhadap prediksi,
+        diurutkan berdasarkan nilai absolut SHAP.
+
+        Returns:
+            List of {fitur, shap, nilai} — top 5 faktor pendorong prediksi
+        """
+        m50_key = f"lgbm_q50_t{horizon}"
+        if m50_key not in self._models:
+            return []
+
+        model50, fcols50 = self._models[m50_key]
+        available_cols = [c for c in fcols50 if c in row.index]
+        if not available_cols:
+            return []
+
+        x = row[available_cols].values.reshape(1, -1).astype(float)
+
+        try:
+            # pred_contrib=True → returns array shape (1, n_features+1)
+            # last element is the bias/baseline term, excluded from drivers
+            contribs = model50.predict(x, pred_contrib=True)[0]
+            drivers = []
+            for i, col in enumerate(available_cols):
+                drivers.append({
+                    "fitur": col,
+                    "shap":  round(float(contribs[i]), 2),
+                    "nilai": round(float(row[col]), 4) if not pd.isna(row[col]) else None,
+                })
+            # Sort by absolute SHAP, take top 5
+            drivers.sort(key=lambda d: abs(d["shap"]), reverse=True)
+            return drivers[:5]
+        except Exception as exc:
+            logger.warning(f"SHAP explain error (horizon={horizon}): {exc}")
+            return []
+
     def analyze(
         self,
         komoditas_nama: str,
@@ -435,6 +500,10 @@ class RadarPipeline:
         result.pred_p50_7d,  result.pred_p90_7d  = self._predict(row, horizon=7)
         result.pred_p50_14d, result.pred_p90_14d = self._predict(row, horizon=14)
 
+        # Lapis 1 — SHAP attribution (faktor pendorong prediksi)
+        result.shap_drivers_7d  = self._explain_prediction(row, horizon=7)
+        result.shap_drivers_14d = self._explain_prediction(row, horizon=14)
+
         # ── Lapis 2: Detection ────────────────────────────────────────────────
         if not self._df.empty:
             history_df = self._df[
@@ -465,9 +534,25 @@ class RadarPipeline:
                 pred_p90=result.pred_p90_7d,
             )
 
+        # ── Lapis 2.5: FTA Threat Assessment ─────────────────────────────────
+        if self._classifier:
+            disparity = (
+                result.detection.disparity.disparity_score
+                if result.detection and result.detection.disparity else None
+            )
+            result.threat_assessment = self._classifier.evaluate_all(
+                tanggal         = tanggal,
+                row             = row,
+                disparity_score = disparity,
+            )
+
         # ── Lapis 3: Decision (LLM Reasoning Agent) ───────────────────────────
         if with_llm and result.detection and self._agent:
-            result.decision = self._agent.decide(result.detection)
+            result.decision = self._agent.decide(
+                result.detection,
+                threat_assessment=result.threat_assessment,
+                shap_drivers=result.shap_drivers_7d,
+            )
 
         return result
 
