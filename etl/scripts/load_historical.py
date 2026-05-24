@@ -32,6 +32,7 @@ from loguru import logger
 
 from extractors.pihps_extractor import PihpsExtractor
 from config.constants import TARGET_PROVINCE_IDS
+from config.log_config import setup_logging
 
 
 # -- Config --------------------------------------------------------------------
@@ -314,4 +315,5 @@ def main():
 
 
 if __name__ == "__main__":
+    setup_logging()
     main()

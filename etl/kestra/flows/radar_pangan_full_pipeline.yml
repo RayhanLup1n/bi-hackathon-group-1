@@ -102,7 +102,7 @@ tasks:
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
     commands:
-      - dbt deps --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target || echo "No packages to install, continuing..."
+      - dbt deps --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project || echo "No packages to install, continuing..."
     description: "Install dbt packages (skips if no packages.yml)"
 
   # --------------------------------------------------------------------------
@@ -113,7 +113,7 @@ tasks:
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
     commands:
-      - dbt run --select staging --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+      - dbt run --select staging --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target --log-path /tmp/dbt-logs
     description: "Run dbt staging models (deduplicate, normalize, dimension tables)"
 
   # --------------------------------------------------------------------------
@@ -124,7 +124,7 @@ tasks:
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
     commands:
-      - dbt test --select staging --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+      - dbt test --select staging --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target --log-path /tmp/dbt-logs
     description: "Run dbt tests on staging models (NOT NULL, UNIQUE constraints)"
     allowFailure: true
 
@@ -136,7 +136,7 @@ tasks:
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
     commands:
-      - dbt run --select marts --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+      - dbt run --select marts --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target --log-path /tmp/dbt-logs
     description: "Run dbt marts models (dashboard aggregations, ML features)"
 
   # --------------------------------------------------------------------------
@@ -147,7 +147,7 @@ tasks:
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
     commands:
-      - dbt test --select marts --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+      - dbt test --select marts --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target --log-path /tmp/dbt-logs
     description: "Run dbt tests on marts models"
     allowFailure: true
 

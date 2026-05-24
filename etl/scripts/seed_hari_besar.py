@@ -30,6 +30,7 @@ except ImportError:
 import pandas as pd
 from google.cloud import bigquery
 from loguru import logger
+from config.log_config import setup_logging
 
 try:
     import holidays
@@ -175,4 +176,5 @@ def main():
 
 
 if __name__ == "__main__":
+    setup_logging()
     main()

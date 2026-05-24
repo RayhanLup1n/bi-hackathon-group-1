@@ -37,6 +37,7 @@ def _load_env() -> None:
 
 _load_env()
 
+from etl.config.log_config import setup_logging
 from src.data.database import init_pool, close_pool, db_cursor
 from etl.extractors.bmkg_extractor import BmkgExtractor
 
@@ -150,4 +151,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    setup_logging()
     main()

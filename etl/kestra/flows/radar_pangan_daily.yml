@@ -92,7 +92,7 @@ tasks:
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
     commands:
-      - dbt run --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+      - dbt run --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target --log-path /tmp/dbt-logs
     description: "Run all dbt models (staging views + marts tables)"
 
   # --------------------------------------------------------------------------
@@ -103,7 +103,7 @@ tasks:
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
     commands:
-      - dbt test --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target
+      - dbt test --project-dir /app/project/etl/dbt_project --profiles-dir /app/project/etl/dbt_project --target-path /tmp/dbt-target --log-path /tmp/dbt-logs
     description: "Run dbt tests (NOT NULL, UNIQUE, data quality)"
     allowFailure: true
 
