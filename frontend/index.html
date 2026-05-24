@@ -672,9 +672,6 @@
       <a href="/" class="nav-link nav-link-active">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/rca" class="nav-link nav-link-default">RCA</a>
-      </template>
-      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
         <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
       </template>
       <template x-if="user?.is_admin || user?.role === 'admin'">
