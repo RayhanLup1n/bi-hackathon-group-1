@@ -100,5 +100,7 @@ def db_cursor(dict_cursor: bool = True):
         conn.rollback()
         raise
     finally:
-        cur.close()
-        release_conn(conn)
+        try:
+            cur.close()
+        finally:
+            release_conn(conn)

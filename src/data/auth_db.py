@@ -18,7 +18,6 @@ import bcrypt
 
 from src.data.database import db_cursor
 
-
 # ── Password hashing ─────────────────────────────────────────────────────────
 
 def _hash_password(password: str) -> str:
@@ -91,18 +90,18 @@ def create_user(
     """Create a new user. Raises ValueError if username exists."""
     password_hash = _hash_password(password)
 
-    with db_cursor() as cur:
-        # Check if exists
-        cur.execute("SELECT id FROM app.users WHERE username = %s", [username])
-        if cur.fetchone():
-            raise ValueError(f"Username '{username}' sudah terdaftar")
+    import psycopg2.errors
 
-        cur.execute("""
-            INSERT INTO app.users (username, password_hash, is_admin, is_analyst, is_active)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id, username, is_admin, is_analyst, is_active, created_at
-        """, [username, password_hash, is_admin, is_analyst, is_active])
-        row = cur.fetchone()
+    with db_cursor() as cur:
+        try:
+            cur.execute("""
+                INSERT INTO app.users (username, password_hash, is_admin, is_analyst, is_active)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id, username, is_admin, is_analyst, is_active, created_at
+            """, [username, password_hash, is_admin, is_analyst, is_active])
+            row = cur.fetchone()
+        except psycopg2.errors.UniqueViolation:
+            raise ValueError(f"Username '{username}' sudah terdaftar")
 
     return _user_to_dict(row)
 

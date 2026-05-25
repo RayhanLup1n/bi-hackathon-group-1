@@ -15,12 +15,11 @@ import threading
 from datetime import date
 
 from config.settings import (
-    HARI_RAYA_WINDOW_DAYS, HARI_RAYA_POST_WINDOW_DAYS,
+    HARI_RAYA_POST_WINDOW_DAYS,
+    HARI_RAYA_WINDOW_DAYS,
     STOK_MENIPIS_THRESHOLD,
 )
-from src.models.schemas import (
-    CommodityData, RCAResult, CheckResult, DiagnosisType
-)
+from src.models.schemas import CheckResult, CommodityData, DiagnosisType, RCAResult
 
 logger = logging.getLogger(__name__)
 
@@ -136,12 +135,14 @@ def _get_hari_besar_calendar() -> list[tuple[str, date]]:
     now = time.monotonic()
 
     # Fast path: cache loaded and not expired
-    if _hari_besar_cache is not None and (now - _hari_besar_cache_time) < _HARI_BESAR_TTL_SECONDS:
+    cache_valid = (now - _hari_besar_cache_time) < _HARI_BESAR_TTL_SECONDS
+    if _hari_besar_cache is not None and cache_valid:
         return _hari_besar_cache
 
     with _hari_besar_lock:
         # Double-checked locking: re-check inside lock
-        if _hari_besar_cache is not None and (now - _hari_besar_cache_time) < _HARI_BESAR_TTL_SECONDS:
+        cache_valid = (now - _hari_besar_cache_time) < _HARI_BESAR_TTL_SECONDS
+        if _hari_besar_cache is not None and cache_valid:
             return _hari_besar_cache
 
         try:
@@ -271,13 +272,13 @@ def _check_stok(data: CommodityData) -> CheckResult:
             step=4,
             nama="Cek Stok Pedagang (Badan Pangan)",
             status="clear",
-            detail=f"Stok pedagang: {stok.status} — supply tersedia, kemungkinan bottleneck distribusi",
+            detail=f"Stok: {stok.status} - supply tersedia, kemungkinan bottleneck distribusi",
         )
     return CheckResult(
         step=4,
         nama="Cek Stok Pedagang (Badan Pangan)",
         status="triggered",
-        detail=f"Stok pedagang: {stok.status} — supply di titik penjualan mulai berkurang",
+        detail=f"Stok: {stok.status} - supply di titik penjualan mulai berkurang",
     )
 
 

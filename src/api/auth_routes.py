@@ -15,16 +15,15 @@ POST /api/auth/users           → tambah user baru (admin only)
 PATCH /api/auth/users/{id}     → edit password / flags (admin only)
 DELETE /api/auth/users/{id}    → hapus user (admin only)
 """
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
-
-import bcrypt
-import os
 
 from src.data.auth_db import (
     create_user,
@@ -158,7 +157,11 @@ def login(form: OAuth2PasswordRequestForm = Depends()):
     hash_to_check = user["password_hash"] if user else _DUMMY_HASH
     password_ok = verify_password(form.password, hash_to_check)
     if not user or not password_ok:
-        raise HTTPException(status_code=401, detail="Username atau password salah")
+        raise HTTPException(
+            status_code=401,
+            detail="Username atau password salah",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     # Block disabled accounts from logging in
     if not user.get("is_active", True):
         raise HTTPException(status_code=403, detail="Akun dinonaktifkan")

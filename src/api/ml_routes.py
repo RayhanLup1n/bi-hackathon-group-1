@@ -58,8 +58,12 @@ class MLBatchRequest(BaseModel):
 
 
 class MLSimulateScenario(BaseModel):
-    harga_intervensi: Optional[float] = Field(None, description="Harga target setelah intervensi (Rp)")
-    pct_shock: Optional[float] = Field(None, description="Persen perubahan harga (negatif = turun, mis. -15)")
+    harga_intervensi: Optional[float] = Field(
+        None, description="Harga target setelah intervensi (Rp)"
+    )
+    pct_shock: Optional[float] = Field(
+        None, description="Persen perubahan harga (negatif = turun, mis. -15)"
+    )
 
 
 # ── HTTP Client Helper ────────────────────────────────────────────────────────
@@ -125,7 +129,7 @@ async def _proxy_post(path: str, json_body: dict) -> Any:
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @ml_router.get("/health", summary="Health check ML server")
-async def ml_health() -> dict:
+async def ml_health(user: dict = Depends(_current_user)) -> dict:
     """Check if ML inference server is running and models are loaded."""
     return await _proxy_get("/health")
 

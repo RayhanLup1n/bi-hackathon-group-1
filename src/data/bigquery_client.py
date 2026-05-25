@@ -14,7 +14,9 @@ Usage:
     rows = bq_query("SELECT * FROM `raw.harga_pangan` WHERE tanggal >= '2020-01-01' LIMIT 10")
 
     # Single row
-    row = bq_query_one("SELECT COUNT(*) as cnt FROM `raw.harga_pangan` WHERE tanggal >= '2020-01-01'")
+    row = bq_query_one(
+        "SELECT COUNT(*) as cnt FROM `raw.harga_pangan` WHERE tanggal >= '2020-01-01'"
+    )
 
     # Parameterized query (BigQuery uses @param syntax)
     from google.cloud.bigquery import ScalarQueryParameter

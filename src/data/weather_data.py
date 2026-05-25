@@ -17,15 +17,15 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Optional
 
-from src.data.database import db_cursor
-from src.models.schemas import CuacaInfo
 from config.settings import (
-    WEATHER_PRECIP_EXTREME_MM,
     WEATHER_DROUGHT_DAYS,
+    WEATHER_LOOKBACK_DAYS,
+    WEATHER_PRECIP_EXTREME_MM,
     WEATHER_TEMP_EXTREME_C,
     WEATHER_WIND_EXTREME_KMH,
-    WEATHER_LOOKBACK_DAYS,
 )
+from src.data.database import db_cursor
+from src.models.schemas import CuacaInfo
 
 
 def get_weather_for_rca(

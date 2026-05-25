@@ -19,8 +19,7 @@ from typing import Optional
 from config.settings import DEFAULT_PRICE_THRESHOLD_PCT
 from src.data.database import db_cursor
 from src.data.weather_data import get_weather_for_rca
-from src.models.schemas import CommodityData, CuacaInfo, StokInfo, KotaInfo
-
+from src.models.schemas import CommodityData, CuacaInfo, KotaInfo, StokInfo
 
 # MVP komoditas filter -- only surface these in the dashboard/API
 # comcat_id values verified from app.harga_pangan
