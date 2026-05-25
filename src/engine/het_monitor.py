@@ -20,7 +20,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from config.settings import HET_REFERENCE, HET_WASPADA_PCT, HET_KRITIS_PCT, HET_MELAMPAUI_PCT
+from config.settings import HET_KRITIS_PCT, HET_MELAMPAUI_PCT, HET_REFERENCE, HET_WASPADA_PCT
 
 
 class HETStatus(str, Enum):

@@ -1,6 +1,6 @@
 # System Design Architecture — R.A.D.A.R Pangan
 
-> Tanggal: 16 Mei 2026 | Tim Simatana
+> Tanggal: 25 Mei 2026 | Tim Simatana
 > Referensi: [PRD](../prd/PRD.md) | [FRD](../frd/FRD.md) | [ERD](../erd/ERD.md) | [Wireframe](../wireframe/wireframe-all-pages.html)
 
 ---
@@ -17,7 +17,7 @@ graph TB
         S3["python-holidays<br/>Hari Besar"]
     end
 
-    subgraph ETL ["ETL Pipeline (Airflow + dbt)"]
+    subgraph ETL ["ETL Pipeline (Kestra + dbt)"]
         E1["Python Extractors"]
         E2["dbt Transforms"]
     end
@@ -477,18 +477,18 @@ graph TB
         APP["app<br/>FastAPI<br/>Port 8000"]
         DB["db<br/>postgres:16-alpine<br/>Port 5432"]
         ML["ml (optional)<br/>ML Serving<br/>Port 8001"]
-        AF["airflow (profile: etl)<br/>Airflow + dbt<br/>Port 8080"]
+        KS["kestra (profile: etl)<br/>Kestra + dbt<br/>Port 8080"]
     end
 
     APP -->|"psycopg2"| DB
     ML -->|"psycopg2"| DB
-    AF -->|"BigQuery API"| BQ["Google BigQuery"]
-    AF -->|"dbt sync"| DB
+    KS -->|"BigQuery API"| BQ["Google BigQuery"]
+    KS -->|"dbt sync"| DB
 
     style APP fill:#FFF3E0
     style DB fill:#E3F2FD
     style ML fill:#FCE4EC
-    style AF fill:#E8F5E9
+    style KS fill:#E8F5E9
 ```
 
 ---
@@ -542,15 +542,15 @@ graph TB
     end
 
     subgraph ETL ["ETL (scheduled)"]
-        AF["Airflow / Cron<br/>dbt run + sync"]
+        KS2["Kestra<br/>dbt run + sync"]
     end
 
     U["Users<br/>(HTTPS)"] --> NG
     NG --> APP
     APP --> DB
     APP --> ML
-    AF --> BQ
-    AF -->|"sync Gold"| DB
+    KS2 --> BQ
+    KS2 -->|"sync Gold"| DB
     APP -.->|"cuaca fallback"| BQ
 
     style Docker fill:#E3F2FD
@@ -564,7 +564,7 @@ graph TB
 | HTTPS | Let's Encrypt (free SSL) |
 | PostgreSQL | Docker `postgres:16-alpine` |
 | BigQuery | GCP (hanya untuk ETL pipeline, bukan user requests) |
-| ETL | Airflow atau cron job (daily) |
+| ETL | Kestra (daily scheduled) |
 | Domain | Custom domain + DNS |
 
 ---
@@ -852,7 +852,7 @@ GET /health → { "status": "ok", "version": "0.5.0", "db": "connected", "bq": "
 | Frontend framework | HTML + Alpine.js | React (proposal), Vue, Svelte | No build step, faster dev, timeline < 3 minggu |
 | Data warehouse | BigQuery | Supabase PostgreSQL, DuckDB | Free 10GB + 1TB queries, auto-scale, partitioning |
 | App database | PostgreSQL (Docker) | Supabase managed, SQLite | No vendor lock-in, no storage limit, mature ecosystem (pg_stat, indexing, backup) |
-| ETL orchestration | Airflow | Prefect, Dagster, Cron | Most mature, built-in UI monitoring, retry/backfill, largest community + plugin ecosystem |
+| ETL orchestration | Kestra | Airflow, Prefect, Dagster, Cron | Ringan (2 containers vs Airflow 4), YAML flows, built-in UI monitoring, retry/backfill |
 | SQL transforms | dbt | Python transforms, stored procedures | Modular, testable, version controlled |
 | IaC | Terraform | Pulumi, CloudFormation | Multi-cloud, HCL readable, GCP support |
 | ML framework | LightGBM | XGBoost, CatBoost, Prophet | Fast, quantile regression native, good accuracy |

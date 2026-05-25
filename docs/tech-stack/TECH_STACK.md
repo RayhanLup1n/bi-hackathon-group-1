@@ -1,6 +1,6 @@
 # Tech Stack — R.A.D.A.R Pangan
 
-> Tanggal: 16 Mei 2026 | Tim Simatana
+> Tanggal: 25 Mei 2026 | Tim Simatana
 > Referensi: [PRD](../prd/PRD.md) | [SDA](../sda/SYSTEM_DESIGN.md) | [ERD](../erd/ERD.md)
 
 ---
@@ -21,7 +21,7 @@
 │   (Bronze + Silver)  │      (Gold / Serving)            │
 ├──────────────────────┴─────────────────────────────────┤
 │                     PIPELINE                            │
-│  Airflow 2.x · dbt-bigquery 1.8 · Python extractors   │
+│  Kestra 1.3.19 · dbt-bigquery 1.8 · Python extractors │
 ├────────────────────────────────────────────────────────┤
 │                     INFRASTRUCTURE                      │
 │  Docker · Terraform 1.9 · uv (package manager)        │
@@ -67,7 +67,7 @@
 
 | Technology | Version | Fungsi | Justifikasi |
 |-----------|---------|--------|-------------|
-| **Python** | 3.10+ | Runtime | Ecosystem data/ML terlengkap (pandas, scikit-learn, dbt, Airflow), satu bahasa untuk backend + pipeline + ML |
+| **Python** | 3.10+ | Runtime | Ecosystem data/ML terlengkap (pandas, scikit-learn, dbt), satu bahasa untuk backend + pipeline + ML |
 | **FastAPI** | 0.115.0 | Web framework | Async, auto-docs (Swagger), Pydantic validation, performa tinggi |
 | **Pydantic** | ≥ 2.8.0 | Data validation | Native di FastAPI, type-safe, auto-serialize |
 | **Uvicorn** | 0.30.6 | ASGI server | Standard untuk FastAPI, production-ready dengan Gunicorn |
@@ -139,7 +139,7 @@
 
 | Technology | Version | Fungsi | Justifikasi |
 |-----------|---------|--------|-------------|
-| **Apache Airflow** | 2.x | Orchestration | Mature, visual DAG UI, retry/alert built-in |
+| **Kestra** | 1.3.19 | Orchestration | Ringan (2 containers vs Airflow 4), YAML flows, visual UI, retry built-in |
 | **dbt** (dbt-bigquery) | ≥ 1.8.0 | SQL transforms (Silver → Gold) | Modular, testable, version controlled, community besar |
 | **python-holidays** | ≥ 0.50 | Hari besar Indonesia | Offline, reliable, 91 rows (2024-2027) |
 | **pandas** | ≥ 2.0.0 | Data manipulation di ETL | Standard library untuk data processing |
@@ -151,7 +151,7 @@
 
 | Layer | Location | Tool | Schedule |
 |-------|----------|------|----------|
-| **Extract** → Bronze | BigQuery `raw.*` | Python scripts | Daily 07:00 WIB (Airflow) |
+| **Extract** → Bronze | BigQuery `raw.*` | Python scripts | Daily 07:00 WIB (Kestra) |
 | Bronze → **Silver** | BigQuery `staging.*` | dbt (SQL views) | After extract |
 | Silver → **Gold** | PostgreSQL `marts.*` + `app.*` | dbt + sync script | After dbt run |
 
@@ -172,7 +172,7 @@
 | Technology | Version | Fungsi | Justifikasi |
 |-----------|---------|--------|-------------|
 | **Docker** | — | Containerization | Reproducible environment, isolasi dependency, portable lintas OS |
-| **Docker Compose** | — | Multi-service orchestration | App + DB + ML + Airflow dalam 1 file |
+| **Docker Compose** | — | Multi-service orchestration | App + ML + Kestra dalam 1 file |
 | **Terraform** | ~> 1.9 | Infrastructure as Code | Reproducible BigQuery setup, version controlled |
 | **uv** | Latest | Python package manager | 10-100x faster dari pip, lockfile (`uv.lock`) |
 | **Git** | — | Version control | Conventional commits, PR workflow |
@@ -183,11 +183,9 @@
 | Service | Image | Port | Profile |
 |---------|-------|------|---------|
 | `app` | Custom (Python 3.10-slim + uv) | 8000 | Default |
-| `db` | `postgres:16-alpine` | 5432 | Default (production only) |
-| `ml` | Custom (Python + LightGBM) | 8001 | Optional |
-| `airflow-webserver` | Custom (Airflow + dbt) | 8080 | `etl` |
-| `airflow-scheduler` | Custom (Airflow + dbt) | — | `etl` |
-| `airflow-postgres` | `postgres:16-alpine` | — | `etl` |
+| `ml-model` | Custom (Python + LightGBM) | 8001 | `ml` |
+| `kestra` | Custom (Kestra 1.3.19 + Python + dbt-bigquery) | 8080 | `etl` |
+| `kestra-postgres` | `postgres:16-alpine` | — | `etl` |
 
 ### Terraform Resources
 
@@ -196,8 +194,9 @@
 | `google_project_service.bigquery` | Enable BigQuery API |
 | `google_bigquery_dataset.raw` | Bronze layer dataset |
 | `google_bigquery_dataset.staging` | Silver layer dataset |
-| `google_bigquery_dataset.marts` | Gold layer dataset (BigQuery side) |
 | `google_bigquery_table.*` | 8 raw tables (with partitioning + clustering) |
+
+Note: `marts` dataset tidak di-manage Terraform (dev mode). dbt auto-creates jika diperlukan.
 
 ### Alternatif yang Dipertimbangkan
 

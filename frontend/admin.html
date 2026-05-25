@@ -703,7 +703,7 @@
       const me = await r.json();
       // Check admin via boolean flag (with fallback to computed role)
       if (!me.is_admin && me.role !== 'admin') { window.location.replace('/'); return; }
-      document.getElementById('userBadge').innerHTML = `<strong>${me.username}</strong> · ${me.role}`;
+      document.getElementById('userBadge').innerHTML = `<strong>${escHtml(me.username)}</strong> · ${escHtml(me.role)}`;
     } catch {
       window.location.replace('/login');
     }

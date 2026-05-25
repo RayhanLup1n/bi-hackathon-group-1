@@ -1,7 +1,7 @@
 # NEED_TO_FIX.md — Consolidated Testing Report
 
 > Updated: 2026-05-25 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
-> Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review
+> Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review + Session 2026-05-25 review
 
 ---
 
@@ -160,6 +160,30 @@
 ### ~~[BUG] HET KRITIS status unreachable~~ FIXED (2026-05-24)
 - **File**: `src/engine/het_monitor.py`, `config/settings.py`
 - **What changed**: `HET_KRITIS_PCT = 0.95` (was 1.00). Now WASPADA=80%, KRITIS=95%, MELAMPAUI>100%. Tests updated and passing.
+
+### ~~[BUG] Connection leak if cur.close() raises~~ FIXED (2026-05-25)
+- **File**: `src/data/database.py`
+- **What changed**: Nested `finally` blocks so `release_conn(conn)` always runs even if `cur.close()` raises exception.
+
+### ~~[SEC] /api/ml/health endpoint unauthenticated~~ FIXED (2026-05-25)
+- **File**: `src/api/ml_routes.py`
+- **What changed**: Added `Depends(_current_user)` to `/api/ml/health` endpoint.
+
+### ~~[SEC] /api/stok endpoints unauthenticated~~ FIXED (2026-05-25)
+- **File**: `src/api/routes.py`
+- **What changed**: Added `Depends(_current_user)` to both stok endpoints (placeholder).
+
+### ~~[SEC] TOCTOU race condition on username check~~ FIXED (2026-05-25)
+- **File**: `src/data/auth_db.py`
+- **What changed**: Removed SELECT-then-INSERT pattern. Now uses INSERT with `psycopg2.errors.UniqueViolation` catch for atomic duplicate check.
+
+### ~~[SEC] HTTP 401 missing WWW-Authenticate header~~ FIXED (2026-05-25)
+- **File**: `src/api/auth_routes.py`
+- **What changed**: Added `headers={"WWW-Authenticate": "Bearer"}` to 401 response in login endpoint (RFC 7235 compliance).
+
+### ~~[SEC] XSS via innerHTML for me.role in admin page~~ FIXED (2026-05-25)
+- **File**: `frontend/admin.html`
+- **What changed**: `me.username` and `me.role` now escaped with `escHtml()` in userBadge innerHTML.
 
 ---
 

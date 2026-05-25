@@ -20,16 +20,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.api.auth_routes import _current_user, _require_admin
 from src.data.commodity_data import (
+    KOMODITAS_MAP,
     get_all_commodities,
     get_commodity_data,
-    get_price_summary,
     get_price_history,
-    KOMODITAS_MAP,
+    get_price_summary,
 )
-from src.engine.rca_engine import run_rca
-from src.engine.het_monitor import check_het_status, check_het_all, get_het_summary
 from src.data.weather_data import get_weather_for_rca, get_weather_summary
-from src.models.schemas import RCAResult, CommodityData
+from src.engine.het_monitor import check_het_all, check_het_status, get_het_summary
+from src.engine.rca_engine import run_rca
+from src.models.schemas import CommodityData, RCAResult
 
 logger = logging.getLogger(__name__)
 
@@ -167,12 +167,19 @@ def price_history(
 # ─────────────────────────────────────────────────────────────────────────────
 
 @stok_router.get("", summary="Stok semua komoditas (placeholder)")
-def get_semua_stok(sim_date: Optional[date] = Query(None)) -> list[dict]:
+def get_semua_stok(
+    sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
+) -> list[dict]:
     return []
 
 
 @stok_router.get("/{key}", summary="Stok per komoditas (placeholder)")
-def get_stok_by_key(key: str, sim_date: Optional[date] = Query(None)) -> list[dict]:
+def get_stok_by_key(
+    key: str,
+    sim_date: Optional[date] = Query(None),
+    _user: dict = Depends(_current_user),
+) -> list[dict]:
     return []
 
 
@@ -322,8 +329,9 @@ def get_predictions(
     _user: dict = Depends(_require_analyst),
 ) -> dict:
     """Read ML predictions from database. Returns empty if no data yet."""
-    from src.data.database import db_cursor
     import psycopg2
+
+    from src.data.database import db_cursor
 
     try:
         with db_cursor() as cur:
