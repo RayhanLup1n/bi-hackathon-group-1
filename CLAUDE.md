@@ -71,6 +71,7 @@ raw.* | staging.*           marts.* | app.*
 1. **HET Monitor** - harga vs HET reference - AMAN/WASPADA/KRITIS/MELAMPAUI
 2. **RCA Engine** - 4-step sequential check: Hari Raya - Cuaca Ekstrem - Persebaran Kota - Stok
 3. **Weather Data** - query `raw.cuaca_harian` untuk RCA
+4. **Bowtie Engine** - FTA threats → prevention & mitigation barriers (6 threats, 12 barriers)
 
 **Auth**: JWT HS256 (8 jam), bcrypt, RBAC via boolean flags (is_admin/is_analyst/is_active)
 
@@ -83,7 +84,7 @@ HTML + Alpine.js, Neobrutalism design, External CSS (`frontend/css/style.css`), 
 | Login | `/login` | Semua |
 | Dashboard | `/` | Viewer+ |
 | Panduan Analis | `/guide` | Semua |
-| Analisis RCA | `/rca` | Analyst+ |
+| FTA & Bowtie Analysis | `/rca` | Analyst+ |
 | Prediksi ML | `/prediksi` | Analyst+ |
 | Admin | `/admin` | Admin only |
 

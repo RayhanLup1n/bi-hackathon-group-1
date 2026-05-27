@@ -874,6 +874,82 @@
         </template>
       </div>
 
+      <!-- FTA + Bowtie Summary (shown after RCA runs) -->
+      <template x-if="bowtieData">
+        <div class="animate-in" style="margin-top:14px;">
+          <!-- FTA Threat Summary -->
+          <div class="card" style="padding:0;">
+            <div class="card-label" style="padding:14px 18px 10px;margin-bottom:0;display:flex;align-items:center;justify-content:space-between;">
+              <span>FTA Threats</span>
+              <span class="signal-val ok" style="font-size:10px;background:#E0F5EA;padding:2px 9px;border-radius:6px;border:1.5px solid var(--border);"
+                    x-text="bowtieData.active_threats.filter(t => t.active).length + ' aktif · ' + bowtieData.severity_level"></span>
+            </div>
+            <div class="signal-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));padding:0 14px 14px;">
+              <template x-for="t in bowtieData.active_threats" :key="t.id">
+                <div class="signal-item" :class="t.active ? 'warn-item' : ''" :style="!t.active ? 'opacity:0.7;' : ''">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                    <span class="signal-val" style="font-size:12px;" x-text="t.id + ': ' + t.name"></span>
+                    <span class="signal-key" style="margin-bottom:0;padding:2px 6px;border-radius:4px;border:1px solid var(--border);"
+                          :style="t.active ? 'background:#FEF3C7;color:#92400e;' : 'background:var(--surface);'"
+                          x-text="t.active ? 'AKTIF' : 'NORMAL'"></span>
+                  </div>
+                  <div class="signal-key" style="margin-bottom:0;font-size:10px;line-height:1.4;" x-text="t.desc"></div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Bowtie Visualization -->
+          <div class="card" style="padding:0;margin-top:14px;">
+            <div class="card-label" style="padding:14px 18px 10px;margin-bottom:0;display:flex;align-items:center;justify-content:space-between;">
+              <span>Bowtie Analysis</span>
+              <span class="signal-val" style="font-size:10px;background:#E0F5EA;padding:2px 9px;border-radius:6px;border:1.5px solid var(--border);"
+                    :class="bowtieData.active_threats.filter(t => t.active).length > 0 ? 'warn' : 'ok'"
+                    x-text="bowtieData.active_threats.filter(t => t.active).length > 0 ? 'Threat Aktif' : 'Clear'"></span>
+            </div>
+            <div style="padding:0 14px 14px;">
+              <!-- Summary -->
+              <div class="signal-item" style="margin-bottom:12px;">
+                <div class="signal-key" style="margin-bottom:0;font-size:11px;line-height:1.5;" x-text="bowtieData.summary"></div>
+              </div>
+              <!-- Barriers layout -->
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <!-- Prevention -->
+                <div class="signal-item" style="flex:1;min-width:180px;background:#ECFDF5;">
+                  <div class="signal-key" style="color:#059669;margin-bottom:8px;"
+                       x-text="'Pencegahan (' + bowtieData.prevention.filter(b => b.active).length + ' aktif)'"></div>
+                  <template x-for="b in bowtieData.prevention" :key="b.id">
+                    <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
+                         :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
+                      <span x-text="b.active ? '🟢' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
+                      <span x-text="b.id + ': ' + b.name"></span>
+                    </div>
+                  </template>
+                </div>
+                <!-- Hazard Event -->
+                <div class="signal-item warn-item" style="flex:0 0 auto;min-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+                  <div class="signal-key" style="color:#92400e;margin-bottom:6px;">Hazard</div>
+                  <div style="font-size:20px;">⚠️</div>
+                  <div class="signal-val warn" style="font-size:11px;margin-top:4px;" x-text="bowtieData.hazard_event"></div>
+                </div>
+                <!-- Mitigation -->
+                <div class="signal-item" style="flex:1;min-width:180px;background:#FEE2E2;">
+                  <div class="signal-key" style="color:#dc2626;margin-bottom:8px;"
+                       x-text="'Mitigasi (' + bowtieData.mitigation.filter(b => b.active).length + ' aktif)'"></div>
+                  <template x-for="b in bowtieData.mitigation" :key="b.id">
+                    <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
+                         :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
+                      <span x-text="b.active ? '🔴' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
+                      <span x-text="b.id + ': ' + b.name"></span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
     </div>
   </div>
 
@@ -905,6 +981,7 @@ function radar() {
     currentData: null,
     hetData: null,
     rcaResult: null,
+    bowtieData: null,
 
     // ── UI state ────────────────────────────────────────────────────────────
     rcaRunning: false,
@@ -1045,6 +1122,7 @@ function radar() {
 
         // Reset RCA state
         this.rcaResult = null;
+        this.bowtieData = null;
         this.resetChecks();
       } catch (e) {
         console.error('Gagal load data:', e);
@@ -1223,6 +1301,14 @@ function radar() {
 
         await this._delay(300);
         this.rcaResult = result;
+
+        // Load Bowtie analysis (uses same commodity key)
+        try {
+          this.bowtieData = await this.fetchJSON(`/api/bowtie/${this.selectedKey}${sim}`);
+        } catch (e) {
+          console.error('Bowtie gagal:', e);
+          this.bowtieData = null;
+        }
 
       } catch (e) {
         console.error('RCA gagal:', e);

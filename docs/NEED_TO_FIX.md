@@ -1,7 +1,7 @@
 # NEED_TO_FIX.md — Consolidated Testing Report
 
-> Updated: 2026-05-25 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
-> Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review + Session 2026-05-25 review
+> Updated: 2026-05-27 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
+> Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review + Session 2026-05-25 review + Session 2026-05-27 review
 
 ---
 
@@ -439,6 +439,18 @@ uv run pytest tests/e2e/             # headless
   - Section 5: Severity levels (L0-L4) - unchanged from engine
   - Section 6: Data sources and references
 
+### ~~[UI] FTA + Bowtie integration in Dashboard and RCA~~ DONE (2026-05-27)
+- **Files**: `frontend/index.html`, `frontend/rca.html`
+- **What changed**: Added FTA Threats grid (6 cards) and Bowtie visualization (Prevention → Hazard → Mitigation) to both Dashboard and RCA page. Shows after running RCA analysis. Uses dashboard CSS classes for font/style consistency.
+
+### ~~[BUG] Weather always showing Makassar~~ FIXED (2026-05-27)
+- **File**: `src/data/commodity_data.py`
+- **What changed**: Province IDs now sorted (was unordered set). Combined summary shows all provinces instead of just first. Still breaks on first extreme found (see Post-Demo #6).
+
+### ~~[BUG] ML Docker container crash (libgomp.so.1)~~ FIXED (2026-05-27)
+- **File**: `ml/Dockerfile`
+- **What changed**: Added `libgomp1` to apt-get install. LightGBM requires GNU OpenMP runtime.
+
 ---
 
 ## Architecture Quick Wins (for Demo)
@@ -466,7 +478,7 @@ Items below are tracked but intentionally deferred past the June 4 demo.
 | 3 | Force password change for default credentials | Security | 30 min |
 | 4 | `debug.html` access control | Security | 10 min |
 | 5 | Drought multi-location detection fix | Bug | 15 min |
-| 6 | Weather "most severe" vs "first found" fix | Bug | 15 min |
+| 6 | Weather "most severe" vs "first found" fix | Bug | 15 min — PARTIALLY FIXED (2026-05-27) — sorted province order + combined summary, but still breaks on first extreme found |
 | 7 | Query marts.* instead of raw.* | Performance | Medium |
 | 8 | Async httpx client for ML proxy | Performance | 30 min |
 | 9 | N+1 query pattern in HET endpoints | Performance | 30 min |
@@ -478,4 +490,6 @@ Items below are tracked but intentionally deferred past the June 4 demo.
 | 15 | Migrate admin.html to Alpine.js | Frontend | 1 hour |
 | 16 | Add `aria-label` to date inputs | Accessibility | 10 min |
 | 17 | Replace custom .env parser with python-dotenv | Tech Debt | 15 min |
-| 18 | `Optional` -> `X | None` syntax migration | Tech Debt | 20 min |
+| 18 | `Optional` -> `X \| None` syntax migration | Tech Debt | 20 min |
+| 19 | Bowtie engine: S4 (Off-Season) has no RCA mapping | Gap | 30 min |
+| 20 | Bowtie engine: D2 only activates as fallback (no direct trigger) | Gap | 1 hour |

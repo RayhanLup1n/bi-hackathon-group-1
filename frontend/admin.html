@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FTA &amp; Bowtie Analysis — R.A.D.A.R Pangan</title>
+  <title>Manajemen Pengguna — R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
@@ -484,147 +484,6 @@
       display: inline-block;
       vertical-align: middle;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── FTA Threat Cards ── */
-    .fta-threat {
-      padding: 14px 16px;
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      box-shadow: 3px 3px 0 var(--border);
-      position: relative;
-    }
-    .fta-threat::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 4px;
-      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    }
-    .fta-threat.active { background: #FEF3C7; }
-    .fta-threat.active::before { background: var(--warn); }
-    .fta-threat.inactive { background: var(--surface2); }
-    .fta-threat.inactive::before { background: var(--muted); }
-    .fta-threat-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-    .fta-threat-name {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .fta-threat-badge {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 5px;
-      border: 1.5px solid var(--border);
-    }
-    .fta-threat-badge.active { background: #FEF3C7; color: #92400e; }
-    .fta-threat-badge.inactive { background: var(--surface); color: var(--muted); }
-    .fta-threat-desc {
-      font-size: 12px;
-      color: var(--text2);
-      line-height: 1.5;
-    }
-    .fta-loading, .bowtie-loading, .ml-loading {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--muted);
-      padding: 20px;
-      text-align: center;
-    }
-
-    /* ── Bowtie Cards ── */
-    .bowtie-section {
-      flex: 1;
-      min-width: 280px;
-      padding: 14px 16px;
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      box-shadow: 3px 3px 0 var(--border);
-    }
-    .bowtie-prevention { background: #ECFDF5; }
-    .bowtie-event { background: #FEF3C7; }
-    .bowtie-mitigation { background: #FEE2E2; }
-    .bowtie-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 10px;
-    }
-    .bowtie-prevention .bowtie-label { color: #059669; }
-    .bowtie-event .bowtie-label { color: #92400e; }
-    .bowtie-mitigation .bowtie-label { color: #dc2626; }
-    .bowtie-item {
-      font-size: 12px;
-      color: var(--text2);
-      padding: 6px 0;
-      border-bottom: 1px solid rgba(0,0,0,0.1);
-    }
-    .bowtie-item:last-child { border-bottom: none; }
-
-    /* ── ML Results ── */
-    .ml-status-card {
-      padding: 14px 16px;
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      box-shadow: 3px 3px 0 var(--border);
-      margin-bottom: 12px;
-    }
-    .ml-status-card.online { background: #ECFDF5; }
-    .ml-status-card.offline { background: #FEE2E2; }
-    .ml-status-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-    .ml-status-indicator {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      border: 1.5px solid var(--border);
-    }
-    .ml-status-card.online .ml-status-indicator { background: #34D399; }
-    .ml-status-card.offline .ml-status-indicator { background: #F87171; }
-    .ml-status-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .ml-status-detail {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text2);
-    }
-    .ml-result-box {
-      padding: 14px 16px;
-      background: var(--surface2);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      box-shadow: 3px 3px 0 var(--border);
-    }
-    .ml-result-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--accent2);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-    .ml-result-content {
-      font-size: 13px;
-      color: var(--text2);
-      line-height: 1.6;
-      white-space: pre-wrap;
-    }
 
     /* Delete confirm */
     .delete-confirm-text {
@@ -659,7 +518,7 @@
       <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">fta &amp; bowtie analysis &nbsp;·&nbsp; admin panel &nbsp;·&nbsp; v0.5</div>
+        <div class="header-sub">manajemen pengguna &nbsp;·&nbsp; admin panel &nbsp;·&nbsp; v0.5</div>
       </div>
     </div>
     <div class="header-right">
@@ -680,79 +539,160 @@
     <span>⚠</span><span id="alertErrorText"></span>
   </div>
 
-  <!-- ── Komoditas Selector ── -->
-  <div class="card" style="margin-bottom:16px;">
-    <div style="padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <label style="font-family:var(--mono);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--text);">Komoditas</label>
-      <select id="komoditasSelect" class="form-input" style="width:auto;min-width:220px;padding:8px 12px;" onchange="onKomoditasChange()">
-        <option value="">Memuat...</option>
-      </select>
-      <button class="btn-sm btn-ghost" onclick="runFullAnalysis()">▶ Jalankan Analisis</button>
-    </div>
-  </div>
-
-  <!-- ── FTA Analysis Section ── -->
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-header">
-      <div class="card-title-wrap">
-        <div class="card-title">🌳 Fault Tree Analysis (FTA)</div>
-        <div class="card-count" id="ftaActiveCount">— belum dijalankan</div>
-      </div>
-    </div>
-    <div style="padding:18px;">
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">
-        Analisis akar penyebab anomali harga. Setiap ancaman yang aktif berkontribusi pada risiko kenaikan harga.
-      </p>
-      <div id="ftaThreatsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">
-        <div class="fta-loading">Pilih komoditas lalu klik "Jalankan Analisis"</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Bowtie Analysis Section ── -->
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-header">
-      <div class="card-title-wrap">
-        <div class="card-title">🎀 Bowtie Analysis</div>
-        <div class="card-count" id="bowtieStatus">— belum dijalankan</div>
-      </div>
-    </div>
-    <div style="padding:18px;">
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">
-        Barrier pencegahan dan mitigasi berdasarkan ancaman yang terdeteksi.
-      </p>
-      <div id="bowtieSummary" style="display:none;margin-bottom:14px;padding:12px 16px;background:var(--surface2);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text2);box-shadow:3px 3px 0 var(--border);"></div>
-      <div id="bowtieContainer" style="display:flex;gap:12px;flex-wrap:wrap;">
-        <div class="bowtie-loading">Menunggu hasil FTA...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── ML Inference Section ── -->
+  <!-- ── Users Table Card ── -->
   <div class="card">
     <div class="card-header">
       <div class="card-title-wrap">
-        <div class="card-title">🤖 ML Inference Real-time</div>
-        <div class="card-count" id="mlStatus">Checking...</div>
+        <div class="card-title">Daftar Pengguna</div>
+        <div class="card-count" id="userCount">0 users</div>
       </div>
-      <button class="btn-sm btn-ghost" onclick="runInference()">▶ Run Inference</button>
+      <button class="btn-primary" onclick="openAddModal()">+ Tambah User</button>
     </div>
-    <div style="padding:18px;">
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">
-        Hasil prediksi dan rekomendasi dari ML Engine (LightGBM + Groq LLM Agent).
-      </p>
-      <div id="mlResultsContainer">
-        <div class="ml-loading">Checking ML Engine status...</div>
-      </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Dibuat</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          <tr><td colspan="6" class="empty-state">Memuat data...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
 </div>
 
+<!-- ── Modal: Tambah User ── -->
+<div class="modal-backdrop" id="addModal" onclick="closeIfBackdrop(event, 'addModal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Tambah User Baru</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-error" id="addError"></div>
+    <div class="form-group">
+      <label class="form-label" for="addUsername">Username</label>
+      <input type="text" id="addUsername" class="form-input" placeholder="Masukkan username" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="addPassword">Password</label>
+      <input type="password" id="addPassword" class="form-input" placeholder="Masukkan password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Hak Akses</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item" id="addAdminItem">
+          <input type="checkbox" id="addIsAdmin" onchange="toggleCheckStyle('addAdminItem', this)">
+          <div>
+            <div class="checkbox-label">Admin</div>
+            <div class="checkbox-desc">Kelola pengguna + akses penuh</div>
+          </div>
+        </label>
+        <label class="checkbox-item" id="addAnalystItem">
+          <input type="checkbox" id="addIsAnalyst" onchange="toggleCheckStyle('addAnalystItem', this)">
+          <div>
+            <div class="checkbox-label">Analyst</div>
+            <div class="checkbox-desc">Akses RCA + analisis detail</div>
+          </div>
+        </label>
+      </div>
+      <div class="form-hint">Tanpa centang = Viewer (read-only)</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('addModal')">Batal</button>
+      <button class="btn-submit" id="addSubmitBtn" onclick="submitAdd()">
+        <span id="addSubmitContent">Simpan</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Edit User ── -->
+<div class="modal-backdrop" id="editModal" onclick="closeIfBackdrop(event, 'editModal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit User: <span id="editUsername" style="color:var(--accent2)"></span></div>
+      <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+    </div>
+    <div class="modal-error" id="editError"></div>
+    <input type="hidden" id="editUserId">
+    <div class="form-group">
+      <label class="form-label" for="editPassword">Password Baru</label>
+      <input type="password" id="editPassword" class="form-input" placeholder="Kosongkan untuk tidak diubah">
+      <div class="form-hint">Biarkan kosong jika tidak ingin mengubah password</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Hak Akses</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item" id="editAdminItem">
+          <input type="checkbox" id="editIsAdmin" onchange="toggleCheckStyle('editAdminItem', this)">
+          <div>
+            <div class="checkbox-label">Admin</div>
+            <div class="checkbox-desc">Kelola pengguna + akses penuh</div>
+          </div>
+        </label>
+        <label class="checkbox-item" id="editAnalystItem">
+          <input type="checkbox" id="editIsAnalyst" onchange="toggleCheckStyle('editAnalystItem', this)">
+          <div>
+            <div class="checkbox-label">Analyst</div>
+            <div class="checkbox-desc">Akses RCA + analisis detail</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status Akun</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item" id="editActiveItem">
+          <input type="checkbox" id="editIsActive" onchange="toggleCheckStyle('editActiveItem', this)">
+          <div>
+            <div class="checkbox-label">Aktif</div>
+            <div class="checkbox-desc">Nonaktifkan untuk blokir login</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('editModal')">Batal</button>
+      <button class="btn-submit" id="editSubmitBtn" onclick="submitEdit()">
+        <span id="editSubmitContent">Simpan</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Konfirmasi Hapus ── -->
+<div class="modal-backdrop" id="deleteModal" onclick="closeIfBackdrop(event, 'deleteModal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Hapus Pengguna</div>
+      <button class="modal-close" onclick="closeModal('deleteModal')">✕</button>
+    </div>
+    <input type="hidden" id="deleteUserId">
+    <p class="delete-confirm-text">Yakin ingin menghapus pengguna:</p>
+    <div class="delete-confirm-name" id="deleteConfirmName">username</div>
+    <p class="delete-confirm-text" style="margin-top:10px;font-size:12px;color:var(--muted)">
+      Tindakan ini tidak bisa dibatalkan.
+    </p>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('deleteModal')">Batal</button>
+      <button class="btn-submit btn-submit-danger" id="deleteSubmitBtn" onclick="submitDelete()">
+        <span id="deleteSubmitContent">Hapus</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
   const token = localStorage.getItem('rca_token');
   const userInfo = JSON.parse(localStorage.getItem('rca_user') || 'null');
-  let selectedKey = '';
 
   // Auth guard — redirect if not admin
   (async function guard() {
@@ -761,6 +701,7 @@
       const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
       if (!r.ok) throw new Error();
       const me = await r.json();
+      // Check admin via boolean flag (with fallback to computed role)
       if (!me.is_admin && me.role !== 'admin') { window.location.replace('/'); return; }
       document.getElementById('userBadge').innerHTML = `<strong>${escHtml(me.username)}</strong> · ${escHtml(me.role)}`;
     } catch {
@@ -768,11 +709,80 @@
     }
   })();
 
+  function authHeader() {
+    return { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+  }
+
+  // ── Checkbox style toggle ───────────────────────────────────────────────────
+
+  function toggleCheckStyle(itemId, checkbox) {
+    const el = document.getElementById(itemId);
+    if (checkbox.checked) {
+      el.classList.add('checked');
+    } else {
+      el.classList.remove('checked');
+    }
+  }
+
+  // ── Load users ─────────────────────────────────────────────────────────────
+
+  async function loadUsers() {
+    try {
+      const r = await fetch('/api/auth/users', { headers: { Authorization: 'Bearer ' + token } });
+      if (!r.ok) throw new Error();
+      const users = await r.json();
+      renderTable(users);
+    } catch {
+      document.getElementById('userTableBody').innerHTML =
+        '<tr><td colspan="6" class="empty-state">Gagal memuat data</td></tr>';
+    }
+  }
+
+  const ROLE_ICON = { admin: '🛡', analyst: '🔬', viewer: '👁' };
+
+  function renderTable(users) {
+    const myId = userInfo?.id;
+    document.getElementById('userCount').textContent = `${users.length} user${users.length !== 1 ? 's' : ''}`;
+    if (!users.length) {
+      document.getElementById('userTableBody').innerHTML =
+        '<tr><td colspan="6" class="empty-state">Belum ada pengguna</td></tr>';
+      return;
+    }
+    document.getElementById('userTableBody').innerHTML = users.map(u => {
+      const isActive = u.is_active !== false; // default true
+      return `
+      <tr>
+        <td class="id-cell">#${u.id}</td>
+        <td class="username-cell">${escHtml(u.username)}</td>
+        <td>
+          <span class="role-badge role-${escHtml(u.role)}">
+            ${ROLE_ICON[u.role] || '&middot;'} ${escHtml(u.role)}
+          </span>
+        </td>
+        <td>
+          <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
+            ${isActive ? '● Aktif' : '○ Nonaktif'}
+          </span>
+        </td>
+        <td class="date-cell">${u.created_at ? u.created_at.slice(0, 10) : '—'}</td>
+        <td class="action-cell">
+          <button class="icon-btn edit-btn"
+            onclick="openEditModal(${u.id}, '${escHtml(u.username)}', ${!!u.is_admin}, ${!!u.is_analyst}, ${isActive})"
+            title="Edit">✎</button>
+          <button class="icon-btn delete-btn ${u.id === myId ? 'disabled' : ''}"
+            onclick="openDeleteModal(${u.id}, '${escHtml(u.username)}')"
+            title="${u.id === myId ? 'Tidak bisa hapus akun sendiri' : 'Hapus'}">✕</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
   function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   // ── Alert helpers ───────────────────────────────────────────────────────────
+
   let _alertTimer;
   function showAlert(type, msg) {
     clearTimeout(_alertTimer);
@@ -793,235 +803,163 @@
     }, 4000);
   }
 
-  // ── Load Komoditas List ─────────────────────────────────────────────────────
-  async function loadKomoditas() {
-    try {
-      const r = await fetch('/api/commodities/detail', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!r.ok) throw new Error();
-      const items = await r.json();
+  // ── Modal helpers ───────────────────────────────────────────────────────────
 
-      const select = document.getElementById('komoditasSelect');
-      select.innerHTML = items.map(item =>
-        `<option value="${escHtml(item.key)}">${escHtml(item.name)}</option>`
-      ).join('');
+  function openModal(id)  { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function closeIfBackdrop(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
 
-      if (items.length > 0) {
-        selectedKey = items[0].key;
-      }
-    } catch (e) {
-      showAlert('error', 'Gagal memuat daftar komoditas');
-    }
+  // ── Add modal ───────────────────────────────────────────────────────────────
+
+  function openAddModal() {
+    document.getElementById('addUsername').value = '';
+    document.getElementById('addPassword').value = '';
+    document.getElementById('addIsAdmin').checked = false;
+    document.getElementById('addIsAnalyst').checked = false;
+    document.getElementById('addAdminItem').classList.remove('checked');
+    document.getElementById('addAnalystItem').classList.remove('checked');
+    document.getElementById('addError').classList.remove('show');
+    document.getElementById('addError').textContent = '';
+    openModal('addModal');
+    setTimeout(() => document.getElementById('addUsername').focus(), 100);
   }
 
-  function onKomoditasChange() {
-    selectedKey = document.getElementById('komoditasSelect').value;
-  }
+  async function submitAdd() {
+    const username   = document.getElementById('addUsername').value.trim();
+    const password   = document.getElementById('addPassword').value;
+    const is_admin   = document.getElementById('addIsAdmin').checked;
+    const is_analyst = document.getElementById('addIsAnalyst').checked;
+    const errEl      = document.getElementById('addError');
+    const btn        = document.getElementById('addSubmitBtn');
+    const content    = document.getElementById('addSubmitContent');
 
-  // ── Run Full Analysis (FTA + Bowtie) ────────────────────────────────────────
-  async function runFullAnalysis() {
-    if (!selectedKey) {
-      showAlert('error', 'Pilih komoditas terlebih dahulu');
+    if (!username || !password) {
+      errEl.textContent = 'Username dan password wajib diisi';
+      errEl.classList.add('show');
       return;
     }
 
-    document.getElementById('ftaThreatsGrid').innerHTML = '<div class="fta-loading">Menjalankan FTA Analysis...</div>';
-    document.getElementById('bowtieContainer').innerHTML = '<div class="bowtie-loading">Menjalankan Bowtie Analysis...</div>';
+    errEl.classList.remove('show');
+    btn.disabled = true;
+    content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:6px;"><div class="spinner-sm"></div> Menyimpan...</div>';
 
     try {
-      const r = await fetch(`/api/bowtie/${selectedKey}`, {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-
-      if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        throw new Error(err.detail || 'API error');
-      }
-      const bowtie = await r.json();
-
-      renderFTA(bowtie.active_threats, bowtie.severity_level);
-      renderBowtie(bowtie);
-      showAlert('success', `Analisis ${bowtie.commodity_name} selesai — severity ${bowtie.severity_level}`);
-
-    } catch (e) {
-      document.getElementById('ftaThreatsGrid').innerHTML = `<div class="fta-loading">Gagal: ${escHtml(e.message)}</div>`;
-      document.getElementById('bowtieContainer').innerHTML = '<div class="bowtie-loading">Gagal memuat Bowtie</div>';
-      showAlert('error', 'Analisis gagal: ' + e.message);
-    }
-  }
-
-  // ── Render FTA Threats ──────────────────────────────────────────────────────
-  function renderFTA(threats, severity) {
-    const grid = document.getElementById('ftaThreatsGrid');
-    const activeCount = threats.filter(t => t.active).length;
-
-    grid.innerHTML = threats.map(t => `
-      <div class="fta-threat ${t.active ? 'active' : 'inactive'}">
-        <div class="fta-threat-header">
-          <span class="fta-threat-name">${escHtml(t.id)}: ${escHtml(t.name)}</span>
-          <span class="fta-threat-badge ${t.active ? 'active' : 'inactive'}">${t.active ? 'AKTIF' : 'NORMAL'}</span>
-        </div>
-        <div class="fta-threat-desc">${escHtml(t.desc)}</div>
-        <div style="margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--muted);">Tipe: ${escHtml(t.type)}</div>
-      </div>
-    `).join('');
-
-    document.getElementById('ftaActiveCount').textContent = `${activeCount} aktif · ${severity}`;
-  }
-
-  // ── Render Bowtie Analysis ──────────────────────────────────────────────────
-  function renderBowtie(bowtie) {
-    const container = document.getElementById('bowtieContainer');
-    const summaryEl = document.getElementById('bowtieSummary');
-
-    // Show summary
-    summaryEl.textContent = bowtie.summary;
-    summaryEl.style.display = 'block';
-
-    // Prevention barriers
-    const preventionHtml = bowtie.prevention.map(b => `
-      <div class="bowtie-item" style="display:flex;align-items:center;gap:8px;${b.active ? 'font-weight:700;' : 'opacity:0.6;'}">
-        <span style="font-size:14px;">${b.active ? '🟢' : '⚪'}</span>
-        <span>${escHtml(b.id)}: ${escHtml(b.name)}</span>
-      </div>
-    `).join('');
-
-    // Mitigation barriers
-    const mitigationHtml = bowtie.mitigation.map(b => `
-      <div class="bowtie-item" style="display:flex;align-items:center;gap:8px;${b.active ? 'font-weight:700;' : 'opacity:0.6;'}">
-        <span style="font-size:14px;">${b.active ? '🔴' : '⚪'}</span>
-        <span>${escHtml(b.id)}: ${escHtml(b.name)}</span>
-      </div>
-    `).join('');
-
-    // Active threats for center
-    const activeThreats = bowtie.active_threats.filter(t => t.active);
-    const threatListHtml = activeThreats.length > 0
-      ? activeThreats.map(t => `<div style="font-size:11px;margin:2px 0;">⚡ ${escHtml(t.id)}: ${escHtml(t.name)}</div>`).join('')
-      : '<div style="font-size:11px;color:var(--muted);">Tidak ada ancaman aktif</div>';
-
-    container.innerHTML = `
-      <div class="bowtie-section bowtie-prevention">
-        <div class="bowtie-label">Barrier Pencegahan (${bowtie.prevention.filter(b => b.active).length} aktif)</div>
-        ${preventionHtml}
-      </div>
-      <div class="bowtie-section bowtie-event">
-        <div class="bowtie-label">Hazardous Event</div>
-        <div style="font-weight:700;text-align:center;padding:12px 0;font-size:13px;">
-          ⚠️ ${escHtml(bowtie.hazard_event)}
-        </div>
-        <div style="border-top:1px solid rgba(0,0,0,0.15);padding-top:8px;margin-top:8px;">
-          <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:#92400e;margin-bottom:6px;">TRIGGERS</div>
-          ${threatListHtml}
-        </div>
-      </div>
-      <div class="bowtie-section bowtie-mitigation">
-        <div class="bowtie-label">Barrier Mitigasi (${bowtie.mitigation.filter(b => b.active).length} aktif)</div>
-        ${mitigationHtml}
-      </div>
-    `;
-
-    const nActive = bowtie.active_threats.filter(t => t.active).length;
-    document.getElementById('bowtieStatus').textContent = nActive > 0 ? `${nActive} threat aktif` : 'Clear';
-  }
-
-  // ── ML Engine Status ────────────────────────────────────────────────────────
-  async function checkMLStatus() {
-    const container = document.getElementById('mlResultsContainer');
-    const statusBadge = document.getElementById('mlStatus');
-
-    try {
-      const r = await fetch('/api/ml/health', {
-        headers: { Authorization: 'Bearer ' + token },
-        signal: AbortSignal.timeout(5000)
-      });
-
-      if (r.ok) {
-        const data = await r.json();
-        statusBadge.textContent = 'Online';
-        container.innerHTML = `
-          <div class="ml-status-card online">
-            <div class="ml-status-header">
-              <div class="ml-status-indicator"></div>
-              <div class="ml-status-title">ML Engine Connected</div>
-            </div>
-            <div class="ml-status-detail">
-              Model: LightGBM Quantile<br>
-              LLM: Groq (Llama 3.3 70B)<br>
-              Status: ${escHtml(data.status || 'Ready')}
-            </div>
-          </div>
-          <div class="ml-result-box" id="mlInferenceResult" style="display:none;">
-            <div class="ml-result-label">Inference Result</div>
-            <div class="ml-result-content" id="mlResultContent"></div>
-          </div>
-        `;
-      } else {
-        throw new Error('ML Engine not responding');
-      }
-    } catch (e) {
-      statusBadge.textContent = 'Offline';
-      container.innerHTML = `
-        <div class="ml-status-card offline">
-          <div class="ml-status-header">
-            <div class="ml-status-indicator"></div>
-            <div class="ml-status-title">ML Engine Offline</div>
-          </div>
-          <div class="ml-status-detail">
-            ML Engine tidak tersedia. Jalankan dengan:<br>
-            <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px;">docker compose --profile ml up</code>
-          </div>
-        </div>
-      `;
-    }
-  }
-
-  async function runInference() {
-    const resultBox = document.getElementById('mlInferenceResult');
-    const resultContent = document.getElementById('mlResultContent');
-
-    if (!resultBox) {
-      showAlert('error', 'ML Engine offline — tidak bisa run inference');
-      return;
-    }
-
-    const selectEl = document.getElementById('komoditasSelect');
-    const komoditasName = selectEl.selectedOptions[0]?.textContent || 'Cabai Rawit Merah';
-    const komoditasKey = selectEl.value || selectedKey;
-
-    resultBox.style.display = 'block';
-    resultContent.textContent = `Running inference untuk ${komoditasName}...`;
-
-    try {
-      const r = await fetch('/api/ml/predict', {
+      const r = await fetch('/api/auth/users', {
         method: 'POST',
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          komoditas: komoditasKey,
-          komoditas_name: komoditasName,
-          horizon_days: 7
-        })
+        headers: authHeader(),
+        body: JSON.stringify({ username, password, is_admin, is_analyst }),
       });
-
-      if (r.ok) {
-        const data = await r.json();
-        resultContent.textContent = JSON.stringify(data, null, 2);
-        showAlert('success', 'Inference completed');
-      } else {
-        const err = await r.json().catch(() => ({}));
-        throw new Error(err.detail || 'Inference failed');
-      }
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || 'Gagal menambah user');
+      closeModal('addModal');
+      showAlert('success', `User "${username}" berhasil ditambahkan`);
+      loadUsers();
     } catch (e) {
-      resultContent.textContent = 'Error: ' + e.message;
-      showAlert('error', 'Inference failed: ' + e.message);
+      errEl.textContent = e.message;
+      errEl.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      content.innerHTML = 'Simpan';
+    }
+  }
+
+  // ── Edit modal ──────────────────────────────────────────────────────────────
+
+  function openEditModal(id, username, isAdmin, isAnalyst, isActive) {
+    document.getElementById('editUserId').value = id;
+    document.getElementById('editUsername').textContent = username;
+    document.getElementById('editPassword').value = '';
+    document.getElementById('editIsAdmin').checked = isAdmin;
+    document.getElementById('editIsAnalyst').checked = isAnalyst;
+    document.getElementById('editIsActive').checked = isActive;
+
+    // Sync checkbox visual styles
+    document.getElementById('editAdminItem').classList.toggle('checked', isAdmin);
+    document.getElementById('editAnalystItem').classList.toggle('checked', isAnalyst);
+    document.getElementById('editActiveItem').classList.toggle('checked', isActive);
+
+    document.getElementById('editError').classList.remove('show');
+    document.getElementById('editError').textContent = '';
+    openModal('editModal');
+  }
+
+  async function submitEdit() {
+    const id         = parseInt(document.getElementById('editUserId').value);
+    const password   = document.getElementById('editPassword').value || null;
+    const is_admin   = document.getElementById('editIsAdmin').checked;
+    const is_analyst = document.getElementById('editIsAnalyst').checked;
+    const is_active  = document.getElementById('editIsActive').checked;
+    const errEl      = document.getElementById('editError');
+    const btn        = document.getElementById('editSubmitBtn');
+    const content    = document.getElementById('editSubmitContent');
+
+    errEl.classList.remove('show');
+    btn.disabled = true;
+    content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:6px;"><div class="spinner-sm"></div> Menyimpan...</div>';
+
+    try {
+      const body = { is_admin, is_analyst, is_active };
+      if (password) body.password = password;
+
+      const r = await fetch(`/api/auth/users/${id}`, {
+        method: 'PATCH',
+        headers: authHeader(),
+        body: JSON.stringify(body),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || 'Gagal mengupdate user');
+      closeModal('editModal');
+      showAlert('success', `User berhasil diperbarui`);
+      loadUsers();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      content.innerHTML = 'Simpan';
+    }
+  }
+
+  // ── Delete modal ─────────────────────────────────────────────────────────────
+
+  function openDeleteModal(id, username) {
+    document.getElementById('deleteUserId').value = id;
+    document.getElementById('deleteConfirmName').textContent = username;
+    openModal('deleteModal');
+  }
+
+  async function submitDelete() {
+    const id      = parseInt(document.getElementById('deleteUserId').value);
+    const btn     = document.getElementById('deleteSubmitBtn');
+    const content = document.getElementById('deleteSubmitContent');
+
+    btn.disabled = true;
+    content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:6px;"><div class="spinner-sm"></div> Menghapus...</div>';
+
+    try {
+      const r = await fetch(`/api/auth/users/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || 'Gagal menghapus user');
+      }
+      const name = document.getElementById('deleteConfirmName').textContent;
+      closeModal('deleteModal');
+      showAlert('success', `User "${name}" berhasil dihapus`);
+      loadUsers();
+    } catch (e) {
+      closeModal('deleteModal');
+      showAlert('error', e.message);
+    } finally {
+      btn.disabled = false;
+      content.innerHTML = 'Hapus';
     }
   }
 
   // ── Logout ──────────────────────────────────────────────────────────────────
+
   function logout() {
     localStorage.removeItem('rca_token');
     localStorage.removeItem('rca_user');
@@ -1029,8 +967,7 @@
   }
 
   // ── Init ────────────────────────────────────────────────────────────────────
-  loadKomoditas();
-  checkMLStatus();
+  loadUsers();
 </script>
 </body>
 </html>
