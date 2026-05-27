@@ -19,7 +19,9 @@
 FROM python:3.11-slim
 
 # Install system dependencies (curl for healthcheck)
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # WORKDIR is one level above ml/ so that `from ml.src.*` imports resolve

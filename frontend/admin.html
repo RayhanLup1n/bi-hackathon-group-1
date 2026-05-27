@@ -680,23 +680,31 @@
     <span>⚠</span><span id="alertErrorText"></span>
   </div>
 
+  <!-- ── Komoditas Selector ── -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <label style="font-family:var(--mono);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--text);">Komoditas</label>
+      <select id="komoditasSelect" class="form-input" style="width:auto;min-width:220px;padding:8px 12px;" onchange="onKomoditasChange()">
+        <option value="">Memuat...</option>
+      </select>
+      <button class="btn-sm btn-ghost" onclick="runFullAnalysis()">▶ Jalankan Analisis</button>
+    </div>
+  </div>
+
   <!-- ── FTA Analysis Section ── -->
   <div class="card" style="margin-bottom:16px;">
     <div class="card-header">
       <div class="card-title-wrap">
         <div class="card-title">🌳 Fault Tree Analysis (FTA)</div>
-        <div class="card-count" id="ftaActiveCount">0 aktif</div>
+        <div class="card-count" id="ftaActiveCount">— belum dijalankan</div>
       </div>
-      <button class="btn-sm btn-ghost" onclick="refreshFTA()">↻ Refresh</button>
     </div>
     <div style="padding:18px;">
       <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">
         Analisis akar penyebab anomali harga. Setiap ancaman yang aktif berkontribusi pada risiko kenaikan harga.
       </p>
-
-      <!-- FTA Threats Grid -->
       <div id="ftaThreatsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">
-        <div class="fta-loading">Memuat data FTA...</div>
+        <div class="fta-loading">Pilih komoditas lalu klik "Jalankan Analisis"</div>
       </div>
     </div>
   </div>
@@ -706,17 +714,16 @@
     <div class="card-header">
       <div class="card-title-wrap">
         <div class="card-title">🎀 Bowtie Analysis</div>
-        <div class="card-count" id="bowtieStatus">-</div>
+        <div class="card-count" id="bowtieStatus">— belum dijalankan</div>
       </div>
     </div>
     <div style="padding:18px;">
       <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">
         Barrier pencegahan dan mitigasi berdasarkan ancaman yang terdeteksi.
       </p>
-
-      <!-- Bowtie Visualization -->
+      <div id="bowtieSummary" style="display:none;margin-bottom:14px;padding:12px 16px;background:var(--surface2);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text2);box-shadow:3px 3px 0 var(--border);"></div>
       <div id="bowtieContainer" style="display:flex;gap:12px;flex-wrap:wrap;">
-        <div class="bowtie-loading">Memuat analisis Bowtie...</div>
+        <div class="bowtie-loading">Menunggu hasil FTA...</div>
       </div>
     </div>
   </div>
@@ -734,8 +741,6 @@
       <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">
         Hasil prediksi dan rekomendasi dari ML Engine (LightGBM + Groq LLM Agent).
       </p>
-
-      <!-- ML Results -->
       <div id="mlResultsContainer">
         <div class="ml-loading">Checking ML Engine status...</div>
       </div>
@@ -747,6 +752,7 @@
 <script>
   const token = localStorage.getItem('rca_token');
   const userInfo = JSON.parse(localStorage.getItem('rca_user') || 'null');
+  let selectedKey = '';
 
   // Auth guard — redirect if not admin
   (async function guard() {
@@ -787,101 +793,137 @@
     }, 4000);
   }
 
-  // ── FTA Threats Data ────────────────────────────────────────────────────────
-  const FTA_THREATS = [
-    { id: 'D1', name: 'Hari Raya / Musim Perayaan', type: 'demand', desc: 'Lonjakan permintaan menjelang hari raya besar' },
-    { id: 'D2', name: 'Tekanan Ekonomi', type: 'demand', desc: 'Inflasi pangan berkelanjutan, daya beli melemah' },
-    { id: 'S1', name: 'Cuaca Ekstrem', type: 'supply', desc: 'Gangguan cuaca di daerah produksi utama' },
-    { id: 'S2', name: 'Defisit Stok Nasional', type: 'supply', desc: 'Stok nasional di bawah kebutuhan bulanan' },
-    { id: 'S3', name: 'Ketimpangan Distribusi', type: 'supply', desc: 'Kenaikan harga tidak merata antar wilayah' },
-    { id: 'S4', name: 'Musim Off-Season', type: 'supply', desc: 'Periode off-season komoditas, pasokan berkurang' },
-  ];
-
-  // ── Bowtie Data ─────────────────────────────────────────────────────────────
-  const BOWTIE_PREVENTION = [
-    'Early warning H-14 hari raya',
-    'Monitor cuaca Open-Meteo',
-    'Monitor stok mingguan',
-    'Kalender panen terpadu',
-  ];
-  const BOWTIE_MITIGATION = [
-    'Operasi pasar darurat',
-    'Importasi darurat fast-track',
-    'Release cadangan Bulog',
-    'Koordinasi transportasi lintas daerah',
-  ];
-
-  // ── Load FTA Analysis ───────────────────────────────────────────────────────
-  async function loadFTA() {
-    const grid = document.getElementById('ftaThreatsGrid');
-
+  // ── Load Komoditas List ─────────────────────────────────────────────────────
+  async function loadKomoditas() {
     try {
-      // Try to get real FTA data from API
-      const r = await fetch('/api/rca/analyze?komoditas=Cabai%20Rawit%20Merah&kota=Jakarta%20Pusat', {
+      const r = await fetch('/api/commodities/detail', {
         headers: { Authorization: 'Bearer ' + token }
       });
+      if (!r.ok) throw new Error();
+      const items = await r.json();
 
-      let activeThreats = [];
-      if (r.ok) {
-        const data = await r.json();
-        // Map RCA factors to FTA threats
-        if (data.factors) {
-          if (data.factors.hari_raya?.is_active) activeThreats.push('D1');
-          if (data.factors.cuaca_ekstrem?.is_active) activeThreats.push('S1');
-          if (data.factors.persebaran_kota?.is_active) activeThreats.push('S3');
-          if (data.factors.stok?.status === 'KRITIS' || data.factors.stok?.status === 'MENIPIS') activeThreats.push('S2');
-        }
+      const select = document.getElementById('komoditasSelect');
+      select.innerHTML = items.map(item =>
+        `<option value="${escHtml(item.key)}">${escHtml(item.name)}</option>`
+      ).join('');
+
+      if (items.length > 0) {
+        selectedKey = items[0].key;
       }
-
-      // Render FTA threats
-      grid.innerHTML = FTA_THREATS.map(t => {
-        const isActive = activeThreats.includes(t.id);
-        return `
-          <div class="fta-threat ${isActive ? 'active' : 'inactive'}">
-            <div class="fta-threat-header">
-              <span class="fta-threat-name">${t.id}: ${t.name}</span>
-              <span class="fta-threat-badge ${isActive ? 'active' : 'inactive'}">${isActive ? 'AKTIF' : 'NORMAL'}</span>
-            </div>
-            <div class="fta-threat-desc">${t.desc}</div>
-          </div>
-        `;
-      }).join('');
-
-      document.getElementById('ftaActiveCount').textContent = `${activeThreats.length} aktif`;
-
     } catch (e) {
-      grid.innerHTML = '<div class="fta-loading">Gagal memuat data FTA</div>';
+      showAlert('error', 'Gagal memuat daftar komoditas');
     }
   }
 
-  function refreshFTA() {
-    document.getElementById('ftaThreatsGrid').innerHTML = '<div class="fta-loading">Memuat data FTA...</div>';
-    loadFTA();
-    showAlert('success', 'FTA Analysis refreshed');
+  function onKomoditasChange() {
+    selectedKey = document.getElementById('komoditasSelect').value;
   }
 
-  // ── Load Bowtie Analysis ────────────────────────────────────────────────────
-  function loadBowtie() {
+  // ── Run Full Analysis (FTA + Bowtie) ────────────────────────────────────────
+  async function runFullAnalysis() {
+    if (!selectedKey) {
+      showAlert('error', 'Pilih komoditas terlebih dahulu');
+      return;
+    }
+
+    document.getElementById('ftaThreatsGrid').innerHTML = '<div class="fta-loading">Menjalankan FTA Analysis...</div>';
+    document.getElementById('bowtieContainer').innerHTML = '<div class="bowtie-loading">Menjalankan Bowtie Analysis...</div>';
+
+    try {
+      const r = await fetch(`/api/bowtie/${selectedKey}`, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || 'API error');
+      }
+      const bowtie = await r.json();
+
+      renderFTA(bowtie.active_threats, bowtie.severity_level);
+      renderBowtie(bowtie);
+      showAlert('success', `Analisis ${bowtie.commodity_name} selesai — severity ${bowtie.severity_level}`);
+
+    } catch (e) {
+      document.getElementById('ftaThreatsGrid').innerHTML = `<div class="fta-loading">Gagal: ${escHtml(e.message)}</div>`;
+      document.getElementById('bowtieContainer').innerHTML = '<div class="bowtie-loading">Gagal memuat Bowtie</div>';
+      showAlert('error', 'Analisis gagal: ' + e.message);
+    }
+  }
+
+  // ── Render FTA Threats ──────────────────────────────────────────────────────
+  function renderFTA(threats, severity) {
+    const grid = document.getElementById('ftaThreatsGrid');
+    const activeCount = threats.filter(t => t.active).length;
+
+    grid.innerHTML = threats.map(t => `
+      <div class="fta-threat ${t.active ? 'active' : 'inactive'}">
+        <div class="fta-threat-header">
+          <span class="fta-threat-name">${escHtml(t.id)}: ${escHtml(t.name)}</span>
+          <span class="fta-threat-badge ${t.active ? 'active' : 'inactive'}">${t.active ? 'AKTIF' : 'NORMAL'}</span>
+        </div>
+        <div class="fta-threat-desc">${escHtml(t.desc)}</div>
+        <div style="margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--muted);">Tipe: ${escHtml(t.type)}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('ftaActiveCount').textContent = `${activeCount} aktif · ${severity}`;
+  }
+
+  // ── Render Bowtie Analysis ──────────────────────────────────────────────────
+  function renderBowtie(bowtie) {
     const container = document.getElementById('bowtieContainer');
+    const summaryEl = document.getElementById('bowtieSummary');
+
+    // Show summary
+    summaryEl.textContent = bowtie.summary;
+    summaryEl.style.display = 'block';
+
+    // Prevention barriers
+    const preventionHtml = bowtie.prevention.map(b => `
+      <div class="bowtie-item" style="display:flex;align-items:center;gap:8px;${b.active ? 'font-weight:700;' : 'opacity:0.6;'}">
+        <span style="font-size:14px;">${b.active ? '🟢' : '⚪'}</span>
+        <span>${escHtml(b.id)}: ${escHtml(b.name)}</span>
+      </div>
+    `).join('');
+
+    // Mitigation barriers
+    const mitigationHtml = bowtie.mitigation.map(b => `
+      <div class="bowtie-item" style="display:flex;align-items:center;gap:8px;${b.active ? 'font-weight:700;' : 'opacity:0.6;'}">
+        <span style="font-size:14px;">${b.active ? '🔴' : '⚪'}</span>
+        <span>${escHtml(b.id)}: ${escHtml(b.name)}</span>
+      </div>
+    `).join('');
+
+    // Active threats for center
+    const activeThreats = bowtie.active_threats.filter(t => t.active);
+    const threatListHtml = activeThreats.length > 0
+      ? activeThreats.map(t => `<div style="font-size:11px;margin:2px 0;">⚡ ${escHtml(t.id)}: ${escHtml(t.name)}</div>`).join('')
+      : '<div style="font-size:11px;color:var(--muted);">Tidak ada ancaman aktif</div>';
 
     container.innerHTML = `
       <div class="bowtie-section bowtie-prevention">
-        <div class="bowtie-label">Barrier Pencegahan</div>
-        ${BOWTIE_PREVENTION.map(b => `<div class="bowtie-item">• ${b}</div>`).join('')}
+        <div class="bowtie-label">Barrier Pencegahan (${bowtie.prevention.filter(b => b.active).length} aktif)</div>
+        ${preventionHtml}
       </div>
       <div class="bowtie-section bowtie-event">
         <div class="bowtie-label">Hazardous Event</div>
-        <div class="bowtie-item" style="font-weight:700;text-align:center;padding:20px 0;">
-          ⚠️ Anomali Harga Naik Signifikan
+        <div style="font-weight:700;text-align:center;padding:12px 0;font-size:13px;">
+          ⚠️ ${escHtml(bowtie.hazard_event)}
+        </div>
+        <div style="border-top:1px solid rgba(0,0,0,0.15);padding-top:8px;margin-top:8px;">
+          <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:#92400e;margin-bottom:6px;">TRIGGERS</div>
+          ${threatListHtml}
         </div>
       </div>
       <div class="bowtie-section bowtie-mitigation">
-        <div class="bowtie-label">Barrier Mitigasi</div>
-        ${BOWTIE_MITIGATION.map(b => `<div class="bowtie-item">• ${b}</div>`).join('')}
+        <div class="bowtie-label">Barrier Mitigasi (${bowtie.mitigation.filter(b => b.active).length} aktif)</div>
+        ${mitigationHtml}
       </div>
     `;
 
-    document.getElementById('bowtieStatus').textContent = 'Loaded';
+    const nActive = bowtie.active_threats.filter(t => t.active).length;
+    document.getElementById('bowtieStatus').textContent = nActive > 0 ? `${nActive} threat aktif` : 'Clear';
   }
 
   // ── ML Engine Status ────────────────────────────────────────────────────────
@@ -907,7 +949,7 @@
             <div class="ml-status-detail">
               Model: LightGBM Quantile<br>
               LLM: Groq (Llama 3.3 70B)<br>
-              Status: ${data.status || 'Ready'}
+              Status: ${escHtml(data.status || 'Ready')}
             </div>
           </div>
           <div class="ml-result-box" id="mlInferenceResult" style="display:none;">
@@ -940,12 +982,16 @@
     const resultContent = document.getElementById('mlResultContent');
 
     if (!resultBox) {
-      showAlert('error', 'ML Engine offline - tidak bisa run inference');
+      showAlert('error', 'ML Engine offline — tidak bisa run inference');
       return;
     }
 
+    const selectEl = document.getElementById('komoditasSelect');
+    const komoditasName = selectEl.selectedOptions[0]?.textContent || 'Cabai Rawit Merah';
+    const komoditasKey = selectEl.value || selectedKey;
+
     resultBox.style.display = 'block';
-    resultContent.textContent = 'Running inference...';
+    resultContent.textContent = `Running inference untuk ${komoditasName}...`;
 
     try {
       const r = await fetch('/api/ml/predict', {
@@ -955,8 +1001,8 @@
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          komoditas: 'Cabai Rawit Merah',
-          kota: 'Jakarta Pusat',
+          komoditas: komoditasKey,
+          komoditas_name: komoditasName,
           horizon_days: 7
         })
       });
@@ -966,7 +1012,8 @@
         resultContent.textContent = JSON.stringify(data, null, 2);
         showAlert('success', 'Inference completed');
       } else {
-        throw new Error('Inference failed');
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || 'Inference failed');
       }
     } catch (e) {
       resultContent.textContent = 'Error: ' + e.message;
@@ -982,8 +1029,7 @@
   }
 
   // ── Init ────────────────────────────────────────────────────────────────────
-  loadFTA();
-  loadBowtie();
+  loadKomoditas();
   checkMLStatus();
 </script>
 </body>
