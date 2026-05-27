@@ -47,8 +47,8 @@
     }
     .header-left { display: flex; align-items: center; gap: 14px; }
     .logo-icon {
-      width: 44px; height: 44px;
-      border: var(--bw) solid var(--border); border-radius: 12px;
+      width: 52px; height: 52px;
+      border: var(--bw) solid var(--border); border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
       overflow: hidden; padding: 0;
@@ -391,7 +391,7 @@
       <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">panduan analisis</div>
+        <div class="header-sub">panduan penggunaan</div>
       </div>
     </div>
     <div class="header-right">
@@ -406,11 +406,11 @@
 
   <!-- Hero -->
   <div class="page-hero">
-    <div class="page-hero-badge">Panduan Analisis</div>
-    <div class="page-hero-title">Panduan Analis R.A.D.A.R Pangan</div>
+    <div class="page-hero-badge">Panduan Penggunaan</div>
+    <div class="page-hero-title">Cara Menggunakan R.A.D.A.R Pangan</div>
     <div class="page-hero-desc">
-      Memahami kerangka analisis FTA &amp; Bowtie, membaca sinyal ancaman,
-      dan menentukan respons yang tepat untuk stabilisasi harga pangan.
+      Panduan lengkap untuk memantau harga pangan, menganalisis anomali,
+      dan memahami prediksi ML untuk pengambilan keputusan yang tepat.
     </div>
   </div>
 
@@ -418,682 +418,532 @@
   <div class="toc">
     <div class="toc-label">Daftar Isi</div>
     <div class="toc-items">
-      <a href="#s1"><span class="toc-n">1</span> Apa itu R.A.D.A.R Pangan</a>
-      <a href="#s2"><span class="toc-n">2</span> Fault Tree Analysis (FTA) - Ancaman Harga</a>
-      <a href="#s3"><span class="toc-n">3</span> Bowtie Analysis - Pencegahan &amp; Mitigasi</a>
-      <a href="#s4"><span class="toc-n">4</span> Kondisi Eskalasi (AND-Gate)</a>
-      <a href="#s5"><span class="toc-n">5</span> Tingkat Keparahan (L0-L4)</a>
-      <a href="#s6"><span class="toc-n">6</span> Sumber Data &amp; Referensi</a>
+      <a href="#s1"><span class="toc-n">1</span> Memulai - Login &amp; Navigasi</a>
+      <a href="#s2"><span class="toc-n">2</span> Dashboard - Monitoring Harga</a>
+      <a href="#s3"><span class="toc-n">3</span> Halaman Prediksi ML</a>
+      <a href="#s4"><span class="toc-n">4</span> Memahami Status &amp; Alert</a>
+      <a href="#s5"><span class="toc-n">5</span> Halaman Admin (Khusus Admin)</a>
+      <a href="#s6"><span class="toc-n">6</span> Tips &amp; FAQ</a>
     </div>
   </div>
 
 
-  <!-- 1. Overview -->
+  <!-- 1. Login & Navigasi -->
   <section class="section" id="s1">
     <div class="section-header">
       <div class="section-num">1</div>
-      <div class="section-title">Apa itu R.A.D.A.R Pangan</div>
+      <div class="section-title">Memulai - Login &amp; Navigasi</div>
     </div>
 
     <div class="card">
-      <div class="sub-label">Sistem deteksi dini &amp; manajemen risiko</div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        R.A.D.A.R Pangan (Real-time Anti-inflation Detection, Analysis &amp; Response)
-        adalah platform pemantauan harga pangan yang membantu analis dan pengambil keputusan
-        mendeteksi anomali harga sedini mungkin dan menentukan respons yang tepat.
-      </p>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        Platform menggunakan dua kerangka analisis utama:
-      </p>
+      <div class="sub-label">Cara Login</div>
       <div class="step-list">
         <div class="step-item">
           <div class="step-num">1</div>
           <div class="step-content">
-            <div class="step-title">Fault Tree Analysis (FTA)</div>
+            <div class="step-title">Buka Halaman Login</div>
             <div class="step-desc">
-              Mengidentifikasi <strong>akar penyebab</strong> lonjakan harga melalui 6 ancaman (threat)
-              yang terbagi dalam dua kategori: Demand-side dan Supply-side.
-              Menggunakan OR Gate - salah satu ancaman saja cukup untuk memicu anomali harga.
+              Akses aplikasi melalui browser di <strong>http://localhost:8000/login</strong> (development)
+              atau URL yang diberikan admin untuk production.
             </div>
           </div>
         </div>
         <div class="step-item">
           <div class="step-num">2</div>
           <div class="step-content">
-            <div class="step-title">Bowtie Analysis</div>
+            <div class="step-title">Masukkan Kredensial</div>
             <div class="step-desc">
-              Menentukan <strong>respons yang tepat</strong> berdasarkan ancaman yang terdeteksi.
-              Sisi kiri = barrier pencegahan (sebelum anomali terjadi).
-              Sisi kanan = barrier mitigasi (setelah anomali terjadi).
+              Isi username dan password yang telah diberikan oleh admin.
+              Klik tombol <strong>Masuk</strong> untuk login.
+            </div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Navigasi Menu</div>
+            <div class="step-desc">
+              Setelah login, Anda akan diarahkan ke Dashboard. Menu navigasi ada di pojok kanan atas:
+            </div>
+            <div class="step-tip">
+              <strong>Dashboard</strong> - Monitoring harga real-time<br>
+              <strong>Panduan</strong> - Halaman ini<br>
+              <strong>Prediksi</strong> - Prediksi ML (Analyst+)<br>
+              <strong>Admin</strong> - Kelola sistem (Admin only)
             </div>
           </div>
         </div>
       </div>
 
       <div class="info-box">
-        <span class="info-icon">📍</span>
-        <span>Fokus MVP: <strong>6 komoditas</strong> (bawang merah, bawang putih, cabai merah besar,
-        cabai merah keriting, cabai rawit hijau, cabai rawit merah) di <strong>4 provinsi</strong>
-        (Banten, Jawa Barat, DKI Jakarta, Sulawesi Selatan).</span>
+        <span class="info-icon">🔐</span>
+        <span>Menu yang tampil tergantung role Anda: <strong>Viewer</strong> hanya bisa akses Dashboard,
+        <strong>Analyst</strong> bisa akses Prediksi, <strong>Admin</strong> bisa akses semua halaman.</span>
       </div>
     </div>
   </section>
 
 
-  <!-- 2. FTA -->
+  <!-- 2. Dashboard -->
   <section class="section" id="s2">
     <div class="section-header">
       <div class="section-num">2</div>
-      <div class="section-title">Fault Tree Analysis (FTA) - Ancaman Harga</div>
+      <div class="section-title">Dashboard - Monitoring Harga</div>
     </div>
 
     <div class="card" style="margin-bottom:10px;">
-      <div class="sub-label">Top Event: Anomali Harga Naik Signifikan</div>
+      <div class="sub-label">Fitur Utama Dashboard</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        FTA mengidentifikasi 6 ancaman yang bisa memicu anomali harga.
-        Gate <strong>OR</strong> digunakan di level atas - artinya <strong>salah satu ancaman saja
-        sudah cukup</strong> untuk memicu kenaikan harga signifikan.
-        Ancaman terbagi menjadi dua kategori: Demand-side dan Supply-side.
+        Dashboard adalah halaman utama untuk memantau harga pangan secara real-time.
+        Di sini Anda bisa melihat status harga, tren, dan alert untuk setiap komoditas.
       </p>
     </div>
 
-    <!-- Demand-side threats -->
     <div class="card" style="margin-bottom:10px;">
-      <div class="sub-label">Demand-Side (2 ancaman)</div>
-      <div class="signal-rows">
-        <div class="signal-row">
-          <div class="signal-icon">📅</div>
-          <div class="signal-info">
-            <div class="signal-name">1. Hari Raya / Musim Perayaan</div>
-            <div class="signal-desc">
-              Lonjakan permintaan menjelang hari raya besar (Lebaran, Natal, Tahun Baru, dll).
-              Pola musiman yang terprediksi namun tetap menyebabkan kenaikan harga signifikan.
+      <div class="sub-label">Menggunakan Filter</div>
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Filter Komoditas</div>
+            <div class="step-desc">
+              Pilih komoditas yang ingin dipantau dari dropdown. Tersedia 6 komoditas:
+              Bawang Merah, Bawang Putih, Cabai Merah Besar, Cabai Merah Keriting,
+              Cabai Rawit Hijau, dan Cabai Rawit Merah.
             </div>
-            <span class="signal-warn">Threshold: Window H-14 s/d H+3 hari raya besar</span>
-            <span class="signal-source">Sumber: Kalender nasional (python-holidays)</span>
           </div>
         </div>
-        <div class="signal-row">
-          <div class="signal-icon">📉</div>
-          <div class="signal-info">
-            <div class="signal-name">2. Tekanan Ekonomi / Daya Beli Melemah</div>
-            <div class="signal-desc">
-              Inflasi pangan yang berkelanjutan mengindikasikan tekanan ekonomi makro.
-              Harga pangan naik 3 bulan berturut-turut menandakan daya beli melemah,
-              bukan sekedar fluktuasi musiman.
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Filter Wilayah</div>
+            <div class="step-desc">
+              Pilih provinsi atau kota untuk melihat data spesifik wilayah.
+              Tersedia 4 provinsi: Banten, Jawa Barat, DKI Jakarta, dan Sulawesi Selatan.
             </div>
-            <span class="signal-warn">Threshold: Harga pangan naik 3 bulan berturut-turut</span>
-            <span class="signal-source">Sumber: BPS Data Inflasi Per Bulan</span>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Filter Tanggal</div>
+            <div class="step-desc">
+              Pilih rentang tanggal untuk melihat data historis atau fokus pada periode tertentu.
+              Data tersedia dari tahun 2020 hingga sekarang.
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Supply-side threats -->
     <div class="card">
-      <div class="sub-label">Supply-Side (4 ancaman)</div>
+      <div class="sub-label">Membaca Grafik &amp; Tabel</div>
       <div class="signal-rows">
         <div class="signal-row">
-          <div class="signal-icon">🌦️</div>
+          <div class="signal-icon">📈</div>
           <div class="signal-info">
-            <div class="signal-name">3. Cuaca Ekstrem</div>
+            <div class="signal-name">Grafik Tren Harga</div>
             <div class="signal-desc">
-              Gangguan cuaca di daerah produksi utama mengganggu panen dan distribusi.
-              Sistem memeriksa 4 parameter cuaca dalam 7 hari terakhir:
+              Menampilkan pergerakan harga dalam periode yang dipilih.
+              Garis merah menunjukkan batas HET (Harga Eceran Tertinggi).
+              Hover pada titik untuk melihat detail harga dan tanggal.
             </div>
-            <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
-              <div style="font-family:var(--mono);font-size:11px;">
-                <span style="color:#dc2626;font-weight:700;">Hujan Ekstrem</span>
-                <span style="color:var(--muted)"> - curah hujan > 100 mm/hari</span>
-              </div>
-              <div style="font-family:var(--mono);font-size:11px;">
-                <span style="color:#dc2626;font-weight:700;">Kekeringan</span>
-                <span style="color:var(--muted)"> - hujan < 1 mm selama > 14 hari berturut</span>
-              </div>
-              <div style="font-family:var(--mono);font-size:11px;">
-                <span style="color:#dc2626;font-weight:700;">Suhu Ekstrem</span>
-                <span style="color:var(--muted)"> - suhu maksimum > 38 derajat C</span>
-              </div>
-              <div style="font-family:var(--mono);font-size:11px;">
-                <span style="color:#dc2626;font-weight:700;">Angin Kencang</span>
-                <span style="color:var(--muted)"> - kecepatan angin > 60 km/jam</span>
-              </div>
-            </div>
-            <span class="signal-warn">Level siaga di daerah produksi utama = gangguan panen</span>
-            <span class="signal-source">Sumber: Open-Meteo Historical Archive API</span>
           </div>
         </div>
         <div class="signal-row">
-          <div class="signal-icon">📦</div>
+          <div class="signal-icon">📊</div>
           <div class="signal-info">
-            <div class="signal-name">4. Defisit Stok Nasional</div>
+            <div class="signal-name">Tabel Harga per Kota</div>
             <div class="signal-desc">
-              Total stok nasional komoditas berada di bawah kebutuhan bulanan.
-              Menandakan supply secara agregat tidak mencukupi permintaan pasar.
+              Menampilkan harga terkini di setiap kota pantauan.
+              Kolom status menunjukkan kondisi harga dibanding HET.
+              Klik header kolom untuk mengurutkan data.
             </div>
-            <span class="signal-warn">Threshold: Stok nasional < kebutuhan bulanan</span>
-            <span class="signal-source">Sumber: Data Badan Pangan / Neraca Pangan</span>
           </div>
         </div>
         <div class="signal-row">
-          <div class="signal-icon">🏙️</div>
+          <div class="signal-icon">🔔</div>
           <div class="signal-info">
-            <div class="signal-name">5. Ketimpangan Distribusi Antar Wilayah</div>
+            <div class="signal-name">Alert &amp; Notifikasi</div>
             <div class="signal-desc">
-              Kenaikan harga tidak merata di seluruh wilayah, menandakan ada bottleneck
-              distribusi di jalur tertentu. Bisa disebabkan oleh infrastruktur, logistik,
-              atau hambatan perdagangan antar daerah.
+              Badge berwarna menunjukkan status harga:
+              <strong style="color:#059669;">AMAN</strong> (hijau),
+              <strong style="color:#d97706;">WASPADA</strong> (kuning),
+              <strong style="color:#dc2626;">KRITIS</strong> (merah),
+              <strong style="color:#991b1b;">MELAMPAUI</strong> (merah gelap).
             </div>
-            <span class="signal-warn">Threshold: Kenaikan harga di >3 kota pantauan</span>
-            <span class="signal-source">Sumber: Panel Harga Bapanas</span>
-          </div>
-        </div>
-        <div class="signal-row">
-          <div class="signal-icon">🌾</div>
-          <div class="signal-info">
-            <div class="signal-name">6. Musim Panen / Off-Season</div>
-            <div class="signal-desc">
-              Siklus panen menyebabkan fluktuasi supply alami. Saat off-season,
-              pasokan berkurang dan harga cenderung naik. Kalender panen terpadu
-              membantu memprediksi periode rawan ini.
-            </div>
-            <span class="signal-warn">Threshold: Masuk periode off-season komoditas</span>
-            <span class="signal-source">Sumber: Kalender Panen Kementan</span>
           </div>
         </div>
       </div>
 
       <div class="info-box">
         <span class="info-icon">💡</span>
-        <span>FTA menggunakan <strong>OR Gate</strong> - artinya salah satu ancaman saja sudah cukup
-        memicu anomali harga. Namun jika beberapa ancaman aktif bersamaan, gunakan tabel AND-Gate
-        di seksi 4 untuk eskalasi respons.</span>
+        <span>Status harga dihitung berdasarkan perbandingan dengan HET:
+        <strong>AMAN</strong> (&lt;80%), <strong>WASPADA</strong> (80-100%),
+        <strong>KRITIS</strong> (100-120%), <strong>MELAMPAUI</strong> (&gt;120%).</span>
       </div>
     </div>
   </section>
 
 
-  <!-- 3. Bowtie -->
+  <!-- 3. Prediksi ML -->
   <section class="section" id="s3">
     <div class="section-header">
       <div class="section-num">3</div>
-      <div class="section-title">Bowtie Analysis - Pencegahan &amp; Mitigasi</div>
+      <div class="section-title">Halaman Prediksi ML</div>
     </div>
 
     <div class="card" style="margin-bottom:10px;">
-      <div class="sub-label">Struktur Bowtie</div>
+      <div class="sub-label">Tentang Prediksi ML</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        Bowtie Analysis menghubungkan ancaman (threat) dengan konsekuensi melalui
-        hazardous event di tengah. Setiap ancaman punya dua lapis pertahanan:
-        <strong>barrier pencegahan</strong> (sebelum event terjadi) dan
-        <strong>barrier mitigasi</strong> (setelah event terjadi).
+        Halaman Prediksi menggunakan model Machine Learning (LightGBM Quantile) untuk
+        memprediksi harga pangan 7-14 hari ke depan. Prediksi dilengkapi dengan
+        analisis FTA (Fault Tree Analysis) dan rekomendasi dari LLM Agent.
       </p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-        <div style="flex:1;min-width:140px;padding:10px;background:#ECFDF5;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:2px 2px 0 var(--border);text-align:center;">
-          <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:#059669;margin-bottom:4px;">SISI KIRI</div>
-          <div style="font-size:12px;font-weight:700;color:var(--text);">Barrier Pencegahan</div>
-          <div style="font-size:11px;color:var(--text2);">Cegah anomali terjadi</div>
-        </div>
-        <div style="flex:1;min-width:140px;padding:10px;background:#FEF3C7;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:2px 2px 0 var(--border);text-align:center;">
-          <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:#92400e;margin-bottom:4px;">TENGAH</div>
-          <div style="font-size:12px;font-weight:700;color:var(--text);">Hazardous Event</div>
-          <div style="font-size:11px;color:var(--text2);">Anomali harga naik</div>
-        </div>
-        <div style="flex:1;min-width:140px;padding:10px;background:#FEE2E2;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:2px 2px 0 var(--border);text-align:center;">
-          <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:#dc2626;margin-bottom:4px;">SISI KANAN</div>
-          <div style="font-size:12px;font-weight:700;color:var(--text);">Barrier Mitigasi</div>
-          <div style="font-size:11px;color:var(--text2);">Kurangi dampak</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Threat 1: Hari Raya -->
-    <div class="diag-card dc-demand" style="margin-bottom:10px;">
-      <div class="diag-type">Threat 1 - Demand</div>
-      <div class="diag-name">Hari Raya / Musim Perayaan</div>
-      <div class="diag-trigger">
-        <strong>Pencegahan:</strong> Early warning H-14 (alert otomatis ke stakeholder).
-        Koordinasi Bulog untuk pre-positioning stok sebelum lonjakan.
-      </div>
-      <div class="diag-action">
-        <strong>Mitigasi:</strong> Operasi pasar darurat di titik-titik defisit.
-        Subsidi harga di pasar tradisional - selisih HET ditanggung APBN via Bulog.
-      </div>
-    </div>
-
-    <!-- Threat 2: Tekanan Ekonomi -->
-    <div class="diag-card dc-demand" style="margin-bottom:10px;">
-      <div class="diag-type">Threat 2 - Demand</div>
-      <div class="diag-name">Tekanan Ekonomi / Daya Beli Melemah</div>
-      <div class="diag-trigger">
-        <strong>Pencegahan:</strong> Monitor IHK BPS bulanan + alert jika inflasi pangan 3 bulan berturut.
-        Koordinasi Kemensos untuk percepatan BPNT &amp; bansos pangan.
-      </div>
-      <div class="diag-action">
-        <strong>Mitigasi:</strong> Kampanye substitusi komoditas (edukasi publik + diskon alternatif).
-        BPNT darurat: percepatan distribusi + perluasan penerima manfaat.
-      </div>
-    </div>
-
-    <!-- Threat 3: Cuaca Ekstrem -->
-    <div class="diag-card dc-supply" style="margin-bottom:10px;">
-      <div class="diag-type">Threat 3 - Supply</div>
-      <div class="diag-name">Cuaca Ekstrem</div>
-      <div class="diag-trigger">
-        <strong>Pencegahan:</strong> Integrasi alert BMKG / Open-Meteo.
-        Pre-positioning stok dari daerah produksi alternatif sebelum musim terganggu.
-      </div>
-      <div class="diag-action">
-        <strong>Mitigasi:</strong> Importasi darurat (fast-track 3 hari kerja).
-        Distribusi dari gudang cadangan pemerintah (aktivasi dalam 12 jam).
-      </div>
-    </div>
-
-    <!-- Threat 4: Defisit Stok -->
-    <div class="diag-card dc-supply" style="margin-bottom:10px;">
-      <div class="diag-type">Threat 4 - Supply</div>
-      <div class="diag-name">Defisit Stok Nasional</div>
-      <div class="diag-trigger">
-        <strong>Pencegahan:</strong> Monitor stok Badan Pangan mingguan.
-        Threshold alert sebelum stok kritis (warning di bawah 60%).
-      </div>
-      <div class="diag-action">
-        <strong>Mitigasi:</strong> Release cadangan Bulog secara bertahap (maks 20%/hari).
-        Mobilisasi distribusi darurat dari sentra produksi ke daerah defisit.
-      </div>
-    </div>
-
-    <!-- Threat 5: Ketimpangan Distribusi -->
-    <div class="diag-card dc-supply" style="margin-bottom:10px;">
-      <div class="diag-type">Threat 5 - Supply</div>
-      <div class="diag-name">Ketimpangan Distribusi Antar Wilayah</div>
-      <div class="diag-trigger">
-        <strong>Pencegahan:</strong> Pemantauan persebaran harga antar kota (Panel Harga Bapanas).
-        Identifikasi bottleneck distribusi lintas wilayah.
-      </div>
-      <div class="diag-action">
-        <strong>Mitigasi:</strong> Koordinasi transportasi lintas daerah (jalur tol prioritas pangan).
-        Buka jalur distribusi alternatif (darat/laut/udara cadangan).
-      </div>
-    </div>
-
-    <!-- Threat 6: Musim Panen -->
-    <div class="diag-card dc-dist" style="margin-bottom:10px;">
-      <div class="diag-type">Threat 6 - Supply</div>
-      <div class="diag-name">Musim Panen / Off-Season</div>
-      <div class="diag-trigger">
-        <strong>Pencegahan:</strong> Kalender panen terpadu.
-        Koordinasi cold storage dengan Kementan untuk serap panen raya sebagai buffer stok.
-      </div>
-      <div class="diag-action">
-        <strong>Mitigasi:</strong> Pengaturan impor musiman (kuota off-season diumumkan H-30).
-        Aktivasi skema serap Bulog: beli panen raya dengan harga dasar pemerintah.
-      </div>
-    </div>
-
-    <div class="info-box">
-      <span class="info-icon">📌</span>
-      <span>Barrier pencegahan aktif <strong>sebelum</strong> anomali terjadi.
-      Barrier mitigasi aktif <strong>setelah</strong> anomali terdeteksi.
-      Jika kondisi compound terjadi (dua ancaman sekaligus), lihat tabel AND-Gate di seksi 4.</span>
-    </div>
-  </section>
-
-
-  <!-- 4. AND-Gate Compound -->
-  <section class="section" id="s4">
-    <div class="section-header">
-      <div class="section-num">4</div>
-      <div class="section-title">Kondisi Eskalasi (AND-Gate)</div>
     </div>
 
     <div class="card" style="margin-bottom:10px;">
-      <div class="sub-label">Kapan eskalasi diperlukan?</div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        Jika <strong>dua atau lebih konsekuensi terjadi bersamaan</strong>, barrier mitigasi tunggal
-        tidak cukup. Tabel AND-Gate mendefinisikan respons khusus yang hanya aktif
-        jika kondisi compound terpenuhi. Semakin banyak konsekuensi yang aktif sekaligus,
-        semakin tinggi level eskalasi dan semakin banyak instansi yang terlibat.
-      </p>
-    </div>
-
-    <!-- AND-Gate: A + B -->
-    <div class="diag-card dc-supply" style="margin-bottom:10px;">
-      <div class="diag-type">AND-Gate: Inflasi + Kelangkaan Lokal</div>
-      <div class="diag-name">Operasi Pasar Darurat Skala Nasional</div>
-      <div class="diag-trigger">
-        <strong>Kondisi:</strong> Harga naik >15% DAN stok pasar <30% dari normal.
+      <div class="sub-label">Cara Menggunakan</div>
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Pilih Komoditas &amp; Wilayah</div>
+            <div class="step-desc">
+              Gunakan filter untuk memilih komoditas dan wilayah yang ingin diprediksi.
+              Sistem akan menampilkan prediksi berdasarkan data historis wilayah tersebut.
+            </div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Lihat Grafik Prediksi</div>
+            <div class="step-desc">
+              Grafik menampilkan harga historis (garis solid) dan prediksi (garis putus-putus).
+              Area berwarna menunjukkan confidence interval (rentang kemungkinan harga).
+            </div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Baca Analisis FTA</div>
+            <div class="step-desc">
+              Panel FTA menampilkan faktor-faktor yang mempengaruhi prediksi:
+              hari raya, cuaca ekstrem, persebaran kota, dan kondisi stok.
+            </div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Lihat Rekomendasi LLM</div>
+            <div class="step-desc">
+              LLM Agent memberikan rekomendasi aksi berdasarkan hasil analisis.
+              Rekomendasi mencakup langkah pencegahan dan mitigasi yang bisa diambil.
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="diag-action">
-        <strong>Respons:</strong> Bulog + pemda buka pasar murah serentak di titik defisit.
-        Subsidi silang via APBN darurat ke pasar tradisional.
-        <br><strong>PIC:</strong> Badan Pangan Nasional + Bulog, Kemenkeu + Kemendag
-      </div>
-    </div>
-
-    <!-- AND-Gate: A + C -->
-    <div class="diag-card dc-supply" style="margin-bottom:10px;">
-      <div class="diag-type">AND-Gate: Inflasi + Daya Beli Turun</div>
-      <div class="diag-name">BPNT Darurat &amp; Kontrol HET Sementara</div>
-      <div class="diag-trigger">
-        <strong>Kondisi:</strong> Inflasi pangan >5% MoM DAN indeks daya beli turun di 3+ provinsi.
-      </div>
-      <div class="diag-action">
-        <strong>Respons:</strong> Percepatan BPNT + perluasan penerima manfaat ke kelompok rentan.
-        Kontrol HET sementara untuk cabai &amp; bawang (maks 30 hari, evaluasi tiap 10 hari).
-        <br><strong>PIC:</strong> Kemensos + Badan Pangan, Kemendag
-      </div>
-    </div>
-
-    <!-- AND-Gate: B + C -->
-    <div class="diag-card dc-supply" style="margin-bottom:10px;">
-      <div class="diag-type">AND-Gate: Kelangkaan + Gangguan Rantai Pasok</div>
-      <div class="diag-name">Penegakan Hukum Anti-Penimbunan</div>
-      <div class="diag-trigger">
-        <strong>Kondisi:</strong> Ada laporan penimbunan DAN stok hilir <40% normal selama 3+ hari.
-      </div>
-      <div class="diag-action">
-        <strong>Respons:</strong> Operasi sidak pasar + sanksi pedagang + release paksa stok tersimpan.
-        Importasi darurat fast-track (max 3 hari proses, tanpa menunggu kuota tahunan).
-        <br><strong>PIC:</strong> Satgas Pangan Polri + Kemendag, Badan Pangan
-      </div>
-    </div>
-
-    <!-- AND-Gate: A + D -->
-    <div class="diag-card dc-supply" style="margin-bottom:10px;">
-      <div class="diag-type">AND-Gate: Inflasi + Instabilitas Nasional</div>
-      <div class="diag-name">Koordinasi KSSK (Fiskal-Moneter)</div>
-      <div class="diag-trigger">
-        <strong>Kondisi:</strong> Inflasi pangan berkontribusi >1% terhadap inflasi umum bulanan.
-      </div>
-      <div class="diag-action">
-        <strong>Respons:</strong> Intervensi fiskal-moneter terpadu untuk kendalikan ekspektasi inflasi.
-        <br><strong>PIC:</strong> Bank Indonesia + Kemenkeu
-      </div>
-    </div>
-
-    <!-- AND-Gate: A + B + C (KRITIS) -->
-    <div class="diag-card" style="margin-bottom:10px;background:#FEE2E2;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:3px 3px 0 var(--border);position:relative;overflow:hidden;padding:16px 18px;">
-      <div style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;color:#dc2626;">KRITIS: Inflasi + Kelangkaan + Daya Beli Turun</div>
-      <div class="diag-name">DARURAT PANGAN NASIONAL</div>
-      <div class="diag-trigger">
-        <strong>Kondisi:</strong> Tiga konsekuensi aktif bersamaan - inflasi meningkat, kelangkaan di pasar, dan daya beli turun.
-      </div>
-      <div class="diag-action">
-        <strong>Respons:</strong> Aktivasi Satgas Ketahanan Pangan Nasional - koordinasi lintas kementerian,
-        operasi pasar serentak, importasi darurat, BPNT dipercepat, pengawasan distribusi 24 jam.
-        Wajib laporan ke Presiden dalam 24 jam.
-        <br><strong>PIC:</strong> Menko Perekonomian (koordinator)
-      </div>
-    </div>
-
-    <!-- AND-Gate: A + B + D (KRITIS) -->
-    <div class="diag-card" style="margin-bottom:10px;background:#FEE2E2;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:3px 3px 0 var(--border);position:relative;overflow:hidden;padding:16px 18px;">
-      <div style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;color:#dc2626;">KRITIS: Inflasi + Kelangkaan + Instabilitas Nasional</div>
-      <div class="diag-name">Intervensi Harga &amp; Distribusi Terpadu</div>
-      <div class="diag-trigger">
-        <strong>Kondisi:</strong> Harga domestik >200% HET DAN stok turun <20% kebutuhan bulanan.
-      </div>
-      <div class="diag-action">
-        <strong>Respons:</strong> HET nasional + operasi pasar besar + embargo ekspor sementara cabai/bawang.
-        <br><strong>PIC:</strong> Kemendag + Badan Pangan
-      </div>
-    </div>
-
-    <div class="info-box">
-      <span class="info-icon">💡</span>
-      <span>AND-Gate barrier <strong>hanya aktif</strong> jika semua kondisi terpenuhi secara bersamaan.
-      Jika hanya satu kondisi, gunakan barrier tunggal dari tabel Bowtie di seksi 3.
-      Baris merah menandakan kondisi <strong>KRITIS</strong> (3 konsekuensi sekaligus) yang
-      memerlukan eskalasi ke level nasional.</span>
-    </div>
-  </section>
-
-
-  <!-- 5. Severity -->
-  <section class="section" id="s5">
-    <div class="section-header">
-      <div class="section-num">5</div>
-      <div class="section-title">Tingkat Keparahan (L0-L4)</div>
     </div>
 
     <div class="card">
-      <div class="sub-label">Mengukur seberapa berat situasi</div>
+      <div class="sub-label">Memahami Output Prediksi</div>
+      <div class="signal-rows">
+        <div class="signal-row">
+          <div class="signal-icon">📉</div>
+          <div class="signal-info">
+            <div class="signal-name">Confidence Interval</div>
+            <div class="signal-desc">
+              Area berwarna di sekitar garis prediksi menunjukkan rentang kemungkinan harga.
+              Semakin lebar area, semakin tinggi ketidakpastian prediksi.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🎯</div>
+          <div class="signal-info">
+            <div class="signal-name">Akurasi Model</div>
+            <div class="signal-desc">
+              Model dilatih dengan data historis 2020-2026. Akurasi bervariasi
+              tergantung komoditas dan kondisi pasar. Gunakan sebagai panduan, bukan kepastian.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🤖</div>
+          <div class="signal-info">
+            <div class="signal-name">LLM Agent (Groq)</div>
+            <div class="signal-desc">
+              Rekomendasi dihasilkan oleh LLM (Llama 3.3 70B via Groq API).
+              Agent menganalisis hasil FTA dan memberikan saran aksi yang kontekstual.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon">⚠️</span>
+        <span>Prediksi ML adalah <strong>alat bantu</strong>, bukan keputusan final.
+        Selalu pertimbangkan faktor lain yang mungkin tidak tercakup dalam model.</span>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- 4. Status & Alert -->
+  <section class="section" id="s4">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div class="section-title">Memahami Status &amp; Alert</div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px;">
+      <div class="sub-label">Status Harga vs HET</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        Tingkat keparahan menggambarkan <em>seberapa berat</em> situasinya secara keseluruhan -
-        dihitung dari berapa banyak indikator yang aktif sekaligus.
-        Semakin tinggi level, semakin banyak barrier yang perlu diaktifkan
-        dan semakin banyak instansi yang perlu dilibatkan.
+        Setiap komoditas memiliki HET (Harga Eceran Tertinggi) yang ditetapkan pemerintah.
+        Status harga dihitung berdasarkan perbandingan harga aktual dengan HET.
       </p>
 
       <div class="sev-row">
         <div class="sev-pill sp-l0">
-          <span class="lv">L0</span>
-          <span class="nm">Aman</span>
-          <span class="sc">0 indikator</span>
+          <span class="lv">AMAN</span>
+          <span class="nm">Hijau</span>
+          <span class="sc">&lt;80% HET</span>
         </div>
         <div class="sev-pill sp-l1">
-          <span class="lv">L1</span>
-          <span class="nm">Waspada</span>
-          <span class="sc">1 indikator</span>
-        </div>
-        <div class="sev-pill sp-l2">
-          <span class="lv">L2</span>
-          <span class="nm">Awas</span>
-          <span class="sc">2 indikator</span>
+          <span class="lv">WASPADA</span>
+          <span class="nm">Kuning</span>
+          <span class="sc">80-100% HET</span>
         </div>
         <div class="sev-pill sp-l3">
-          <span class="lv">L3</span>
-          <span class="nm">Kritis</span>
-          <span class="sc">3 indikator</span>
+          <span class="lv">KRITIS</span>
+          <span class="nm">Merah</span>
+          <span class="sc">100-120% HET</span>
         </div>
         <div class="sev-pill sp-l4">
-          <span class="lv">L4</span>
-          <span class="nm">Darurat</span>
-          <span class="sc">4-5 indikator</span>
+          <span class="lv">MELAMPAUI</span>
+          <span class="nm">Merah Gelap</span>
+          <span class="sc">&gt;120% HET</span>
         </div>
       </div>
+    </div>
 
-      <div class="sub-label" style="margin-top:4px;">5 Indikator yang Diperiksa</div>
+    <div class="card">
+      <div class="sub-label">Faktor Analisis FTA</div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
+        Sistem menganalisis 4 faktor utama yang mempengaruhi harga pangan:
+      </p>
       <div class="ind-list">
-        <div class="ind-item">
-          <span class="ind-code">G1</span>
-          <div class="ind-info">
-            <div class="ind-name">Anomali Harga</div>
-            <div class="ind-cond">Kenaikan harga melampaui threshold normal komoditas (default 10%).
-            Threshold berbeda tiap komoditas tergantung volatilitas historisnya.</div>
-          </div>
-        </div>
         <div class="ind-item">
           <span class="ind-code">D1</span>
           <div class="ind-info">
-            <div class="ind-name">Window Hari Raya Aktif</div>
-            <div class="ind-cond">Tanggal analisis masuk rentang H-14 s/d H+3 dari hari raya nasional
-            (libur nasional + cuti bersama, data dari python-holidays 2024-2027).</div>
+            <div class="ind-name">Hari Raya</div>
+            <div class="ind-cond">Apakah tanggal analisis masuk window H-14 s/d H+3 dari hari raya nasional.
+            Lonjakan permintaan menjelang hari besar menyebabkan kenaikan harga.</div>
           </div>
         </div>
         <div class="ind-item">
           <span class="ind-code">S1</span>
           <div class="ind-info">
-            <div class="ind-name">Cuaca Ekstrem di Wilayah Pantauan</div>
-            <div class="ind-cond">Salah satu threshold cuaca terlampaui dalam 7 hari terakhir di wilayah pantauan:
-            hujan >100 mm/hari, kekeringan >14 hari, suhu >38 derajat C, atau angin >60 km/jam.
-            Data dari Open-Meteo Historical Archive API.</div>
+            <div class="ind-name">Cuaca Ekstrem</div>
+            <div class="ind-cond">Apakah ada cuaca ekstrem dalam 7 hari terakhir di wilayah pantauan:
+            hujan &gt;100 mm/hari, kekeringan &gt;14 hari, suhu &gt;38°C, atau angin &gt;60 km/jam.</div>
+          </div>
+        </div>
+        <div class="ind-item">
+          <span class="ind-code">S2</span>
+          <div class="ind-info">
+            <div class="ind-name">Persebaran Kota</div>
+            <div class="ind-cond">Apakah kenaikan harga terjadi di banyak kota sekaligus (&gt;60% kota pantauan).
+            Kenaikan serempak menandakan tekanan bersifat nasional, bukan lokal.</div>
           </div>
         </div>
         <div class="ind-item">
           <span class="ind-code">S3</span>
           <div class="ind-info">
-            <div class="ind-name">Stok Menipis atau Kritis</div>
-            <div class="ind-cond">Rata-rata stok pedagang di bawah 60% dari kapasitas normal.
-            Stok menipis memperkuat potensi kenaikan harga lebih lanjut.
-            Kritis jika di bawah 35%.</div>
-          </div>
-        </div>
-        <div class="ind-item">
-          <span class="ind-code">T2</span>
-          <div class="ind-info">
-            <div class="ind-name">Kenaikan Serempak Antar Kota</div>
-            <div class="ind-cond">60% atau lebih kota pantauan mengalami kenaikan harga pada
-            periode yang sama - menandakan tekanan bersifat nasional, bukan lokal.</div>
+            <div class="ind-name">Kondisi Stok</div>
+            <div class="ind-cond">Apakah stok pedagang di bawah normal.
+            Stok menipis (&lt;60%) atau kritis (&lt;35%) memperkuat potensi kenaikan harga.</div>
           </div>
         </div>
       </div>
 
       <div class="info-box">
         <span class="info-icon">📌</span>
-        <span>Dalam dashboard, setiap indikator yang aktif (YES) ditampilkan sebagai chip kecil
-        di bawah badge level. Gunakan ini untuk memahami <em>kombinasi</em> tekanan yang sedang terjadi,
-        bukan hanya satu penyebab.</span>
+        <span>Semakin banyak faktor yang aktif, semakin tinggi risiko kenaikan harga.
+        Gunakan informasi ini untuk mengantisipasi dan merencanakan respons.</span>
       </div>
     </div>
   </section>
 
 
-  <!-- 6. Sumber Data -->
+  <!-- 5. Admin -->
+  <section class="section" id="s5">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div class="section-title">Halaman Admin (Khusus Admin)</div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px;">
+      <div class="sub-label">Akses Admin</div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
+        Halaman Admin hanya bisa diakses oleh user dengan role <strong>Admin</strong>.
+        Di sini Anda bisa melihat analisis FTA &amp; Bowtie secara real-time dan
+        memantau hasil inference ML.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="sub-label">Fitur Admin</div>
+      <div class="signal-rows">
+        <div class="signal-row">
+          <div class="signal-icon">🌳</div>
+          <div class="signal-info">
+            <div class="signal-name">FTA Dashboard</div>
+            <div class="signal-desc">
+              Visualisasi Fault Tree Analysis yang menampilkan semua ancaman (threat)
+              yang sedang aktif. Setiap ancaman ditampilkan dengan status dan threshold-nya.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🎀</div>
+          <div class="signal-info">
+            <div class="signal-name">Bowtie Analysis</div>
+            <div class="signal-desc">
+              Menampilkan barrier pencegahan dan mitigasi untuk setiap ancaman.
+              Membantu menentukan respons yang tepat berdasarkan kondisi saat ini.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🤖</div>
+          <div class="signal-info">
+            <div class="signal-name">ML Inference Real-time</div>
+            <div class="signal-desc">
+              Menampilkan hasil inference dari ML Engine secara real-time.
+              Termasuk prediksi harga, confidence level, dan rekomendasi dari LLM Agent.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">📊</div>
+          <div class="signal-info">
+            <div class="signal-name">System Status</div>
+            <div class="signal-desc">
+              Monitoring status sistem: koneksi database, ML Engine, dan API health.
+              Membantu troubleshooting jika ada masalah teknis.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <span class="info-icon">🔒</span>
+        <span>Halaman Admin berisi informasi sensitif dan kontrol sistem.
+        Pastikan hanya user yang berwenang yang memiliki akses Admin.</span>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- 6. Tips & FAQ -->
   <section class="section" id="s6">
     <div class="section-header">
       <div class="section-num">6</div>
-      <div class="section-title">Sumber Data &amp; Referensi</div>
+      <div class="section-title">Tips &amp; FAQ</div>
     </div>
 
-    <div class="source-list">
-
-      <div class="source-item">
-        <div class="source-icon">💰</div>
-        <div class="source-body">
-          <div class="source-name">Harga Komoditas &amp; Data Kota</div>
-          <div class="source-from">PIHPS - Panel Harga Pangan Indonesia (bi.go.id/hargapangan)</div>
-          <div class="source-desc">
-            Harga harian retail di pasar tradisional, mencakup 6 komoditas (Bawang Merah, Bawang Putih,
-            Cabai Merah Besar, Cabai Merah Keriting, Cabai Rawit Hijau, Cabai Rawit Merah) dari
-            4 provinsi pantauan. Total <strong>619.430 rows</strong> data historis (2020-2026).
-          </div>
-        </div>
-      </div>
-
-      <div class="source-item">
-        <div class="source-icon">🌦️</div>
-        <div class="source-body">
-          <div class="source-name">Cuaca Historis</div>
-          <div class="source-from">Open-Meteo Historical Archive API (open-meteo.com)</div>
-          <div class="source-desc">
-            Data cuaca harian (curah hujan, suhu, kecepatan angin) dari 5 lokasi pantauan:
-            Tangerang (Banten), Bandung &amp; Cirebon (Jawa Barat), Jakarta (DKI Jakarta),
-            dan Makassar (Sulawesi Selatan). Total <strong>11.605 rows</strong> data (2020-2026).
-          </div>
-        </div>
-      </div>
-
-      <div class="source-item">
-        <div class="source-icon">📦</div>
-        <div class="source-body">
-          <div class="source-name">Stok Pedagang</div>
-          <div class="source-from">Badan Pangan Nasional / Bulog</div>
-          <div class="source-desc">
-            Data stok per komoditas per kota, dibandingkan terhadap baseline kapasitas normal.
-            Tiga status: Normal (stok 60%+), Menipis (35-60%), Kritis (di bawah 35%).
-          </div>
-          <div class="source-note">Placeholder untuk MVP - data real belum tersedia</div>
-        </div>
-      </div>
-
-      <div class="source-item">
-        <div class="source-icon">📅</div>
-        <div class="source-body">
-          <div class="source-name">Kalender Hari Raya</div>
-          <div class="source-from">python-holidays package (offline, data 2024-2027)</div>
-          <div class="source-desc">
-            91 tanggal hari libur nasional dan cuti bersama Indonesia (2024-2027).
-            Window demand spike aktif mulai H-14 sebelum hari raya hingga H+3 setelahnya.
-          </div>
-        </div>
-      </div>
-
-      <div class="source-item">
-        <div class="source-icon">💹</div>
-        <div class="source-body">
-          <div class="source-name">HET (Harga Eceran Tertinggi)</div>
-          <div class="source-from">Badan Pangan Nasional / Bapanas</div>
-          <div class="source-desc">
-            Referensi HET untuk 6 komoditas MVP. Digunakan untuk membandingkan harga aktual
-            dan menentukan status: AMAN, WASPADA (80-100% HET), KRITIS (100-120% HET),
-            atau MELAMPAUI (>120% HET).
-          </div>
-          <div class="source-note">Menggunakan nilai dummy - akan diperbarui dengan data Bapanas resmi</div>
-        </div>
-      </div>
-
-      <div class="source-item">
-        <div class="source-icon">🗺️</div>
-        <div class="source-body">
-          <div class="source-name">Wilayah Pantauan MVP</div>
-          <div class="source-from">PIHPS - 4 provinsi, 18 kota</div>
-          <div class="source-desc">
-            Wilayah pantauan mencakup 4 provinsi yang mewakili pusat konsumsi dan distribusi utama:
-          </div>
-          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div class="region-cell">
-              <div class="region-label">BANTEN</div>
-              <div class="region-desc">
-                Tangerang, Cilegon, Serang<br>
-                <span style="color:var(--muted)">104K rows data harga</span>
-              </div>
+    <div class="card" style="margin-bottom:10px;">
+      <div class="sub-label">Tips Penggunaan</div>
+      <div class="signal-rows">
+        <div class="signal-row">
+          <div class="signal-icon">💡</div>
+          <div class="signal-info">
+            <div class="signal-name">Bookmark Halaman Penting</div>
+            <div class="signal-desc">
+              Bookmark Dashboard dan Prediksi untuk akses cepat.
+              Gunakan filter yang sering dipakai sebagai default.
             </div>
-            <div class="region-cell">
-              <div class="region-label">JAWA BARAT</div>
-              <div class="region-desc">
-                Bandung, Bogor, Depok, Bekasi, Cirebon, dll<br>
-                <span style="color:var(--muted)">312K rows data harga</span>
-              </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">📱</div>
+          <div class="signal-info">
+            <div class="signal-name">Akses Mobile</div>
+            <div class="signal-desc">
+              Aplikasi responsive dan bisa diakses dari smartphone.
+              Cocok untuk monitoring cepat saat di lapangan.
             </div>
-            <div class="region-cell">
-              <div class="region-label">DKI JAKARTA</div>
-              <div class="region-desc">
-                Jakarta Pusat<br>
-                <span style="color:var(--muted)">34K rows data harga</span>
-              </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🔄</div>
+          <div class="signal-info">
+            <div class="signal-name">Refresh Data</div>
+            <div class="signal-desc">
+              Data diperbarui setiap hari pukul 07:00 WIB.
+              Refresh halaman untuk melihat data terbaru.
             </div>
-            <div class="region-cell">
-              <div class="region-label">SULAWESI SELATAN</div>
-              <div class="region-desc">
-                Makassar, Pare-Pare, dll<br>
-                <span style="color:var(--muted)">167K rows data harga</span>
-              </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sub-label">Pertanyaan Umum (FAQ)</div>
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num">?</div>
+          <div class="step-content">
+            <div class="step-title">Mengapa saya tidak bisa akses halaman Prediksi?</div>
+            <div class="step-desc">
+              Halaman Prediksi hanya bisa diakses oleh user dengan role Analyst atau Admin.
+              Hubungi admin untuk upgrade akses jika diperlukan.
+            </div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">?</div>
+          <div class="step-content">
+            <div class="step-title">Data harga tidak muncul untuk tanggal tertentu?</div>
+            <div class="step-desc">
+              Data PIHPS tidak tersedia untuk hari libur dan weekend.
+              Coba pilih tanggal hari kerja untuk melihat data lengkap.
+            </div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">?</div>
+          <div class="step-content">
+            <div class="step-title">Prediksi ML tidak akurat?</div>
+            <div class="step-desc">
+              Prediksi ML adalah estimasi berdasarkan pola historis.
+              Faktor eksternal seperti kebijakan mendadak atau bencana
+              mungkin tidak tercakup dalam model.
+            </div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">?</div>
+          <div class="step-content">
+            <div class="step-title">Bagaimana cara melaporkan bug?</div>
+            <div class="step-desc">
+              Hubungi tim teknis melalui admin atau email ke tim pengembang.
+              Sertakan screenshot dan langkah untuk mereproduksi masalah.
             </div>
           </div>
         </div>
       </div>
 
-      <div class="source-item">
-        <div class="source-icon">🧅</div>
-        <div class="source-body">
-          <div class="source-name">Komoditas MVP</div>
-          <div class="source-from">6 komoditas bawang &amp; cabai</div>
-          <div class="source-desc">
-            Komoditas fokus dipilih berdasarkan volatilitas harga dan relevansi inflasi:
-          </div>
-          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div class="region-cell">
-              <div class="region-label">BAWANG</div>
-              <div class="region-desc">
-                Bawang Merah <span style="color:var(--muted)">(com_11)</span><br>
-                Bawang Putih <span style="color:var(--muted)">(com_12)</span>
-              </div>
-            </div>
-            <div class="region-cell">
-              <div class="region-label">CABAI</div>
-              <div class="region-desc">
-                Cabai Merah Besar <span style="color:var(--muted)">(com_13)</span><br>
-                Cabai Merah Keriting <span style="color:var(--muted)">(com_14)</span><br>
-                Cabai Rawit Hijau <span style="color:var(--muted)">(com_15)</span><br>
-                Cabai Rawit Merah <span style="color:var(--muted)">(com_16)</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="info-box">
+        <span class="info-icon">📞</span>
+        <span>Butuh bantuan lebih lanjut? Hubungi tim support atau lihat
+        <a href="/docs" target="_blank" style="color:var(--accent2);font-weight:700;">API Documentation</a>
+        untuk integrasi teknis.</span>
       </div>
-
     </div>
   </section>
 

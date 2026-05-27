@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analisis RCA — R.A.D.A.R Pangan</title>
+  <title>FTA &amp; Bowtie Analysis — R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
@@ -55,8 +55,8 @@
     }
     .header-left { display: flex; align-items: center; gap: 14px; }
     .logo-icon {
-      width: 44px; height: 44px;
-      border: var(--bw) solid var(--border); border-radius: 12px;
+      width: 52px; height: 52px;
+      border: var(--bw) solid var(--border); border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
       overflow: hidden; padding: 0;
@@ -177,7 +177,7 @@
     .stat-anomaly { border-left: 6px solid var(--danger); }
     .stat-normal { border-left: 6px solid var(--success); }
 
-    /* ── RCA Checklist ── */
+    /* ── FTA Checklist ── */
     .rca-section { margin-bottom: 20px; }
     .rca-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -337,7 +337,7 @@
       <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">analisis root cause &nbsp;·&nbsp; v0.5</div>
+        <div class="header-sub">fta &amp; bowtie analysis &nbsp;·&nbsp; v0.5</div>
       </div>
     </div>
     <div class="header-right">
@@ -347,7 +347,7 @@
       <a href="/" class="nav-link nav-link-default">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/rca" class="nav-link nav-link-active">RCA</a>
+        <a href="/rca" class="nav-link nav-link-active">FTA</a>
       </template>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
         <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
@@ -385,7 +385,7 @@
       </div>
       <button class="btn-run" @click="runRCA()" :disabled="loading">
         <template x-if="loading"><span class="spinner" style="width:14px;height:14px;border-width:2px;"></span></template>
-        <template x-if="!loading"><span>Jalankan RCA</span></template>
+        <template x-if="!loading"><span>Jalankan FTA</span></template>
       </button>
     </div>
   </div>
@@ -413,10 +413,10 @@
         </div>
       </div>
 
-      <!-- ── RCA Checklist ── -->
+      <!-- ── FTA Checklist ── -->
       <div class="rca-section">
         <div class="rca-header">
-          <span class="rca-header-title">RCA Checklist — 4 Step Sequential Check</span>
+          <span class="rca-header-title">FTA Checklist — 6 Threat Analysis</span>
           <span class="rca-header-badge"
                 :class="result.is_anomaly ? 'rca-badge-anomaly' : 'rca-badge-normal'"
                 x-text="result.is_anomaly ? 'ANOMALI TERDETEKSI' : 'NORMAL'"></span>
@@ -549,7 +549,7 @@
       <div class="empty-state" style="padding:60px 20px;">
         <div style="font-size:40px;margin-bottom:12px;">🔍</div>
         <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Pilih komoditas dan jalankan analisis</div>
-        <div>RCA engine akan memeriksa 4 faktor penyebab anomali harga secara berurutan</div>
+        <div>FTA engine akan memeriksa 6 faktor ancaman harga secara berurutan</div>
       </div>
     </div>
   </template>

@@ -1,0 +1,36 @@
+# Render Blueprint - R.A.D.A.R Pangan
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: radar-pangan
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: singapore
+    healthCheckPath: /api/health
+    envVars:
+      # PostgreSQL (Supabase)
+      - key: SUPABASE_HOST
+        sync: false
+      - key: SUPABASE_PORT
+        value: "5432"
+      - key: SUPABASE_DB
+        value: postgres
+      - key: SUPABASE_USER
+        value: postgres
+      - key: SUPABASE_PASSWORD
+        sync: false
+      # GCP (BigQuery)
+      - key: GCP_PROJECT
+        value: radar-pangan-hackathon
+      - key: BQ_LOCATION
+        value: asia-southeast2
+      # LLM (Groq) - Optional
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: LLM_MODEL
+        value: llama-3.3-70b-versatile
