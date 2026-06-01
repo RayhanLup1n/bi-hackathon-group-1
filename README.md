@@ -57,7 +57,7 @@ Platform monitoring, prediksi, dan respons inflasi harga pangan di Indonesia. Me
 | Backend | FastAPI (Python) |
 | Database (Bronze + Silver) | Google BigQuery |
 | Database (Gold / Serving) | PostgreSQL (Dev: Supabase, Prod: Docker) |
-| ETL | Airflow + dbt-bigquery |
+| ETL | Kestra v1.3.19 + dbt-bigquery |
 | ML | scikit-learn (teammate managed) |
 | Infrastructure | Terraform (GCP), Docker Compose |
 | Auth | JWT HS256 + bcrypt + RBAC |
@@ -68,7 +68,7 @@ Platform monitoring, prediksi, dan respons inflasi harga pangan di Indonesia. Me
 Data Sources                    ETL Pipeline              Data Warehouse          Serving
 -----------                    ------------              ---------------         -------
 BI PIHPS (harga)    ──┐
-Hari Besar          ──┼──>  Airflow + dbt  ──>  BigQuery (Bronze+Silver)  ──>  PostgreSQL (Gold)
+Hari Besar          ──┼──>  Kestra + dbt  ──>  BigQuery (Bronze+Silver)  ──>  PostgreSQL (Gold)
 Open-Meteo (cuaca)  ──┘                                                            |
                                                                                    v
                                                                               FastAPI Backend
@@ -158,11 +158,18 @@ uv run pytest tests/ -v
 # App saja (FastAPI)
 docker-compose up app
 
-# App + ETL (Airflow)
+# App + ETL (Kestra)
 docker-compose --profile etl up
 
 # Build ulang
 docker-compose build app
+```
+
+### Kestra UI
+
+```bash
+# Akses Kestra UI di http://localhost:8080
+# Login: admin@radar-pangan.local / Admin1234
 ```
 
 ### dbt Transformations
@@ -182,7 +189,7 @@ bi-hackathon-group-1/
 ├── infra/                  <- Terraform IaC (BigQuery datasets + tables)
 ├── etl/
 │   ├── config/             <- ETL constants (province IDs, komoditas, etc.)
-│   ├── dags/               <- Airflow DAGs
+│   ├── flows/              <- Kestra flow definitions (YAML)
 │   ├── dbt_project/        <- dbt models (BigQuery SQL)
 │   ├── extractors/         <- PIHPS + Open-Meteo extractors
 │   ├── loaders/            <- PostgreSQL loader
@@ -211,7 +218,7 @@ bi-hackathon-group-1/
 │   │   └── het_monitor.py  <- HET comparison engine
 │   └── models/
 │       └── schemas.py      <- Pydantic models
-├── tests/                  <- 84 tests (HET, RCA, weather, HTML structure)
+├── tests/                  <- 88 tests (HET, RCA, weather, HTML structure)
 ├── docs/                   <- PRD, FRD, ERD, SDA, wireframe, tech stack
 ├── main.py                 <- FastAPI entry point
 ├── pyproject.toml          <- Dependencies (uv)
@@ -248,7 +255,7 @@ JWT_SECRET=<secret>
 
 ## Status
 
-**84 tests passing** | **619K+ rows data** | **Demo-ready**
+**88 tests passing** | **619K+ rows data** | **Demo-ready**
 
 ML integration bersifat plug-and-play:
 - **Opsi 1**: INSERT ke `app.ml_predictions` -> otomatis muncul di prediksi page
