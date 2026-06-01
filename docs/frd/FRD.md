@@ -1,7 +1,7 @@
 # FRD — R.A.D.A.R Pangan
 
 > Functional Requirements Document
-> Tanggal: 16 Mei 2026 | Tim Simatana
+> Tanggal: 1 Juni 2026 | Versi 0.7.0 | Tim Simatana
 > Referensi: [PRD](../prd/PRD.md) | Proposal Tahap 1
 
 ---
@@ -706,7 +706,20 @@ Data siap konsumsi, **didesain berdasarkan kebutuhan konsumer** (UI, ML, reporti
 
 | Method | Endpoint | Deskripsi | Auth |
 |--------|----------|-----------|------|
-| GET | `/api/predictions?komoditas_id=&kota_id=&limit=` | Prediksi dari ML | **[SHOULD]** Analyst+ |
+| GET | `/api/predictions?komoditas_id=&kota_id=&limit=` | Prediksi dari DB (app.ml_predictions) | **[SHOULD]** Analyst+ |
+
+### 9.5 ML Proxy (Inference Server)
+
+| Method | Endpoint | Deskripsi | Auth |
+|--------|----------|-----------|------|
+| GET | `/api/ml/health` | ML server health check | Public |
+| POST | `/api/ml/analyze` | Single commodity analysis (3-layer) | Analyst+ |
+| POST | `/api/ml/batch` | Batch analysis (multiple commodities) | Analyst+ |
+| GET | `/api/ml/alerts` | Active ML alerts | Analyst+ |
+| GET | `/api/ml/summary/{date}` | Daily summary | Analyst+ |
+| GET | `/api/ml/komoditas` | Available commodities for ML | Public |
+| GET | `/api/ml/kota` | Available cities for ML | Public |
+| POST | `/api/ml/simulate` | Price simulation | Analyst+ |
 
 ### 9.5 Auth
 

@@ -6,6 +6,8 @@ Endpoints:
   /api/commodity/{key}          - data lengkap satu komoditas
   /api/rca/{key}                - jalankan RCA satu komoditas
   /api/rca                      - jalankan RCA semua komoditas
+  /api/bowtie/{key}             - Bowtie analysis satu komoditas
+  /api/bowtie                   - Bowtie analysis semua komoditas
   /api/prices/{comcat_id}/summary   - ringkasan harga terkini
   /api/prices/{comcat_id}/history   - histori harga harian
   /api/het/{key}                - HET status per komoditas
@@ -29,6 +31,7 @@ from src.data.commodity_data import (
 from src.data.weather_data import get_weather_for_rca, get_weather_summary
 from src.engine.het_monitor import check_het_all, check_het_status, get_het_summary
 from src.engine.rca_engine import run_rca
+from src.engine.bowtie_engine import BowtieResult, run_bowtie
 from src.models.schemas import CommodityData, RCAResult
 
 logger = logging.getLogger(__name__)
@@ -127,6 +130,45 @@ def run_rca_all(
         data = get_commodity_data(key, tanggal=sim_date)
         if data:
             results.append(run_rca(data, today=sim_date))
+    return results
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BOWTIE ANALYSIS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/bowtie/{key}", summary="Bowtie analysis untuk satu komoditas")
+def run_bowtie_endpoint(
+    key: str,
+    sim_date: Optional[date] = Query(
+        default=None, description="Simulasi tanggal (YYYY-MM-DD)"
+    ),
+    _user: dict = Depends(_require_analyst),
+) -> BowtieResult:
+    """Run FTA → Bowtie analysis for one commodity."""
+    data = get_commodity_data(key, tanggal=sim_date)
+    if not data:
+        raise HTTPException(
+            status_code=404, detail=f"Komoditas '{key}' tidak ditemukan"
+        )
+    rca_result = run_rca(data, today=sim_date)
+    return run_bowtie(rca_result)
+
+
+@router.get("/bowtie", summary="Bowtie analysis untuk semua komoditas")
+def run_bowtie_all(
+    sim_date: Optional[date] = Query(
+        default=None, description="Simulasi tanggal (YYYY-MM-DD)"
+    ),
+    _user: dict = Depends(_require_analyst),
+) -> list[BowtieResult]:
+    """Run FTA → Bowtie analysis for all MVP commodities."""
+    results = []
+    for key in get_all_commodities():
+        data = get_commodity_data(key, tanggal=sim_date)
+        if data:
+            rca_result = run_rca(data, today=sim_date)
+            results.append(run_bowtie(rca_result))
     return results
 
 

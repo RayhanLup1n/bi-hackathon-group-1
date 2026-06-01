@@ -1,6 +1,6 @@
 # Tech Stack — R.A.D.A.R Pangan
 
-> Tanggal: 25 Mei 2026 | Tim Simatana
+> Tanggal: 1 Juni 2026 | Versi 0.7.0 | Tim Simatana
 > Referensi: [PRD](../prd/PRD.md) | [SDA](../sda/SYSTEM_DESIGN.md) | [ERD](../erd/ERD.md)
 
 ---
@@ -13,8 +13,8 @@
 │  HTML · Alpine.js 3.x · Chart.js 4.4.4 · Neobrutalism │
 ├────────────────────────────────────────────────────────┤
 │                     BACKEND                             │
-│  Python 3.10+ · FastAPI 0.115 · Pydantic 2.8           │
-│  JWT (python-jose) · bcrypt · psycopg2                 │
+│  Python 3.11 · FastAPI 0.115 · Pydantic 2.8            │
+│  JWT (python-jose) · bcrypt · psycopg2 · httpx         │
 ├──────────────────────┬─────────────────────────────────┤
 │   DATA WAREHOUSE     │      APP DATABASE               │
 │   Google BigQuery    │      PostgreSQL 16               │
@@ -27,7 +27,7 @@
 │  Docker · Terraform 1.9 · uv (package manager)        │
 ├────────────────────────────────────────────────────────┤
 │                     ML (Teammate)                       │
-│  LightGBM · Conformal Prediction · pandas              │
+│  LightGBM · LLM Reasoning (OpenRouter/Gemini) · pandas │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -215,9 +215,20 @@ Note: `marts` dataset tidak di-manage Terraform (dev mode). dbt auto-creates jik
 | Technology | Fungsi | Justifikasi |
 |-----------|--------|-------------|
 | **LightGBM** | Price prediction (quantile regression) | Fast training, native quantile support, better than XGBoost untuk tabular |
-| **Conformal Prediction** | Confidence interval (P10/P90) | Distribution-free, valid coverage guarantee |
+| **Bayesian Changepoint** | Trend change detection | Distribution-free, detect structural breaks |
+| **LLM Reasoning** | Recommendation generation (Layer 3) | OpenRouter API (Gemini 2.5 Flash), natural language rekomendasi |
 | **pandas / Polars** | Feature engineering | Standard data manipulation |
 | **scikit-learn** | Preprocessing, evaluation | Mature, well-documented |
+
+### ML 3-Layer Pipeline
+
+| Layer | Engine | Fungsi |
+|-------|--------|--------|
+| Layer 1 | LightGBM Quantile | Forecast P50/P90 untuk 7d & 14d |
+| Layer 2 | Bayesian Changepoint + HET Detection | Deteksi perubahan tren + HET alert |
+| Layer 3 | LLM Reasoning Agent | Generate rekomendasi intervensi |
+
+**Serving**: Separate Docker container (port 8001), proxied via FastAPI `/api/ml/*` (httpx async client).
 
 ### ML Data Contract
 
@@ -242,12 +253,14 @@ Note: `marts` dataset tidak di-manage Terraform (dev mode). dbt auto-creates jik
 
 | Suite | Tests | Status |
 |-------|-------|--------|
-| RCA Engine | 14 tests | ✅ Pass |
-| HET Monitor | 14 tests | ✅ Pass |
+| RCA Engine | 25 tests | ✅ Pass |
+| HET Monitor | 24 tests | ✅ Pass |
 | Weather Data | 8 tests | ✅ Pass |
-| HTML Structure | 40 assertions | ✅ 36/40 pass |
-| E2E (Playwright) | 28 test scripts | ⬜ Needs server |
+| Bowtie Engine | 34 tests | ✅ Pass |
+| Schemas | 25 tests | ✅ Pass |
+| HTML Structure (E2E) | 65 tests | ✅ Pass |
 | dbt tests | 17 tests | ✅ Pass |
+| **Total** | **181 tests** | **✅ All Pass** |
 
 ---
 

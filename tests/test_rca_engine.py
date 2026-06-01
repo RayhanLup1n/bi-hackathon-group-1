@@ -224,3 +224,111 @@ def test_het_boundary_exact_threshold():
     result2 = run_rca(data2, today=DATE_NORMAL)
     assert result2.checks[2].status == "clear"
 
+
+# ── SEVERITY LEVEL & INDICATORS ─────────────────────────────────────────────
+
+def test_severity_l0_no_indicators():
+    """No anomaly, no triggers → L0, empty indicators."""
+    data = make_commodity(
+        price_now=18000, price_prev=18000, price_threshold=10.0,
+        kota_naik=1, total_kota=8,
+        stok=StokInfo(status="Normal", kelas="ok", pct=1.0),
+    )
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.severity_level == "L0"
+    assert result.yes_indicators == []
+
+
+def test_severity_l1_one_indicator():
+    """One indicator active → L1."""
+    # Price anomaly only (G1), no hari raya, no cuaca, stok ok, low kota spread
+    data = make_commodity(
+        price_now=22000, price_prev=20000, price_threshold=10.0,
+        kota_naik=1, total_kota=8,
+        stok=StokInfo(status="Normal", kelas="ok", pct=1.0),
+    )
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.severity_level == "L1"
+    assert "G1: Anomali Harga" in result.yes_indicators
+
+
+def test_severity_l2_two_indicators():
+    """Two indicators active → L2."""
+    # Price anomaly (G1) + cuaca (S1), low kota spread, stok ok
+    data = make_commodity(
+        price_now=22000, price_prev=20000, price_threshold=10.0,
+        cuaca=CuacaInfo(ekstrem=True, desc="Banjir", daerah="Jawa Barat"),
+        kota_naik=1, total_kota=8,
+        stok=StokInfo(status="Normal", kelas="ok", pct=1.0),
+    )
+    result = run_rca(data, today=DATE_NORMAL)
+    assert result.severity_level == "L2"
+    assert "G1: Anomali Harga" in result.yes_indicators
+    assert "S1: Cuaca Ekstrem" in result.yes_indicators
+
+
+def test_severity_includes_stok_menipis():
+    """Low stok should add S3 indicator."""
+    data = make_commodity(
+        price_now=22000, price_prev=20000, price_threshold=10.0,
+        kota_naik=1, total_kota=8,
+        stok=StokInfo(status="Menipis", kelas="warn", pct=0.4),
+    )
+    result = run_rca(data, today=DATE_NORMAL)
+    assert "S3: Stok Menipis" in result.yes_indicators
+
+
+def test_severity_hari_raya_adds_D1():
+    """Hari raya window should add D1 indicator."""
+    data = make_commodity(
+        price_now=22000, price_prev=20000, price_threshold=10.0,
+    )
+    result = run_rca(data, today=DATE_IDUL_ADHA)
+    assert "D1: Window Hari Raya" in result.yes_indicators
+
+
+def test_severity_kota_spread_adds_T2():
+    """High kota spread should add T2 indicator."""
+    data = make_commodity(
+        price_now=22000, price_prev=20000, price_threshold=10.0,
+        kota_naik=6, total_kota=8,
+        stok=StokInfo(status="Normal", kelas="ok", pct=1.0),
+    )
+    result = run_rca(data, today=DATE_NORMAL)
+    assert "T2: Kenaikan Serempak" in result.yes_indicators
+
+
+def test_severity_max_l4():
+    """All indicators active → L4 (darurat)."""
+    data = make_commodity(
+        price_now=22000, price_prev=20000, price_threshold=10.0,
+        cuaca=CuacaInfo(ekstrem=True, desc="Banjir", daerah="JB"),
+        kota_naik=6, total_kota=8,
+        stok=StokInfo(status="Kritis", kelas="danger", pct=0.2),
+    )
+    result = run_rca(data, today=DATE_IDUL_ADHA)
+    assert result.severity_level in ("L4", "L3")
+    assert len(result.yes_indicators) >= 3
+
+
+# ── RCA-BOWTIE CONTRACT ─────────────────────────────────────────────────────
+
+def test_rca_result_has_bowtie_required_fields():
+    """RCA result must have fields required by Bowtie engine."""
+    data = make_commodity()
+    result = run_rca(data, today=DATE_NORMAL)
+
+    # Bowtie engine needs these fields
+    assert hasattr(result, 'checks')
+    assert hasattr(result, 'yes_indicators')
+    assert hasattr(result, 'is_anomaly')
+    assert hasattr(result, 'severity_level')
+    assert hasattr(result, 'commodity_key')
+    assert hasattr(result, 'commodity_name')
+
+    # checks must have step and status fields
+    for check in result.checks:
+        assert hasattr(check, 'step')
+        assert hasattr(check, 'status')
+        assert check.status in ('triggered', 'clear', 'skip')
+

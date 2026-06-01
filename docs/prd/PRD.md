@@ -3,7 +3,7 @@
 > **R**eal-time **A**nti-inflation **D**etection, **A**nalysis & **R**esponse
 >
 > Product Requirements Document
-> Tanggal: 16 Mei 2026 | Tim Simatana | Hackathon PIDI
+> Tanggal: 1 Juni 2026 | Versi 0.7.0 | Tim Simatana | Hackathon PIDI
 > Tema: Peningkatan Produktivitas, Ketahanan Pangan & Penciptaan Lapangan Kerja
 > Kategori: Digitalisasi Ketahanan Pangan | Sub-Topik: Pemantauan Inflasi
 
@@ -169,16 +169,20 @@ Extensibility dicapai melalui:
 
 **Tujuan**: Satu halaman untuk melihat status harga pangan terkini, prediksi, dan alert.
 
+**Tagline**: *predict · prevent · protect*
+
 | Komponen | Deskripsi |
 |----------|-----------|
-| **Ringkasan Nasional** | Total komoditas dipantau, rata-rata perubahan harga, jumlah alert aktif |
+| **3 Pillar Cards** | **Predict** (prediksi ML P50/P90 7d & 14d), **Prevent** (status HET & cuaca), **Protect** (alert level & rekomendasi) |
+| **ML Alert Banner** | Banner dinamis — RED/YELLOW count jika ML mendeteksi risiko kenaikan signifikan |
 | **Kartu Komoditas** | Per-komoditas: harga terkini, delta (%) vs kemarin, status HET (badge warna) |
 | **HET Monitor** | Perbandingan harga aktual vs HET → status AMAN / WASPADA / KRITIS / MELAMPAUI |
-| **Prediksi Ringkas** | Trend prediksi 7 hari ke depan per komoditas (naik/turun/stabil) + confidence |
-| **RCA Alert Summary** | Komoditas yang terdeteksi anomali + diagnosis ringkas (demand/supply/distribusi) |
+| **Grafik Prediksi** | Chart.js overlay: harga aktual (solid) + P50 (dashed purple) + P90 (dashed red) |
+| **Bowtie Snapshot** | FTA threats aktif + status barrier pencegahan/mitigasi |
+| **RCA Alert Summary** | Komoditas anomali + diagnosis ringkas (demand/supply/distribusi) |
 | **Date Filter** | Pilih tanggal untuk review historis / simulasi |
 
-**Design**: Mobile-first, responsive (smartphone → tablet → desktop).
+**Design**: Mobile-first, responsive, Neobrutalism. Graceful degradation saat ML offline.
 
 ### F2: Panduan Analis (Guide)
 
@@ -226,12 +230,25 @@ Extensibility dicapai melalui:
 | **Tabel Detail** | Prediksi per-komoditas per-tanggal per-wilayah |
 | **Model Info** | Versi model, tanggal training, metrik akurasi |
 
-**ML Architecture** (dikembangkan oleh ML Lead):
-- **Layer 1** — Forecast Engine: LightGBM Quantile (P50/P90)
-- **Layer 2** — Detection Engine: HET threshold + anomaly detection
-- **Layer 3** — Decision Engine: Rekomendasi intervensi berbasis multi-kriteria
+**ML Architecture** (3-layer pipeline, dikembangkan oleh ML Lead):
+- **Layer 1** — Forecast Engine: LightGBM Quantile (P50/P90 untuk horizon 7d & 14d)
+- **Layer 2** — Detection Engine: Bayesian Changepoint + HET threshold detection
+- **Layer 3** — Decision Engine: LLM Reasoning Agent (rekomendasi intervensi)
 
-### F4: Admin & User Management
+**Deployment**: ML container terpisah (port 8001), proxy via `/api/ml/*`. Graceful degradation saat offline.
+
+### F5: FTA & Bowtie Analysis
+
+**Tujuan**: Analisis risiko terstruktur — FTA threats → Hazard Event → Prevention & Mitigation barriers.
+
+| Komponen | Deskripsi |
+|----------|-----------|
+| **6 FTA Threats** | D1 (Hari Raya), D2 (Tekanan Ekonomi), S1 (Cuaca), S2 (Stok), S3 (Distribusi), S4 (Off-Season) |
+| **12 Barriers** | P1-P6 (Prevention: operasi pasar, koordinasi, buffer stock, EWS, HET, diversifikasi) + M1-M6 (Mitigation: impor darurat, subsidi, bantuan, stok cadangan, koordinasi, komunikasi publik) |
+| **Severity Levels** | L0 (Normal) → L4 (Darurat), dihitung dari 5 indikator (G1, D1, S1, S3, T2) |
+| **Bowtie Visual** | Threats (kiri) → Hazard Event (tengah) → Barriers aktif (kanan) |
+
+### F6: Admin & User Management
 
 **Tujuan**: Kontrol akses role-based untuk keamanan.
 
@@ -241,7 +258,7 @@ Extensibility dicapai melalui:
 | User CRUD | Admin bisa tambah, edit, aktifkan/nonaktifkan user |
 | Auth | JWT HS256 (8 jam expire), bcrypt password hashing |
 
-### F5: Data Pipeline — Medallion Architecture
+### F7: Data Pipeline — Medallion Architecture
 
 **Tujuan**: Pipeline data modular, reliable, auditable, dan extensible.
 
@@ -314,6 +331,7 @@ Approach: **Mobile-first design** — layout dirancang untuk smartphone terlebih
 | RCA memberikan diagnosis akurat untuk semua skenario demo | 100% |
 | ML prediksi menampilkan data dengan confidence interval | Yes |
 | Responsive di smartphone (375px viewport) | Yes |
+| Test suite passing (181 tests) | Yes |
 
 ### 8.2 Target KPI (dari Proposal)
 
@@ -370,12 +388,17 @@ Approach: **Mobile-first design** — layout dirancang untuk smartphone terlebih
 
 | Sprint | Fokus | Status |
 |--------|-------|--------|
-| S1-S12 | Data pipeline + BigQuery + ETL + dbt | ✅ Done |
-| S1-S12 | RCA Engine + HET Monitor + Weather | ✅ Done (36 unit tests) |
-| S1-S12 | Frontend 5 pages (neobrutalism, Alpine.js) | ✅ Done |
+| S1-S12 | Data pipeline + BigQuery + ETL (Kestra) + dbt | ✅ Done |
+| S1-S12 | RCA Engine + HET Monitor + Weather | ✅ Done |
+| S1-S12 | Frontend 6 pages (neobrutalism, Alpine.js) | ✅ Done |
 | S1-S12 | Auth + RBAC (JWT + boolean flags) | ✅ Done |
-| **Now** | **Dokumentasi (PRD/FRD/ERD/SDA) + Wireframe** | **🔄 In Progress** |
-| Next | Caching + UI polish + responsive + demo prep | ⬜ Planned |
+| S1-S12 | Dashboard polish + ML integration (P50/P90 overlay) | ✅ Done |
+| S1-S12 | FTA + Bowtie integration (6 threats, 12 barriers) | ✅ Done |
+| S1-S12 | Test suite (181 tests passing) | ✅ Done |
+| S1-S12 | Deployment config (Railway) + JWT_SECRET production | ✅ Done |
+| S1-S12 | Dokumentasi (PRD/FRD/ERD/SDA/TechStack/Wireframe) | ✅ Done |
+
+> **Demo-ready for June 4, 2026** 🚀
 
 ### Phase 2: Pilot (Post-Hackathon, 3-6 bulan)
 
@@ -410,7 +433,8 @@ Approach: **Mobile-first design** — layout dirancang untuk smartphone terlebih
 | **Sumber cuaca** | Tidak spesifik | Open-Meteo Historical API | Gratis, reliable, data historis 1940-sekarang |
 | **Sumber harga** | Bapanas (panelharga) | BI PIHPS (bi.go.id) | Data sama, sumber BI lebih stable untuk scraping |
 | **IaC** | Tidak disebutkan | Terraform (BigQuery infra) | Best practice, reproducible infrastructure |
-| **Pipeline** | Tidak detail | Medallion Architecture (dbt + Airflow) | Industry standard, modular, auditable |
+| **ETL** | Airflow | Kestra 1.3.19 | Lebih ringan (2 containers vs 4), YAML flows, built-in UI |
+| **Pipeline** | Tidak detail | Medallion Architecture (dbt + Kestra) | Industry standard, modular, auditable |
 
 ---
 
@@ -446,10 +470,11 @@ Approach: **Mobile-first design** — layout dirancang untuk smartphone terlebih
 | Dokumen | Status | Path |
 |---------|--------|------|
 | Proposal Tahap 1 (Final Submission) | ✅ Reference | `R.A.D.A.R Pangan Final Submission Pemantauan Inflasi.md` |
-| FRD (Functional Requirements) | 🔜 Next | `docs/frd/` |
-| Wireframe / Prototype | 🔜 Planned | `docs/wireframe/` |
-| ERD | 🔜 Planned | `docs/erd/` |
-| System Design Architecture | 🔜 Planned | `docs/sda/` |
+| FRD (Functional Requirements) | ✅ Ada | `docs/frd/` |
+| Wireframe / Prototype | ✅ Ada | `docs/wireframe/` |
+| ERD | ✅ Ada | `docs/erd/` |
+| System Design Architecture | ✅ Ada | `docs/sda/` |
+| Tech Stack | ✅ Ada | `docs/tech-stack/` |
 | Demo Scenarios | ✅ Ada | `docs/demo-scenarios.md` |
 | Testing Report | ✅ Ada | `docs/NEED_TO_FIX.md` |
 

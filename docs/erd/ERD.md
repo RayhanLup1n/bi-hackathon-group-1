@@ -1,7 +1,7 @@
 # ERD — R.A.D.A.R Pangan
 
 > Entity Relationship Diagram
-> Tanggal: 25 Mei 2026 | Tim Simatana
+> Tanggal: 1 Juni 2026 | Versi 0.7.0 | Tim Simatana
 > Referensi: [PRD](../prd/PRD.md) | [FRD](../frd/FRD.md) | [Wireframe](../wireframe/wireframe-all-pages.html)
 
 ---

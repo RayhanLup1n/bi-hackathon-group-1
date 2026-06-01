@@ -171,25 +171,37 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
     # Price threshold for anomaly detection (default 10%)
     threshold = DEFAULT_PRICE_THRESHOLD_PCT
 
-    # Cuaca -- check ALL provinces, pick the most severe extreme
-    # Severity priority: hujan > kekeringan > suhu > angin > normal
-    provinsi_ids = list({r["provinsi_id"] for r in rows_today if r.get("provinsi_id")})
+    # Cuaca -- check ALL provinces (sorted for deterministic order),
+    # pick the most severe extreme. If none extreme, show combined summary.
+    provinsi_ids = sorted({r["provinsi_id"] for r in rows_today if r.get("provinsi_id")})
     cuaca = CuacaInfo(
         ekstrem=False,
         desc="Provinsi tidak teridentifikasi",
         daerah="",
         detail="",
     )
+    all_weather: list[CuacaInfo] = []
     for prov_id in provinsi_ids:
         cuaca_check = get_weather_for_rca(prov_id, tanggal=target_date)
+        all_weather.append(cuaca_check)
         if cuaca_check.ekstrem:
             # Use extreme weather (first extreme found is fine since
             # get_weather_for_rca already returns the most severe per province)
             cuaca = cuaca_check
             break
-        # Keep the last non-extreme as fallback description
-        if not cuaca.daerah:
-            cuaca = cuaca_check
+
+    # If no extreme found, build combined summary from all provinces
+    if not cuaca.ekstrem and all_weather:
+        daerah_list = [w.daerah for w in all_weather if w.daerah]
+        cuaca = CuacaInfo(
+            ekstrem=False,
+            desc=f"Normal di {len(daerah_list)} wilayah",
+            daerah=", ".join(daerah_list),
+            detail=(
+                f"Tidak ada cuaca ekstrem terdeteksi di wilayah "
+                f"{', '.join(daerah_list)}"
+            ),
+        )
 
     # Stok placeholder -- tidak ada data real stok untuk MVP
     stok = StokInfo(

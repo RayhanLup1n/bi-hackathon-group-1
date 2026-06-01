@@ -1,7 +1,7 @@
 # NEED_TO_FIX.md — Consolidated Testing Report
 
-> Updated: 2026-05-25 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
-> Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review + Session 2026-05-25 review
+> Updated: 2026-06-01 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
+> Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review + Session reviews
 
 ---
 
@@ -9,9 +9,8 @@
 
 | Suite | Result | Count |
 |-------|--------|-------|
-| Unit Tests (HET + RCA + Weather) | **88/88 PASS** | 88 |
-| HTML Structure Tests | **48/48 PASS** | 48 |
-| E2E Tests (Playwright) | Scripts created in `tests/e2e/`, needs server | 28 |
+| Unit Tests (HET + RCA + Weather + Bowtie + Schemas) | **181/181 PASS** | 181 |
+| HTML Structure Tests (E2E) | **65/65 PASS** | 65 |
 
 ---
 
@@ -38,18 +37,18 @@
 - **File**: `src/data/bigquery_client.py`
 - **What changed**: `str(params)` on `ScalarQueryParameter` objects returned memory address, not values. Fixed with `tuple((p.name, p.value) for p in params)`.
 
-### [DEPLOY] JWT_SECRET production setup
-- **Status**: Pending - needed before public deployment
-- **Current**: `DEBUG=true` in `.envs/.env`, using dev fallback secret
-- **Before production/public deploy**:
-  1. Generate random secret: `python -c "import secrets; print(secrets.token_urlsafe(48))"`
-  2. Set in `.envs/.env`:
-     ```
-     JWT_SECRET=<generated-secret-here>
-     DEBUG=false
-     ```
-  3. Set same secret in Docker environment / deployment config
-- **Effort**: 2 min
+### ~~[DEPLOY] JWT_SECRET production setup~~ FIXED (2026-06-01)
+- **Status**: ✅ Done
+- **What changed**: Production JWT_SECRET (64 chars, cryptographically secure) generated and set in `.envs/.env`. `DEBUG` mode disabled. App now runs in production mode with JWT_SECRET enforcement (RuntimeError if missing, min 32 chars required).
+
+### ~~[DEPLOY] Railway deployment config~~ FIXED (2026-06-01)
+- **What changed**: 
+  - CORS configured with `allow_origin_regex` for Railway/ngrok wildcard subdomains + `CORS_ORIGINS` env var for explicit domains
+  - `ENABLE_DOCS` env var added (enable Swagger in production without DEBUG mode)
+  - GCP credentials support via `GOOGLE_CREDENTIALS_BASE64` (base64-encoded service account JSON → temp file)
+  - `railway.toml` updated with correct healthcheck path and `$PORT` fallback
+  - `docs/DEPLOYMENT.md` rewritten with step-by-step Railway guide (4 services)
+- **Effort**: Completed
 
 ---
 
@@ -439,6 +438,18 @@ uv run pytest tests/e2e/             # headless
   - Section 5: Severity levels (L0-L4) - unchanged from engine
   - Section 6: Data sources and references
 
+### ~~[UI] FTA + Bowtie integration in Dashboard and RCA~~ DONE (2026-05-27)
+- **Files**: `frontend/index.html`, `frontend/rca.html`
+- **What changed**: Added FTA Threats grid (6 cards) and Bowtie visualization (Prevention → Hazard → Mitigation) to both Dashboard and RCA page. Shows after running RCA analysis. Uses dashboard CSS classes for font/style consistency.
+
+### ~~[BUG] Weather always showing Makassar~~ FIXED (2026-05-27)
+- **File**: `src/data/commodity_data.py`
+- **What changed**: Province IDs now sorted (was unordered set). Combined summary shows all provinces instead of just first. Still breaks on first extreme found (see Post-Demo #6).
+
+### ~~[BUG] ML Docker container crash (libgomp.so.1)~~ FIXED (2026-05-27)
+- **File**: `ml/Dockerfile`
+- **What changed**: Added `libgomp1` to apt-get install. LightGBM requires GNU OpenMP runtime.
+
 ---
 
 ## Architecture Quick Wins (for Demo)
@@ -466,7 +477,7 @@ Items below are tracked but intentionally deferred past the June 4 demo.
 | 3 | Force password change for default credentials | Security | 30 min |
 | 4 | `debug.html` access control | Security | 10 min |
 | 5 | Drought multi-location detection fix | Bug | 15 min |
-| 6 | Weather "most severe" vs "first found" fix | Bug | 15 min |
+| 6 | Weather "most severe" vs "first found" fix | Bug | 15 min — PARTIALLY FIXED (2026-05-27) — sorted province order + combined summary, but still breaks on first extreme found |
 | 7 | Query marts.* instead of raw.* | Performance | Medium |
 | 8 | Async httpx client for ML proxy | Performance | 30 min |
 | 9 | N+1 query pattern in HET endpoints | Performance | 30 min |
@@ -478,4 +489,6 @@ Items below are tracked but intentionally deferred past the June 4 demo.
 | 15 | Migrate admin.html to Alpine.js | Frontend | 1 hour |
 | 16 | Add `aria-label` to date inputs | Accessibility | 10 min |
 | 17 | Replace custom .env parser with python-dotenv | Tech Debt | 15 min |
-| 18 | `Optional` -> `X | None` syntax migration | Tech Debt | 20 min |
+| 18 | `Optional` -> `X \| None` syntax migration | Tech Debt | 20 min |
+| 19 | Bowtie engine: S4 (Off-Season) has no RCA mapping | Gap | 30 min |
+| 20 | Bowtie engine: D2 only activates as fallback (no direct trigger) | Gap | 1 hour |
