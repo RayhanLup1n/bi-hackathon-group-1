@@ -1,13 +1,21 @@
-# Railway deployment configuration
+# Railway deployment configuration — App service (main)
 # https://docs.railway.app/reference/config-as-code
+#
+# Multi-service setup:
+#   1. App (this config)       — root Dockerfile, port from $PORT
+#   2. ML Model                — ml/Dockerfile, set via Railway dashboard
+#   3. Kestra + Kestra-Postgres — etl/kestra/Dockerfile + postgres:16-alpine, set via dashboard
+#
+# Each additional service is created in Railway dashboard:
+#   Project → New Service → Docker → set root directory + Dockerfile path
 
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
-healthcheckPath = "/api/health"
+startCommand = "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"
+healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3

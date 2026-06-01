@@ -1,5 +1,7 @@
+import base64
 import logging
 import os
+import tempfile
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response as FastAPIResponse
@@ -14,6 +16,8 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+logger = logging.getLogger(__name__)
+
 
 def _load_env() -> None:
     """Load environment variables from .envs/.env file."""
@@ -27,9 +31,58 @@ def _load_env() -> None:
                     os.environ.setdefault(key.strip(), value.strip())
 
 
+def _setup_gcp_credentials() -> None:
+    """Decode base64-encoded GCP service account JSON from env var.
+
+    Cloud platforms (Railway, Render, Cloud Run) can't mount files,
+    so we accept GOOGLE_CREDENTIALS_BASE64 and write it to a temp file.
+    Sets GOOGLE_APPLICATION_CREDENTIALS to the temp file path.
+
+    Priority:
+      1. GOOGLE_APPLICATION_CREDENTIALS already set → skip
+      2. GOOGLE_CREDENTIALS_BASE64 set → decode, write, set path
+      3. Neither → skip (BigQuery won't be available)
+    """
+    import json
+
+    if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+        return
+
+    creds_b64 = os.environ.get("GOOGLE_CREDENTIALS_BASE64", "")
+    if not creds_b64:
+        logger.info("No GCP credentials configured — BigQuery features disabled")
+        return
+
+    try:
+        creds_json = base64.b64decode(creds_b64)
+        # Validate JSON structure before writing
+        parsed = json.loads(creds_json)
+        if parsed.get("type") != "service_account":
+            logger.warning("GOOGLE_CREDENTIALS_BASE64 is not a service_account JSON — skipping")
+            return
+
+        # Write to temp file (persists for process lifetime)
+        fd, path = tempfile.mkstemp(suffix=".json", prefix="gcp-sa-")
+        try:
+            with os.fdopen(fd, "wb") as f:
+                f.write(creds_json)
+        except Exception:
+            os.close(fd)
+            os.unlink(path)
+            raise
+
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = path
+        # Remove base64 string from env to avoid leaking via debug endpoints
+        os.environ.pop("GOOGLE_CREDENTIALS_BASE64", None)
+        logger.info("GCP credentials loaded from GOOGLE_CREDENTIALS_BASE64")
+    except Exception as exc:
+        logger.warning("Failed to decode GOOGLE_CREDENTIALS_BASE64: %s", exc)
+
+
 # Load env BEFORE importing modules that read env vars at import time
 # (e.g. auth_routes reads JWT_SECRET, DEBUG at module level)
 _load_env()
+_setup_gcp_credentials()
 
 # Now safe to import app modules that depend on env vars
 from src.api.routes import router, het_router, cuaca_router, stok_router, predictions_router, data_quality_router  # noqa: E402
@@ -63,9 +116,19 @@ async def lifespan(app: FastAPI):
     # Close BigQuery client if it was initialized
     from src.data.bigquery_client import close_bq_client
     close_bq_client()
+    # Remove temp GCP credentials file if it was created
+    _gcp_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
+    if _gcp_path and _gcp_path.startswith(tempfile.gettempdir()):
+        try:
+            os.unlink(_gcp_path)
+            logger.debug("Cleaned up temp GCP credentials file")
+        except OSError:
+            pass
 
 
 _DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+# Separate toggle for API docs — allow Swagger in production demos without DEBUG mode
+_ENABLE_DOCS = _DEBUG or os.environ.get("ENABLE_DOCS", "false").lower() == "true"
 
 app = FastAPI(
     title="R.A.D.A.R Pangan",
@@ -75,24 +138,32 @@ app = FastAPI(
         "Platform pemantauan inflasi pangan berbasis data PIHPS."
     ),
     lifespan=lifespan,
-    docs_url="/docs" if _DEBUG else None,
-    redoc_url="/redoc" if _DEBUG else None,
-    openapi_url="/api/openapi.json" if _DEBUG else None,
+    docs_url="/docs" if _ENABLE_DOCS else None,
+    redoc_url="/redoc" if _ENABLE_DOCS else None,
+    openapi_url="/api/openapi.json" if _ENABLE_DOCS else None,
 )
 
-# CORS middleware - allow same-origin + localhost dev servers
+# CORS middleware - allow same-origin, localhost dev, and production domains
 _allowed_origins = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "http://localhost:3000",  # frontend dev server if any
 ]
-# Allow ngrok origins for demo (wildcard subdomain)
-if os.environ.get("DEBUG", "false").lower() == "true":
-    _allowed_origins.append("https://*.ngrok-free.app")
+
+# Production origins from env var (comma-separated)
+# Example: CORS_ORIGINS=https://my-app.up.railway.app,https://custom-domain.com
+_extra_origins = os.environ.get("CORS_ORIGINS", "")
+if _extra_origins:
+    _allowed_origins.extend(o.strip() for o in _extra_origins.split(",") if o.strip())
+
+# Wildcard subdomain patterns — Starlette CORSMiddleware uses
+# allow_origin_regex for pattern matching (not glob in allow_origins)
+_origin_regex = r"https://.*\.(up\.railway\.app|ngrok-free\.app)$"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
+    allow_origin_regex=_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],

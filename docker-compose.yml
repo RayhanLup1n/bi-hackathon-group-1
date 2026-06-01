@@ -41,9 +41,11 @@ services:
       # GCP Application Default Credentials for BigQuery access
       # Windows: %APPDATA%/gcloud/application_default_credentials.json
       # Linux/macOS: ~/.config/gcloud/application_default_credentials.json
+      # NOTE: Not needed if using GOOGLE_CREDENTIALS_BASE64 env var (cloud deploy)
       - ${GOOGLE_APPLICATION_CREDENTIALS_DIR:-~/.config/gcloud}:/root/.config/gcloud:ro
-      # Frontend hot-reload during development (remove in production)
-      - ./frontend:/app/frontend:ro
+      # DEV ONLY: Frontend hot-reload (comment out in production)
+      # In production, frontend is baked into the Docker image via COPY
+      # - ./frontend:/app/frontend:ro
     networks:
       - radar-network
     restart: unless-stopped
