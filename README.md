@@ -4,18 +4,20 @@
 
 Platform monitoring, prediksi, dan respons inflasi harga pangan di Indonesia. Mengintegrasikan data harga real PIHPS, kalender hari besar, data cuaca, dan prediksi ML untuk mendeteksi anomali, membandingkan harga terhadap HET, serta merekomendasikan kebijakan intervensi.
 
-**Tim Simatana** - Hackathon PIDI (Digitalisasi Ketahanan Pangan)
+**Tim Simatana** — Hackathon PIDI (Digitalisasi Ketahanan Pangan) | **v0.7.0** | **Demo: 4 Juni 2026**
 
 ---
 
 ## Fitur Utama
 
-- **Dashboard Monitoring** - Pantau harga harian 6 komoditas di 4 provinsi dengan deteksi anomali otomatis
-- **HET Monitor** - Bandingkan harga aktual vs Harga Eceran Tertinggi (AMAN / WASPADA / KRITIS / MELAMPAUI)
-- **RCA Engine** - Root Cause Analysis 4-step sequential: hari raya, cuaca ekstrem, persebaran kota, stok pedagang
-- **Prediksi ML** - Forecasting harga berbasis machine learning dengan confidence interval
-- **Data Cuaca** - Integrasi Open-Meteo untuk deteksi pengaruh cuaca ekstrem terhadap harga
-- **RBAC** - Role-based access control (Viewer, Analyst, Admin) dengan JWT authentication
+- **Dashboard Monitoring** — Pantau harga harian 6 komoditas di 4 provinsi dengan 3 pilar (HET status, prediksi ML, Bowtie snapshot)
+- **HET Monitor** — Bandingkan harga aktual vs Harga Eceran Tertinggi (AMAN / WASPADA / KRITIS / MELAMPAUI)
+- **RCA Engine** — Root Cause Analysis 4-step sequential: hari raya, cuaca ekstrem, persebaran kota, stok pedagang
+- **FTA & Bowtie Analysis** — Fault Tree Analysis (6 threats) + 12 barriers (prevention & mitigation) dengan severity L0–L4
+- **Prediksi ML (3-Layer)** — LightGBM P50/P90 → Bayesian Changepoint + HET → LLM Reasoning Agent
+- **Data Cuaca** — Integrasi Open-Meteo untuk deteksi pengaruh cuaca ekstrem terhadap harga
+- **RBAC** — Role-based access control (Viewer, Analyst, Admin) dengan JWT authentication
+- **Graceful Degradation** — Dashboard berfungsi penuh meskipun ML server offline
 
 ## Cakupan MVP
 
@@ -58,9 +60,10 @@ Platform monitoring, prediksi, dan respons inflasi harga pangan di Indonesia. Me
 | Database (Bronze + Silver) | Google BigQuery |
 | Database (Gold / Serving) | PostgreSQL (Dev: Supabase, Prod: Docker) |
 | ETL | Kestra v1.3.19 + dbt-bigquery |
-| ML | scikit-learn (teammate managed) |
+| ML | LightGBM + Bayesian Changepoint + LLM Reasoning (teammate managed) |
 | Infrastructure | Terraform (GCP), Docker Compose |
 | Auth | JWT HS256 + bcrypt + RBAC |
+| Deployment | Railway (demo) / Docker Compose (prod) |
 
 ### Medallion Architecture
 
@@ -86,18 +89,27 @@ Open-Meteo (cuaca)  ──┘                                                   
 | 1 | Login | `/login` | Semua |
 | 2 | Dashboard Monitoring | `/` | Viewer+ |
 | 3 | Panduan Analis | `/guide` | Semua |
-| 4 | Analisis RCA | `/rca` | Analyst+ |
+| 4 | FTA & Bowtie Analysis | `/rca` | Analyst+ |
 | 5 | Prediksi ML | `/prediksi` | Analyst+ |
 | 6 | Admin | `/admin` | Admin |
 
 ### RCA Engine - 4 Step Sequential Check
 
-1. **Cek Kalender Hari Raya** - Window H-14 s/d H+3 dari hari besar nasional
-2. **Cek Cuaca Ekstrem** - Hujan >100mm, drought >14 hari, suhu >38C, angin >60km/h
-3. **Cek Persebaran Kenaikan Antar Kota** - >60% kota naik = indikasi supply nasional
-4. **Cek Stok Pedagang** - Placeholder untuk data Badan Pangan
+1. **Cek Kalender Hari Raya** — Window H-14 s/d H+3 dari hari besar nasional
+2. **Cek Cuaca Ekstrem** — Hujan >100mm, drought >14 hari, suhu >38C, angin >60km/h
+3. **Cek Persebaran Kenaikan Antar Kota** — >60% kota naik = indikasi supply nasional
+4. **Cek Stok Pedagang** — Placeholder untuk data Badan Pangan
 
 Early exit: jika step triggered, langsung diagnosa tanpa lanjut ke step berikutnya.
+
+### Bowtie Analysis
+
+| Component | Detail |
+|-----------|--------|
+| **FTA Threats** | 6 threats: D1 (Hari Raya), D2 (Spekulasi), S1 (Cuaca), S2 (Stok), S3 (Distribusi), S4 (Impor) |
+| **Prevention** | 6 barriers (P1–P6): stabilisasi stok, early warning, diversifikasi sumber, dll |
+| **Mitigation** | 6 barriers (M1–M6): operasi pasar, subsidi, distribusi darurat, dll |
+| **Severity** | L0 (Normal) → L1 → L2 → L3 → L4 (Kritis) |
 
 ## Setup
 
@@ -113,7 +125,6 @@ Early exit: jika step triggered, langsung diagnosa tanpa lanjut ke step berikutn
 # 1. Clone repo
 git clone <repo-url>
 cd bi-hackathon-group-1
-git checkout feat/workflow-integration
 
 # 2. Install dependencies
 uv sync
@@ -156,13 +167,19 @@ uv run pytest tests/ -v
 
 ```bash
 # App saja (FastAPI)
-docker-compose up app
+docker compose up app
 
 # App + ETL (Kestra)
-docker-compose --profile etl up
+docker compose --profile etl up
+
+# App + ML
+docker compose --profile ml up
+
+# Semua services
+docker compose --profile etl --profile ml up
 
 # Build ulang
-docker-compose build app
+docker compose build app
 ```
 
 ### Kestra UI
@@ -215,15 +232,18 @@ bi-hackathon-group-1/
 │   │   └── auth_db.py        <- User CRUD (bcrypt + boolean flags)
 │   ├── engine/
 │   │   ├── rca_engine.py   <- RCA 4-step sequential check
-│   │   └── het_monitor.py  <- HET comparison engine
+│   │   ├── het_monitor.py  <- HET comparison engine
+│   │   └── bowtie_engine.py <- FTA + Bowtie barrier analysis
 │   └── models/
 │       └── schemas.py      <- Pydantic models
-├── tests/                  <- 88 tests (HET, RCA, weather, HTML structure)
+├── tests/                  <- 181 tests (HET, RCA, Bowtie, weather, schemas, HTML E2E)
 ├── docs/                   <- PRD, FRD, ERD, SDA, wireframe, tech stack
 ├── main.py                 <- FastAPI entry point
 ├── pyproject.toml          <- Dependencies (uv)
 ├── Dockerfile              <- FastAPI container
-└── docker-compose.yml      <- All services (app + ETL via profiles)
+├── docker-compose.yml      <- All services (app + ETL + ML via profiles)
+├── railway.toml            <- Railway deployment config
+└── Procfile                <- Railway start command
 ```
 
 ## Environment Variables
@@ -236,12 +256,17 @@ SUPABASE_DB=postgres
 SUPABASE_USER=postgres
 SUPABASE_PASSWORD=<password>
 
-# BigQuery (auth via ADC - no key needed)
+# BigQuery (auth via ADC - no key needed for local dev)
 GCP_PROJECT=radar-pangan-hackathon
 BQ_LOCATION=asia-southeast2
 
-# JWT
+# JWT (wajib di production - generate dengan: python -c "import secrets; print(secrets.token_urlsafe(64))")
 JWT_SECRET=<secret>
+
+# Production / Railway (optional)
+# GOOGLE_CREDENTIALS_BASE64=<base64-encoded service account JSON>
+# ENABLE_DOCS=true
+# CORS_ORIGINS=https://your-domain.com
 ```
 
 ## Tim
@@ -255,23 +280,32 @@ JWT_SECRET=<secret>
 
 ## Status
 
-**88 tests passing** | **619K+ rows data** | **Demo-ready**
+**181 tests passing** | **619K+ rows data** | **Demo-ready** | **v0.7.0**
 
-ML integration bersifat plug-and-play:
-- **Opsi 1**: INSERT ke `app.ml_predictions` -> otomatis muncul di prediksi page
-- **Opsi 2**: Jalankan inference server (port 8001) -> proxy via `/api/ml/*`
+ML integration bersifat plug-and-play (graceful degradation — dashboard tetap berfungsi tanpa ML):
+- **Opsi 1**: INSERT ke `app.ml_predictions` → otomatis muncul di prediksi page
+- **Opsi 2**: Jalankan inference server (port 8001) → proxy via `/api/ml/*`
+
+### Deployment
+
+| Environment | Platform | Docs |
+|-------------|----------|------|
+| Local Dev | `uv run uvicorn main:app --reload` | README ini |
+| Docker | `docker compose up` | README ini |
+| Cloud Demo | Railway (4 services) | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) |
 
 ## Dokumentasi
 
 | Dokumen | Lokasi |
 |---------|--------|
-| PRD | `docs/prd/PRD.md` |
-| FRD | `docs/frd/FRD.md` |
-| ERD | `docs/erd/ERD.md` |
-| System Design | `docs/sda/SYSTEM_DESIGN.md` |
-| Tech Stack | `docs/tech-stack/TECH_STACK.md` |
-| Wireframe | `docs/wireframe/wireframe-all-pages.html` |
-| Demo Scenarios | `docs/demo-scenarios.md` |
+| PRD | [`docs/prd/PRD.md`](docs/prd/PRD.md) |
+| FRD | [`docs/frd/FRD.md`](docs/frd/FRD.md) |
+| ERD | [`docs/erd/ERD.md`](docs/erd/ERD.md) |
+| System Design | [`docs/sda/SYSTEM_DESIGN.md`](docs/sda/SYSTEM_DESIGN.md) |
+| Tech Stack | [`docs/tech-stack/TECH_STACK.md`](docs/tech-stack/TECH_STACK.md) |
+| Deployment | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) |
+| Wireframe | [`docs/wireframe/wireframe-all-pages.html`](docs/wireframe/wireframe-all-pages.html) |
+| Demo Scenarios | [`docs/demo-scenarios.md`](docs/demo-scenarios.md) |
 
 ## License
 
