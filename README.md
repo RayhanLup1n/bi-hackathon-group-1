@@ -12,7 +12,8 @@ Platform monitoring, prediksi, dan respons inflasi harga pangan di Indonesia. Me
 
 - **Dashboard Monitoring** - Pantau harga harian 6 komoditas di 4 provinsi dengan deteksi anomali otomatis
 - **HET Monitor** - Bandingkan harga aktual vs Harga Eceran Tertinggi (AMAN / WASPADA / KRITIS / MELAMPAUI)
-- **RCA Engine** - Root Cause Analysis 4-step sequential: hari raya, cuaca ekstrem, persebaran kota, stok pedagang
+- **FTA Engine** - Fault Tree Analysis: hari raya, cuaca ekstrem, persebaran kota, stok pedagang
+- **Bowtie Analysis** - Prevention & mitigation barriers berdasarkan threat yang aktif
 - **Prediksi ML** - Forecasting harga berbasis machine learning dengan confidence interval
 - **Data Cuaca** - Integrasi Open-Meteo untuk deteksi pengaruh cuaca ekstrem terhadap harga
 - **RBAC** - Role-based access control (Viewer, Analyst, Admin) dengan JWT authentication
@@ -58,7 +59,8 @@ Platform monitoring, prediksi, dan respons inflasi harga pangan di Indonesia. Me
 | Database (Bronze + Silver) | Google BigQuery |
 | Database (Gold / Serving) | PostgreSQL (Dev: Supabase, Prod: Docker) |
 | ETL | Kestra v1.3.19 + dbt-bigquery |
-| ML | scikit-learn (teammate managed) |
+| ML | LightGBM + Groq LLM (teammate managed) |
+| Deployment | Railway (app service) |
 | Infrastructure | Terraform (GCP), Docker Compose |
 | Auth | JWT HS256 + bcrypt + RBAC |
 
@@ -86,18 +88,20 @@ Open-Meteo (cuaca)  ──┘                                                   
 | 1 | Login | `/login` | Semua |
 | 2 | Dashboard Monitoring | `/` | Viewer+ |
 | 3 | Panduan Analis | `/guide` | Semua |
-| 4 | Analisis RCA | `/rca` | Analyst+ |
+| 4 | FTA & Bowtie Analysis | `/analysis` | Analyst+ |
 | 5 | Prediksi ML | `/prediksi` | Analyst+ |
 | 6 | Admin | `/admin` | Admin |
 
-### RCA Engine - 4 Step Sequential Check
+### FTA Engine - Fault Tree Analysis
+
+Sistem menganalisis 4 faktor utama yang mempengaruhi harga pangan:
 
 1. **Cek Kalender Hari Raya** - Window H-14 s/d H+3 dari hari besar nasional
 2. **Cek Cuaca Ekstrem** - Hujan >100mm, drought >14 hari, suhu >38C, angin >60km/h
 3. **Cek Persebaran Kenaikan Antar Kota** - >60% kota naik = indikasi supply nasional
 4. **Cek Stok Pedagang** - Placeholder untuk data Badan Pangan
 
-Early exit: jika step triggered, langsung diagnosa tanpa lanjut ke step berikutnya.
+Hasil FTA otomatis ditampilkan di Dashboard saat komoditas dipilih, dilengkapi Bowtie Analysis (prevention & mitigation barriers).
 
 ## Setup
 
@@ -144,7 +148,7 @@ uv run uvicorn main:app --reload
 | Username | Password | Role |
 |----------|----------|------|
 | admin | admin123 | Admin (full access) |
-| analyst | analyst123 | Analyst (Dashboard + RCA + Prediksi) |
+| analyst | analyst123 | Analyst (Dashboard + FTA + Prediksi) |
 
 ### Run Tests
 
@@ -199,12 +203,12 @@ bi-hackathon-group-1/
 │   ├── index.html          <- Dashboard (Alpine.js)
 │   ├── login.html          <- Login page
 │   ├── guide.html          <- Panduan Analis
-│   ├── rca.html            <- Analisis RCA (Alpine.js)
+│   ├── rca.html            <- FTA & Bowtie Analysis (Alpine.js)
 │   ├── prediksi.html       <- Prediksi ML (Alpine.js + Chart.js)
 │   └── admin.html          <- User management
 ├── src/
 │   ├── api/
-│   │   ├── routes.py       <- Commodity, RCA, HET, weather endpoints
+│   │   ├── routes.py       <- Commodity, FTA, HET, weather endpoints
 │   │   ├── auth_routes.py  <- JWT auth + RBAC
 │   │   └── ml_routes.py    <- ML proxy endpoints
 │   ├── data/
@@ -214,11 +218,12 @@ bi-hackathon-group-1/
 │   │   ├── weather_data.py    <- Weather queries (BigQuery)
 │   │   └── auth_db.py        <- User CRUD (bcrypt + boolean flags)
 │   ├── engine/
-│   │   ├── rca_engine.py   <- RCA 4-step sequential check
+│   │   ├── rca_engine.py   <- FTA analysis engine (4-factor check)
+│   │   ├── bowtie_engine.py <- Bowtie prevention & mitigation barriers
 │   │   └── het_monitor.py  <- HET comparison engine
 │   └── models/
 │       └── schemas.py      <- Pydantic models
-├── tests/                  <- 88 tests (HET, RCA, weather, HTML structure)
+├── tests/                  <- 181 tests (HET, FTA, Bowtie, weather, schemas, HTML structure)
 ├── docs/                   <- PRD, FRD, ERD, SDA, wireframe, tech stack
 ├── main.py                 <- FastAPI entry point
 ├── pyproject.toml          <- Dependencies (uv)
@@ -253,9 +258,23 @@ JWT_SECRET=<secret>
 | Teammate (Product) | Product & Domain Lead | Requirements, policy context |
 | Teammate (Data) | Data & Quant Analyst | Data analysis, metrics validation |
 
+## Deployment
+
+### Railway (Production Demo)
+
+| Service | Status | Notes |
+|---------|--------|-------|
+| **App (FastAPI + Frontend)** | ✅ Deployed | Public URL via Railway |
+| **ML Inference Server** | ❌ OOM | LightGBM + Groq Agent melebihi memory limit Railway free tier |
+| **ETL (Kestra)** | ⏸ Tidak di-deploy | Tidak diperlukan untuk demo — data sudah di-load |
+
+> ML predictions tetap bisa diakses jika teammate INSERT langsung ke `app.ml_predictions` via Supabase.
+
+Lihat `docs/DEPLOYMENT.md` untuk panduan lengkap deployment Railway.
+
 ## Status
 
-**88 tests passing** | **619K+ rows data** | **Demo-ready**
+**181 tests passing** | **619K+ rows data** | **Demo-ready** | **Deployed on Railway (app)**
 
 ML integration bersifat plug-and-play:
 - **Opsi 1**: INSERT ke `app.ml_predictions` -> otomatis muncul di prediksi page
