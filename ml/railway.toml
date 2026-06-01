@@ -1,0 +1,13 @@
+# Railway deployment configuration — ML service
+# Root directory di Railway harus di-set ke: ml
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "sh -c 'uvicorn ml.serve.api:app --host 0.0.0.0 --port ${PORT:-8001}'"
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
