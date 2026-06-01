@@ -4,8 +4,8 @@ API routes for R.A.D.A.R Pangan.
 Endpoints:
   /api/commodities              - list komoditas yang tersedia
   /api/commodity/{key}          - data lengkap satu komoditas
-  /api/rca/{key}                - jalankan RCA satu komoditas
-  /api/rca                      - jalankan RCA semua komoditas
+  /api/analysis/{key}           - jalankan analisis FTA satu komoditas
+  /api/analysis                 - jalankan analisis FTA semua komoditas
   /api/bowtie/{key}             - Bowtie analysis satu komoditas
   /api/bowtie                   - Bowtie analysis semua komoditas
   /api/prices/{comcat_id}/summary   - ringkasan harga terkini
@@ -36,7 +36,7 @@ from src.models.schemas import CommodityData, RCAResult
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api", tags=["RCA & Harga"])
+router = APIRouter(prefix="/api", tags=["FTA & Harga"])
 het_router = APIRouter(prefix="/api/het", tags=["HET Monitor"])
 cuaca_router = APIRouter(prefix="/api/cuaca", tags=["Cuaca"])
 stok_router = APIRouter(prefix="/api/stok", tags=["Stok"])
@@ -99,10 +99,10 @@ def get_commodity(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# RCA
+# FTA / ANALYSIS
 # ─────────────────────────────────────────────────────────────────────────────
 
-@router.get("/rca/{key}", summary="Jalankan RCA untuk satu komoditas")
+@router.get("/analysis/{key}", summary="Jalankan analisis FTA untuk satu komoditas")
 def run_rca_endpoint(
     key: str,
     sim_date: Optional[date] = Query(
@@ -118,7 +118,7 @@ def run_rca_endpoint(
     return run_rca(data, today=sim_date)
 
 
-@router.get("/rca", summary="Jalankan RCA untuk semua komoditas")
+@router.get("/analysis", summary="Jalankan analisis FTA untuk semua komoditas")
 def run_rca_all(
     sim_date: Optional[date] = Query(
         default=None, description="Simulasi tanggal (YYYY-MM-DD)"

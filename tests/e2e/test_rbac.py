@@ -3,7 +3,7 @@ E2E tests: RBAC enforcement.
 
 Tests:
   - Admin can access /admin, analyst cannot
-  - Analyst can access /rca and /prediksi
+  - Analyst can access /analysis and /prediksi
   - Navigation links match user role
 """
 import pytest
@@ -30,12 +30,12 @@ def test_analyst_cannot_access_admin_page(analyst_page: Page, base_url: str):
     assert "admin" not in url or analyst_page.locator("text=Akses ditolak").count() > 0
 
 
-def test_analyst_can_access_rca(analyst_page: Page, base_url: str):
-    """Analyst can access /rca page."""
-    analyst_page.goto(f"{base_url}/rca")
+def test_analyst_can_access_analysis(analyst_page: Page, base_url: str):
+    """Analyst can access /analysis page."""
+    analyst_page.goto(f"{base_url}/analysis")
     analyst_page.wait_for_timeout(2000)
 
-    assert "rca" in analyst_page.url.lower()
+    assert "analysis" in analyst_page.url.lower()
 
 
 def test_analyst_can_access_prediksi(analyst_page: Page, base_url: str):
@@ -47,7 +47,7 @@ def test_analyst_can_access_prediksi(analyst_page: Page, base_url: str):
 
 
 def test_admin_nav_shows_all_links(admin_page: Page, base_url: str):
-    """Admin should see nav links for Dashboard, RCA, Prediksi, Admin."""
+    """Admin should see nav links for Dashboard, FTA, Prediksi, Admin."""
     admin_page.goto(base_url)
     admin_page.wait_for_timeout(2000)
 

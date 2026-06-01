@@ -208,8 +208,8 @@ class TestDashboardStructure:
         assert "server offline" in content.lower()
 
 
-class TestRCAPageStructure:
-    """Tests specific to the RCA page (rca.html)."""
+class TestFTAPageStructure:
+    """Tests specific to the FTA/Analysis page (rca.html)."""
 
     def test_has_bowtie_section(self):
         content = _read_page("rca.html")
@@ -221,7 +221,7 @@ class TestRCAPageStructure:
         assert "FTA" in content
         assert "active_threats" in content
 
-    def test_has_rca_checklist(self):
+    def test_has_analysis_checklist(self):
         content = _read_page("rca.html")
         assert "Hari Raya" in content
         assert "Cuaca" in content

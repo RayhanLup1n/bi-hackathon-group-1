@@ -96,7 +96,7 @@
       .header-right { width: 100%; justify-content: flex-start; }
     }
 
-    /* -- RCA page-specific styles -- */
+    /* -- FTA page-specific styles -- */
 
     /* ── Card (override shared - larger padding + margin) ── */
     .card {
@@ -176,55 +176,6 @@
 
     .stat-anomaly { border-left: 6px solid var(--danger); }
     .stat-normal { border-left: 6px solid var(--success); }
-
-    /* ── FTA Checklist ── */
-    .rca-section { margin-bottom: 20px; }
-    .rca-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 18px; background: var(--surface2);
-      border: var(--bw) solid var(--border); border-radius: var(--radius) var(--radius) 0 0;
-      box-shadow: var(--shadow);
-    }
-    .rca-header-title { font-family: var(--mono); font-size: 12px; font-weight: 800; }
-    .rca-header-badge {
-      font-family: var(--mono); font-size: 10px; font-weight: 700;
-      padding: 3px 10px; border-radius: 6px;
-      border: 1.5px solid var(--border);
-    }
-    .rca-badge-anomaly { background: #FEE2E2; color: #DC2626; }
-    .rca-badge-normal { background: #D1FAE5; color: #065f46; }
-    .rca-badge-waiting { background: #F1F5F9; color: #64748b; }
-
-    .rca-list {
-      border: var(--bw) solid var(--border); border-top: none;
-      border-radius: 0 0 var(--radius) var(--radius);
-      overflow: hidden; box-shadow: var(--shadow);
-    }
-    .rca-item {
-      display: grid; grid-template-columns: 36px 1fr auto; align-items: center;
-      padding: 14px 18px; gap: 14px; background: var(--surface);
-      border-bottom: 1.5px solid #e5e5e5;
-      transition: background 0.2s;
-    }
-    .rca-item:last-child { border-bottom: none; }
-    .rca-item.active { background: #F5F3FF; }
-
-    .rca-step-num {
-      width: 30px; height: 30px; display: flex; align-items: center;
-      justify-content: center; border-radius: 8px;
-      border: var(--bw) solid var(--border); font-family: var(--mono);
-      font-size: 12px; font-weight: 800;
-    }
-    .step-pending { background: #F1F5F9; color: #94a3b8; }
-    .step-active { background: var(--accent); color: #fff; box-shadow: 2px 2px 0 var(--border); animation: pulse 0.6s ease infinite alternate; }
-    .step-pass { background: #D1FAE5; color: #065f46; }
-    .step-fail { background: #FEE2E2; color: #DC2626; }
-
-    @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.08); } }
-
-    .rca-step-name { font-size: 13px; font-weight: 700; }
-    .rca-step-desc { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; font-weight: 500; }
-    .rca-step-result { font-family: var(--mono); font-size: 11px; font-weight: 700; }
 
     /* ── Detail Root Cause ── */
     .detail-card {
@@ -347,7 +298,7 @@
       <a href="/" class="nav-link nav-link-default">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/rca" class="nav-link nav-link-active">FTA</a>
+        <a href="/analysis" class="nav-link nav-link-active">FTA</a>
       </template>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
         <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
@@ -413,36 +364,6 @@
         </div>
       </div>
 
-      <!-- ── FTA Checklist ── -->
-      <div class="rca-section">
-        <div class="rca-header">
-          <span class="rca-header-title">FTA Checklist — 6 Threat Analysis</span>
-          <span class="rca-header-badge"
-                :class="result.is_anomaly ? 'rca-badge-anomaly' : 'rca-badge-normal'"
-                x-text="result.is_anomaly ? 'ANOMALI TERDETEKSI' : 'NORMAL'"></span>
-        </div>
-        <div class="rca-list">
-          <template x-for="(check, i) in animatedChecks" :key="i">
-            <div class="rca-item" :class="check.animState === 'active' ? 'active' : ''">
-              <div class="rca-step-num"
-                   :class="{
-                     'step-pending': check.animState === 'pending',
-                     'step-active':  check.animState === 'active',
-                     'step-pass':    check.animState === 'done' && check.result === 'TRIGGERED',
-                     'step-fail':    check.animState === 'done' && check.result !== 'TRIGGERED',
-                   }" x-text="i + 1"></div>
-              <div>
-                <div class="rca-step-name" x-text="check.name"></div>
-                <div class="rca-step-desc" x-text="check.detail || '—'"></div>
-              </div>
-              <div class="rca-step-result"
-                   :style="check.result === 'TRIGGERED' ? 'color:#DC2626' : 'color:#059669'"
-                   x-text="check.animState === 'done' ? check.result : (check.animState === 'active' ? '...' : '')"></div>
-            </div>
-          </template>
-        </div>
-      </div>
-
       <!-- ── Detail Root Cause ── -->
       <template x-if="result.root_cause">
         <div class="detail-card">
@@ -504,7 +425,7 @@
             </div>
           </template>
           <template x-if="!cuacaData">
-            <div class="empty-state">Pilih komoditas dan jalankan RCA</div>
+            <div class="empty-state">Pilih komoditas dan jalankan Analisis</div>
           </template>
         </div>
 
@@ -536,7 +457,7 @@
             </div>
           </template>
           <template x-if="!result.checks">
-            <div class="empty-state">Jalankan RCA untuk melihat info hari besar</div>
+            <div class="empty-state">Jalankan Analisis untuk melihat info hari besar</div>
           </template>
         </div>
       </div>
@@ -667,7 +588,6 @@ function rcaPage() {
     result: null,
     cuacaData: null,
     bowtieData: null,
-    animatedChecks: [],
 
     async init() {
       // Auth guard — analyst+ only
@@ -677,7 +597,7 @@ function rcaPage() {
         if (!r.ok) throw new Error();
         const me = await r.json();
         this.user = me;
-        // Viewer cannot access RCA page
+        // Viewer cannot access FTA page
         if (!me.is_admin && !me.is_analyst) {
           window.location.replace('/');
           return;
@@ -707,18 +627,17 @@ function rcaPage() {
       this.result = null;
       this.cuacaData = null;
       this.bowtieData = null;
-      this.animatedChecks = [];
 
       const dateParam = this.simDate ? `?sim_date=${this.simDate}` : '';
 
       try {
         // Fetch RCA + commodity data in parallel
         const [rcaRes, comRes] = await Promise.all([
-          fetch(`/api/rca/${this.selectedKey}${dateParam}`, this._authOpts()),
+          fetch(`/api/analysis/${this.selectedKey}${dateParam}`, this._authOpts()),
           fetch(`/api/commodity/${this.selectedKey}${dateParam}`, this._authOpts()),
         ]);
 
-        if (!rcaRes.ok) throw new Error('RCA request failed');
+        if (!rcaRes.ok) throw new Error('Analysis request failed');
         const rcaData = await rcaRes.json();
 
         let comData = null;
@@ -748,19 +667,6 @@ function rcaPage() {
             result: (c.status || '').toUpperCase(),
           })),
         };
-
-        // Animate checks sequentially (use already-mapped checks from result)
-        this.animatedChecks = this.result.checks.map(c => ({
-          ...c,
-          animState: 'pending',
-        }));
-
-        for (let i = 0; i < this.animatedChecks.length; i++) {
-          this.animatedChecks[i].animState = 'active';
-          await this._sleep(500);
-          this.animatedChecks[i].animState = 'done';
-          await this._sleep(200);
-        }
 
         // Fetch weather data — always use /api/cuaca for numeric details
         // CommodityData.cuaca only has text description, not numeric values
@@ -798,14 +704,10 @@ function rcaPage() {
         }
 
       } catch (err) {
-        console.error('RCA Error:', err);
+        console.error('Analysis Error:', err);
       } finally {
         this.loading = false;
       }
-    },
-
-    _sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
     },
 
     logout() {
