@@ -1,7 +1,7 @@
 # NEED_TO_FIX.md — Consolidated Testing Report
 
-> Updated: 2026-05-27 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
-> Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review + Session 2026-05-25 review + Session 2026-05-27 review
+> Updated: 2026-06-01 | Branch: `feat/workflow-integration` | Demo: June 4, 2026
+> Source: 5 parallel review agents (Security, FastAPI, Python, Architecture, UAT) + Kestra migration review + Session reviews
 
 ---
 
@@ -9,9 +9,8 @@
 
 | Suite | Result | Count |
 |-------|--------|-------|
-| Unit Tests (HET + RCA + Weather) | **88/88 PASS** | 88 |
-| HTML Structure Tests | **48/48 PASS** | 48 |
-| E2E Tests (Playwright) | Scripts created in `tests/e2e/`, needs server | 28 |
+| Unit Tests (HET + RCA + Weather + Bowtie + Schemas) | **181/181 PASS** | 181 |
+| HTML Structure Tests (E2E) | **65/65 PASS** | 65 |
 
 ---
 
@@ -38,18 +37,18 @@
 - **File**: `src/data/bigquery_client.py`
 - **What changed**: `str(params)` on `ScalarQueryParameter` objects returned memory address, not values. Fixed with `tuple((p.name, p.value) for p in params)`.
 
-### [DEPLOY] JWT_SECRET production setup
-- **Status**: Pending - needed before public deployment
-- **Current**: `DEBUG=true` in `.envs/.env`, using dev fallback secret
-- **Before production/public deploy**:
-  1. Generate random secret: `python -c "import secrets; print(secrets.token_urlsafe(48))"`
-  2. Set in `.envs/.env`:
-     ```
-     JWT_SECRET=<generated-secret-here>
-     DEBUG=false
-     ```
-  3. Set same secret in Docker environment / deployment config
-- **Effort**: 2 min
+### ~~[DEPLOY] JWT_SECRET production setup~~ FIXED (2026-06-01)
+- **Status**: ✅ Done
+- **What changed**: Production JWT_SECRET (64 chars, cryptographically secure) generated and set in `.envs/.env`. `DEBUG` mode disabled. App now runs in production mode with JWT_SECRET enforcement (RuntimeError if missing, min 32 chars required).
+
+### ~~[DEPLOY] Railway deployment config~~ FIXED (2026-06-01)
+- **What changed**: 
+  - CORS configured with `allow_origin_regex` for Railway/ngrok wildcard subdomains + `CORS_ORIGINS` env var for explicit domains
+  - `ENABLE_DOCS` env var added (enable Swagger in production without DEBUG mode)
+  - GCP credentials support via `GOOGLE_CREDENTIALS_BASE64` (base64-encoded service account JSON → temp file)
+  - `railway.toml` updated with correct healthcheck path and `$PORT` fallback
+  - `docs/DEPLOYMENT.md` rewritten with step-by-step Railway guide (4 services)
+- **Effort**: Completed
 
 ---
 

@@ -1,6 +1,6 @@
 # System Design Architecture — R.A.D.A.R Pangan
 
-> Tanggal: 25 Mei 2026 | Tim Simatana
+> Tanggal: 1 Juni 2026 | Versi 0.7.0 | Tim Simatana
 > Referensi: [PRD](../prd/PRD.md) | [FRD](../frd/FRD.md) | [ERD](../erd/ERD.md) | [Wireframe](../wireframe/wireframe-all-pages.html)
 
 ---
@@ -155,7 +155,8 @@ graph LR
 |-----------|------|---------------|------------|
 | **API Routes** | `src/api/routes.py` | HTTP endpoints untuk commodities, RCA, HET, cuaca, predictions, data quality | Engine + Data Layer |
 | **Auth Routes** | `src/api/auth_routes.py` | Login, JWT, user CRUD, RBAC guards | auth_db |
-| **ML Routes** | `src/api/ml_routes.py` | Proxy ke ML model serving | External ML service |
+| **Bowtie Engine** | `src/engine/bowtie_engine.py` | FTA threat mapping, barrier activation, Bowtie visualization data | RCA Engine output |
+| **ML Routes** | `src/api/ml_routes.py` | Proxy to ML model serving (httpx async client) | External ML service (port 8001) |
 | **RCA Engine** | `src/engine/rca_engine.py` | 4-step sequential decision tree | commodity_data, weather_data |
 | **HET Monitor** | `src/engine/het_monitor.py` | Compare harga vs HET → status | config/settings |
 | **Commodity Data** | `src/data/commodity_data.py` | Query harga dari PostgreSQL Gold | database.py |
@@ -639,11 +640,11 @@ sequenceDiagram
 | **Password** | bcrypt hash (12 rounds) | ✅ |
 | **RBAC** | Boolean flags (is_admin, is_analyst) | ✅ Frontend, **[SHOULD]** Backend |
 | **SQL Injection** | Parameterized queries (`%s` placeholders) | ✅ Mostly (1 pattern to fix) |
-| **CORS** | CORSMiddleware (explicit origins) | **[SHOULD]** |
+| **CORS** | CORSMiddleware (`allow_origin_regex` for Railway/ngrok + `CORS_ORIGINS` env var) | ✅ |
 | **Rate Limiting** | slowapi on /login | **[SHOULD]** |
 | **Secrets** | Environment variables (.env, gitignored) | ✅ |
-| **Headers** | CSP, X-Frame-Options, etc. | **[SHOULD]** |
-| **JWT Secret** | ENV var, error if missing | **[SHOULD]** (currently has fallback) |
+| **Headers** | Security headers middleware (X-Content-Type-Options, X-Frame-Options, etc.) | ✅ |
+| **JWT Secret** | ENV var required, RuntimeError if missing, min 32 chars | ✅ |
 
 ---
 
@@ -817,7 +818,7 @@ fi
 ### 13.4 Health Check Endpoint
 
 ```
-GET /health → { "status": "ok", "version": "0.5.0", "db": "connected", "bq": "connected" }
+GET /health → { "status": "ok", "version": "0.7.0", "db": "connected", "bq": "connected" }
 ```
 
 ---
