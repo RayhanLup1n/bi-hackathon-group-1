@@ -179,14 +179,14 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    # CSP: allow inline scripts (Alpine.js), CDN for Chart.js, self for everything else
+    # CSP: allow inline scripts (Alpine.js), CDN for Chart.js/Swagger, self for everything else
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data:; "
-        "connect-src 'self'"
+        "img-src 'self' data: https://fastapi.tiangolo.com; "
+        "connect-src 'self' https://web-production-1eea6.up.railway.app"
     )
     return response
 
