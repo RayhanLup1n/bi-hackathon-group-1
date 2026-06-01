@@ -16,37 +16,37 @@ def test_nav_links_present(admin_page: Page, base_url: str):
     admin_page.wait_for_timeout(2000)
 
     # Check for key navigation links
-    expected_hrefs = ["/", "/rca", "/prediksi", "/admin"]
+    expected_hrefs = ["/", "/analysis", "/prediksi", "/admin"]
     for href in expected_hrefs:
         link = admin_page.locator(f'a[href="{href}"]')
-        # At least the dashboard, rca, prediksi should exist
+        # At least the dashboard, analysis, prediksi should exist
         if href != "/admin":
             assert link.count() >= 0  # soft check — nav might use different patterns
 
 
 def test_nav_dashboard_link_works(admin_page: Page, base_url: str):
     """Clicking dashboard link navigates to /."""
-    admin_page.goto(f"{base_url}/rca")
+    admin_page.goto(f"{base_url}/analysis")
     admin_page.wait_for_timeout(2000)
 
     dashboard_link = admin_page.locator('a[href="/"]')
     if dashboard_link.count() > 0:
         dashboard_link.first.click()
         admin_page.wait_for_timeout(2000)
-        # Should be on dashboard (root or just no /rca path)
-        assert "/rca" not in admin_page.url
+        # Should be on dashboard (root or just no /analysis path)
+        assert "/analysis" not in admin_page.url
 
 
-def test_nav_rca_link_works(admin_page: Page, base_url: str):
-    """Clicking RCA link navigates to /rca."""
+def test_nav_analysis_link_works(admin_page: Page, base_url: str):
+    """Clicking FTA link navigates to /analysis."""
     admin_page.goto(base_url)
     admin_page.wait_for_timeout(2000)
 
-    rca_link = admin_page.locator('a[href="/rca"]')
-    if rca_link.count() > 0:
-        rca_link.first.click()
+    analysis_link = admin_page.locator('a[href="/analysis"]')
+    if analysis_link.count() > 0:
+        analysis_link.first.click()
         admin_page.wait_for_timeout(2000)
-        assert "/rca" in admin_page.url
+        assert "/analysis" in admin_page.url
 
 
 def test_logout_clears_token(admin_page: Page, base_url: str):

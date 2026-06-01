@@ -248,8 +248,8 @@ if os.path.exists(frontend_dir):
     def serve_admin():
         return _html("admin.html")
 
-    @app.get("/rca", include_in_schema=False)
-    def serve_rca():
+    @app.get("/analysis", include_in_schema=False)
+    def serve_analysis():
         return _html("rca.html")
 
     @app.get("/prediksi", include_in_schema=False)

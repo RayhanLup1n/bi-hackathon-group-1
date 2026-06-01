@@ -244,144 +244,6 @@
     .anomaly-delta { font-family: var(--mono); font-size: 20px; font-weight: 800; }
     .anomaly-threshold { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; font-weight: 600; }
 
-    /* ── RCA Steps ── */
-    .rca-panel {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      box-shadow: var(--shadow);
-    }
-    .rca-header {
-      padding: 14px 18px 12px;
-      border-bottom: var(--bw) solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #E0F5EA;
-    }
-    .rca-header-title {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      font-weight: 800;
-    }
-    .rca-header-badge {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text);
-      background: var(--surface);
-      border: 2px solid var(--border);
-      padding: 2px 10px;
-      border-radius: 8px;
-      font-weight: 700;
-      box-shadow: 2px 2px 0 var(--border);
-    }
-
-    .check-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-
-    .check-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 12px 14px;
-      border-radius: var(--radius-sm);
-      border: var(--bw) solid var(--border);
-      background: var(--surface);
-      transition: all 0.25s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .check-item::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
-      width: 5px;
-      border-radius: 2px 0 0 2px;
-      background: transparent;
-      transition: background 0.3s;
-    }
-    .check-item.active::before { background: var(--accent); }
-    .check-item.triggered::before { background: var(--warn); }
-    .check-item.clear::before { background: var(--success); }
-
-    .check-item.active {
-      background: #E0F5EA;
-      box-shadow: 3px 3px 0 var(--border);
-    }
-    .check-item.triggered {
-      background: #FEF3C7;
-      box-shadow: 3px 3px 0 var(--border);
-    }
-    .check-item.clear {
-      background: #ECFDF5;
-      opacity: 0.8;
-    }
-    .check-item.skip { opacity: 0.35; }
-
-    .check-num {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: var(--bw) solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 800;
-      color: var(--text);
-      flex-shrink: 0;
-      background: var(--surface);
-      transition: all 0.3s;
-    }
-    .check-item.active .check-num {
-      background: var(--accent);
-      color: #fff;
-      box-shadow: 2px 2px 0 var(--border);
-      animation: spin-check 1.5s linear infinite;
-    }
-    .check-item.triggered .check-num {
-      background: var(--warn);
-      color: var(--text);
-      box-shadow: 2px 2px 0 var(--border);
-      animation: none;
-    }
-    .check-item.clear .check-num {
-      background: var(--success);
-      color: var(--text);
-      animation: none;
-    }
-
-    .check-content { flex: 1; min-width: 0; }
-    .check-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
-    .check-item.clear .check-name { color: var(--text2); }
-    .check-item.skip .check-name { color: var(--muted); }
-    .check-detail {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text2);
-      line-height: 1.6;
-      white-space: pre-line;
-    }
-
-    .check-badge {
-      font-family: var(--mono);
-      font-size: 10px;
-      padding: 3px 10px;
-      border-radius: 8px;
-      flex-shrink: 0;
-      align-self: flex-start;
-      font-weight: 800;
-      border: 2px solid var(--border);
-      text-transform: uppercase;
-    }
-    .badge-checking { background: #E0F5EA; color: var(--accent2); }
-    .badge-triggered { background: #FEF3C7; color: #92400E; }
-    .badge-clear { background: #D1FAE5; color: #065F46; }
-    .badge-skip { background: #F4F4F5; color: var(--muted); border-color: #a1a1aa; }
 
     /* ── Result card ── */
     .result-card {
@@ -566,20 +428,6 @@
     .footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
     .footer-sep { margin: 0 10px; color: var(--border); }
 
-    /* ── Progress bar ── */
-    .progress-bar {
-      height: 4px;
-      background: #E4E4E7;
-      overflow: hidden;
-      border-bottom: 1px solid var(--border);
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      width: 0%;
-      transition: width 0.4s ease;
-    }
-
     /* ── Info panels (HET + weather) ── */
     .wilayah-section {
       margin-top: 12px;
@@ -635,11 +483,6 @@
     @keyframes pulse-dot {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.6; transform: scale(0.85); }
-    }
-    @keyframes spin-check {
-      0% { box-shadow: 2px 2px 0 var(--border); }
-      50% { box-shadow: 3px 3px 0 var(--border), 0 0 0 3px rgba(46,204,136,0.3); }
-      100% { box-shadow: 2px 2px 0 var(--border); }
     }
     @keyframes slide-up {
       from { opacity: 0; transform: translateY(16px); }
@@ -994,12 +837,12 @@
       <!-- Run button -->
       <button class="run-btn" @click="runRCA()" :disabled="!selectedKey || rcaRunning">
         <span x-text="rcaRunning ? '⟳' : '▶'"></span>
-        <span x-text="rcaRunning ? 'Menganalisis...' : 'Jalankan RCA'"></span>
+        <span x-text="rcaRunning ? 'Menganalisis...' : 'Jalankan Analisis'"></span>
       </button>
 
     </div>
 
-    <!-- ── Right panel: RCA ── -->
+    <!-- ── Right panel: FTA Analysis ── -->
     <div class="right-panel">
 
       <!-- Anomaly banner -->
@@ -1029,29 +872,6 @@
         <canvas id="dashPriceChart"></canvas>
       </div>
 
-      <!-- RCA checklist -->
-      <div class="rca-panel">
-        <div class="rca-header">
-          <span class="rca-header-title">RCA Checklist — urutan pemeriksaan</span>
-          <span class="rca-header-badge" x-text="rcaBadge"></span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill" :style="'width:' + rcaProgress + '%'"></div></div>
-        <div class="check-list">
-          <template x-for="(check, idx) in checks" :key="check.step">
-            <div class="check-item" :class="check.uiState">
-              <div class="check-num" x-text="check.uiState === 'triggered' ? '!' : (check.uiState === 'clear' ? '✓' : check.step)"></div>
-              <div class="check-content">
-                <div class="check-name" x-text="check.nama"></div>
-                <div class="check-detail" x-text="check.detail"></div>
-              </div>
-              <div class="check-badge"
-                   :class="'badge-' + (check.uiState === 'pending' ? 'skip' : (check.uiState === 'active' ? 'checking' : check.uiState))"
-                   x-text="check.badgeLabel"></div>
-            </div>
-          </template>
-        </div>
-      </div>
-
       <!-- Result box -->
       <div x-show="rcaResult" x-transition class="result-card animate-in"
            :class="'result-' + (rcaResult ? rcaResult.diagnosis : 'unknown')">
@@ -1059,7 +879,7 @@
           <div>
             <div class="result-top">
               <div class="result-meta">
-                <div class="result-label">Diagnosis RCA</div>
+                <div class="result-label">Diagnosis FTA</div>
                 <div class="result-title" x-text="rcaResult.title"></div>
               </div>
               <div class="result-type-badge" x-text="typeLabels[rcaResult.diagnosis] || rcaResult.diagnosis"></div>
@@ -1073,17 +893,17 @@
         </template>
       </div>
 
-      <!-- FTA + Bowtie Summary (shown after RCA runs) -->
+      <!-- FTA + Bowtie Summary (shown after analysis runs) -->
       <template x-if="bowtieData">
         <div class="animate-in" style="margin-top:14px;">
           <!-- FTA Threat Summary -->
-          <div class="card" style="padding:0;">
-            <div class="card-label" style="padding:14px 18px 10px;margin-bottom:0;display:flex;align-items:center;justify-content:space-between;">
+          <div class="card">
+            <div class="card-label" style="display:flex;align-items:center;justify-content:space-between;">
               <span>FTA Threats</span>
               <span class="signal-val ok" style="font-size:10px;background:#E0F5EA;padding:2px 9px;border-radius:6px;border:1.5px solid var(--border);"
                     x-text="bowtieData.active_threats.filter(t => t.active).length + ' aktif · ' + bowtieData.severity_level"></span>
             </div>
-            <div class="signal-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));padding:0 14px 14px;">
+            <div class="signal-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
               <template x-for="t in bowtieData.active_threats" :key="t.id">
                 <div class="signal-item" :class="t.active ? 'warn-item' : ''" :style="!t.active ? 'opacity:0.7;' : ''">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
@@ -1099,50 +919,48 @@
           </div>
 
           <!-- Bowtie Visualization -->
-          <div class="card" style="padding:0;margin-top:14px;">
-            <div class="card-label" style="padding:14px 18px 10px;margin-bottom:0;display:flex;align-items:center;justify-content:space-between;">
+          <div class="card">
+            <div class="card-label" style="display:flex;align-items:center;justify-content:space-between;">
               <span>Bowtie Analysis</span>
               <span class="signal-val" style="font-size:10px;background:#E0F5EA;padding:2px 9px;border-radius:6px;border:1.5px solid var(--border);"
                     :class="bowtieData.active_threats.filter(t => t.active).length > 0 ? 'warn' : 'ok'"
                     x-text="bowtieData.active_threats.filter(t => t.active).length > 0 ? 'Threat Aktif' : 'Clear'"></span>
             </div>
-            <div style="padding:0 14px 14px;">
-              <!-- Summary -->
-              <div class="signal-item" style="margin-bottom:12px;">
-                <div class="signal-key" style="margin-bottom:0;font-size:11px;line-height:1.5;" x-text="bowtieData.summary"></div>
+            <!-- Summary -->
+            <div class="signal-item" style="margin-bottom:12px;">
+              <div class="signal-key" style="margin-bottom:0;font-size:11px;line-height:1.5;" x-text="bowtieData.summary"></div>
+            </div>
+            <!-- Barriers layout -->
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <!-- Prevention -->
+              <div class="signal-item" style="flex:1;min-width:180px;background:#ECFDF5;">
+                <div class="signal-key" style="color:#059669;margin-bottom:8px;"
+                     x-text="'Pencegahan (' + bowtieData.prevention.filter(b => b.active).length + ' aktif)'"></div>
+                <template x-for="b in bowtieData.prevention" :key="b.id">
+                  <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
+                       :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
+                    <span x-text="b.active ? '🟢' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
+                    <span x-text="b.id + ': ' + b.name"></span>
+                  </div>
+                </template>
               </div>
-              <!-- Barriers layout -->
-              <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                <!-- Prevention -->
-                <div class="signal-item" style="flex:1;min-width:180px;background:#ECFDF5;">
-                  <div class="signal-key" style="color:#059669;margin-bottom:8px;"
-                       x-text="'Pencegahan (' + bowtieData.prevention.filter(b => b.active).length + ' aktif)'"></div>
-                  <template x-for="b in bowtieData.prevention" :key="b.id">
-                    <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
-                         :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
-                      <span x-text="b.active ? '🟢' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
-                      <span x-text="b.id + ': ' + b.name"></span>
-                    </div>
-                  </template>
-                </div>
-                <!-- Hazard Event -->
-                <div class="signal-item warn-item" style="flex:0 0 auto;min-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
-                  <div class="signal-key" style="color:#92400e;margin-bottom:6px;">Hazard</div>
-                  <div style="font-size:20px;">⚠️</div>
-                  <div class="signal-val warn" style="font-size:11px;margin-top:4px;" x-text="bowtieData.hazard_event"></div>
-                </div>
-                <!-- Mitigation -->
-                <div class="signal-item" style="flex:1;min-width:180px;background:#FEE2E2;">
-                  <div class="signal-key" style="color:#dc2626;margin-bottom:8px;"
-                       x-text="'Mitigasi (' + bowtieData.mitigation.filter(b => b.active).length + ' aktif)'"></div>
-                  <template x-for="b in bowtieData.mitigation" :key="b.id">
-                    <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
-                         :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
-                      <span x-text="b.active ? '🔴' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
-                      <span x-text="b.id + ': ' + b.name"></span>
-                    </div>
-                  </template>
-                </div>
+              <!-- Hazard Event -->
+              <div class="signal-item warn-item" style="flex:0 0 auto;min-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+                <div class="signal-key" style="color:#92400e;margin-bottom:6px;">Hazard</div>
+                <div style="font-size:20px;">⚠️</div>
+                <div class="signal-val warn" style="font-size:11px;margin-top:4px;" x-text="bowtieData.hazard_event"></div>
+              </div>
+              <!-- Mitigation -->
+              <div class="signal-item" style="flex:1;min-width:180px;background:#FEE2E2;">
+                <div class="signal-key" style="color:#dc2626;margin-bottom:8px;"
+                     x-text="'Mitigasi (' + bowtieData.mitigation.filter(b => b.active).length + ' aktif)'"></div>
+                <template x-for="b in bowtieData.mitigation" :key="b.id">
+                  <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
+                       :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
+                    <span x-text="b.active ? '🔴' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
+                    <span x-text="b.id + ': ' + b.name"></span>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -1190,17 +1008,7 @@ function radar() {
 
     // ── UI state ────────────────────────────────────────────────────────────
     rcaRunning: false,
-    rcaProgress: 0,
-    rcaBadge: 'belum dijalankan',
     dashChart: null,  // Chart.js instance for dashboard mini chart
-
-    // Default RCA check items (before any analysis)
-    checks: [
-      { step: 1, nama: 'Cek Kalender Hari Raya', status: 'pending', detail: 'Menunggu analisis...', uiState: '', badgeLabel: 'MENUNGGU' },
-      { step: 2, nama: 'Cek Cuaca Ekstrem (Open-Meteo)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
-      { step: 3, nama: 'Cek Persebaran Kenaikan Antar Kota', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
-      { step: 4, nama: 'Cek Stok Pedagang (Badan Pangan)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
-    ],
 
     // Type labels for result card
     typeLabels: { demand: 'Demand', supply: 'Supply', distribusi: 'Distribusi', unknown: 'Unknown' },
@@ -1400,11 +1208,13 @@ function radar() {
         // Build price trend mini chart
         this.buildDashChart();
 
-        // Reset RCA state
+        // Reset state
         this.rcaResult = null;
         this.bowtieData = null;
         this.mlResult = null;
-        this.resetChecks();
+
+        // Auto-load FTA + Bowtie analysis (non-blocking)
+        this.runRCA();
 
         // Load ML prediction (non-blocking)
         this.loadMLPrediction();
@@ -1417,10 +1227,6 @@ function radar() {
 
     async onSimDateChange() {
       await this.selectCommodity();
-      // If RCA result was showing, re-run
-      if (this.rcaResult) {
-        await this.runRCA();
-      }
     },
 
     // ── Dashboard Mini Chart ─────────────────────────────────────────────
@@ -1584,69 +1390,20 @@ function radar() {
       });
     },
 
-    // ── RCA ──────────────────────────────────────────────────────────────────
-
-    resetChecks() {
-      this.rcaBadge = 'belum dijalankan';
-      this.rcaProgress = 0;
-      this.checks = [
-        { step: 1, nama: 'Cek Kalender Hari Raya', status: 'pending', detail: 'Menunggu analisis...', uiState: '', badgeLabel: 'MENUNGGU' },
-        { step: 2, nama: 'Cek Cuaca Ekstrem (Open-Meteo)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
-        { step: 3, nama: 'Cek Persebaran Kenaikan Antar Kota', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
-        { step: 4, nama: 'Cek Stok Pedagang (Badan Pangan)', status: 'pending', detail: 'Menunggu hasil cek sebelumnya...', uiState: 'skip', badgeLabel: 'SKIP' },
-      ];
-    },
+    // ── FTA ANALYSIS ─────────────────────────────────────────────────────────
 
     async runRCA() {
       if (!this.selectedKey || this.rcaRunning) return;
 
       this.rcaRunning = true;
       this.rcaResult = null;
-      this.resetChecks();
-      this.rcaBadge = 'berjalan...';
 
       const sim = this.simDate ? `?sim_date=${this.simDate}` : '';
 
       try {
-        const result = await this.fetchJSON(`/api/rca/${this.selectedKey}${sim}`);
+        const result = await this.fetchJSON(`/api/analysis/${this.selectedKey}${sim}`);
         if (!result) return;
 
-        // Animated sequential reveal
-        const total = result.checks.length;
-        for (let idx = 0; idx < total; idx++) {
-          const check = result.checks[idx];
-
-          // Set active state
-          this.checks[idx].uiState = 'active';
-          this.checks[idx].badgeLabel = 'CEK...';
-          this.checks[idx].detail = 'Sedang memeriksa...';
-          this.rcaProgress = ((idx) / total) * 100;
-
-          await this._delay(600);
-
-          // Set final state
-          this.checks[idx].status = check.status;
-          this.checks[idx].detail = check.detail;
-          this.checks[idx].nama = check.nama;
-
-          if (check.status === 'triggered') {
-            this.checks[idx].uiState = 'triggered';
-            this.checks[idx].badgeLabel = 'TRIGGERED';
-          } else if (check.status === 'clear') {
-            this.checks[idx].uiState = 'clear';
-            this.checks[idx].badgeLabel = 'CLEAR';
-          } else {
-            this.checks[idx].uiState = 'skip';
-            this.checks[idx].badgeLabel = 'SKIP';
-          }
-
-          await this._delay(200);
-        }
-
-        this.rcaProgress = 100;
-        this.rcaBadge = 'selesai';
-
-        await this._delay(300);
         this.rcaResult = result;
 
         // Load Bowtie analysis (uses same commodity key)
@@ -1658,15 +1415,10 @@ function radar() {
         }
 
       } catch (e) {
-        console.error('RCA gagal:', e);
-        this.rcaBadge = 'error';
+        console.error('Analisis gagal:', e);
       } finally {
         this.rcaRunning = false;
       }
-    },
-
-    _delay(ms) {
-      return new Promise(r => setTimeout(r, ms));
     },
   };
 }
