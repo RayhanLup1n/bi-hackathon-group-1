@@ -37,4 +37,5 @@ COPY . /app/ml/
 EXPOSE 8001
 
 # Entry point: uvicorn with module path ml.serve.api
-CMD ["uvicorn", "ml.serve.api:app", "--host", "0.0.0.0", "--port", "8001"]
+# Use shell form so $PORT is expanded (Railway assigns dynamic port)
+CMD sh -c "uvicorn ml.serve.api:app --host 0.0.0.0 --port ${PORT:-8001}"
