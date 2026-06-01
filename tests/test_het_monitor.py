@@ -168,3 +168,67 @@ class TestGetHetSummary:
 
         assert summary["ada_melampaui"] is False
         assert summary["ada_kritis"] is False
+
+
+class TestHETThresholdBoundaries:
+    """Verify exact boundaries align with config/settings.py thresholds.
+
+    Settings: WASPADA=80%, KRITIS=95%, MELAMPAUI=100%
+    """
+
+    def test_boundary_79_is_aman(self):
+        """79.9% → AMAN (just below WASPADA threshold)."""
+        # com_12 HET = 45,000 → 79.9% = 35,955
+        result = check_het_status("com_12", 35_955, "Bawang Putih")
+        assert result.status == HETStatus.AMAN
+
+    def test_boundary_80_is_waspada(self):
+        """80.0% → WASPADA."""
+        # com_12 HET = 45,000 → 80% = 36,000
+        result = check_het_status("com_12", 36_000, "Bawang Putih")
+        assert result.status == HETStatus.WASPADA
+
+    def test_boundary_94_is_waspada(self):
+        """94.9% → still WASPADA (below 95% KRITIS boundary)."""
+        # com_12 HET = 45,000 → 94.4% = 42,500
+        result = check_het_status("com_12", 42_500, "Bawang Putih")
+        assert result.status == HETStatus.WASPADA
+
+    def test_boundary_95_is_kritis(self):
+        """95.0% → KRITIS."""
+        # com_12 HET = 45,000 → 95% = 42,750
+        result = check_het_status("com_12", 42_750, "Bawang Putih")
+        assert result.status == HETStatus.KRITIS
+
+    def test_boundary_100_is_kritis(self):
+        """100.0% → KRITIS (exactly at HET, not yet exceeding)."""
+        # com_12 HET = 45,000 → 100% = 45,000
+        result = check_het_status("com_12", 45_000, "Bawang Putih")
+        assert result.status == HETStatus.KRITIS
+
+    def test_boundary_101_is_melampaui(self):
+        """100.1% → MELAMPAUI (exceeds HET)."""
+        # com_12 HET = 45,000 → ~100.2% = 45,100
+        result = check_het_status("com_12", 45_100, "Bawang Putih")
+        assert result.status == HETStatus.MELAMPAUI
+
+    def test_negative_price_is_tidak_tersedia(self):
+        """Negative price is treated as invalid."""
+        result = check_het_status("com_11", -1000, "Bawang Merah")
+        assert result.status == HETStatus.TIDAK_TERSEDIA
+
+    def test_keterangan_not_empty_for_valid_status(self):
+        """All valid statuses should have a non-empty keterangan."""
+        for price, expected in [(20_000, HETStatus.AMAN), (36_000, HETStatus.WASPADA),
+                                (42_750, HETStatus.KRITIS), (50_000, HETStatus.MELAMPAUI)]:
+            result = check_het_status("com_12", price, "Bawang Putih")
+            assert result.status == expected
+            assert len(result.keterangan) > 0, f"Empty keterangan for {expected}"
+
+    def test_all_6_mvp_commodities_have_het(self):
+        """All 6 MVP commodities should have HET reference data."""
+        for comcat_id in ["com_11", "com_12", "com_13", "com_14", "com_15", "com_16"]:
+            result = check_het_status(comcat_id, 30_000, "Test")
+            assert result.status != HETStatus.TIDAK_TERSEDIA, (
+                f"{comcat_id} has no HET reference"
+            )

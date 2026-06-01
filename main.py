@@ -69,7 +69,7 @@ _DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 
 app = FastAPI(
     title="R.A.D.A.R Pangan",
-    version="0.6.0",
+    version="0.7.0",
     description=(
         "Real-time Anti-inflation Detection, Analysis & Response. "
         "Platform pemantauan inflasi pangan berbasis data PIHPS."

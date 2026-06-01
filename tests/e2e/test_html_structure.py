@@ -123,3 +123,119 @@ def test_forms_have_labels_or_placeholders(html_content):
         assert has_label, (
             f"{name} has input without label/placeholder: {inp[:80]}"
         )
+
+
+# ── Dashboard-specific structure tests ──────────────────────────────────────
+
+
+def _read_page(filename: str) -> str:
+    """Read a single frontend page."""
+    path = os.path.join(FRONTEND_DIR, filename)
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+class TestDashboardStructure:
+    """Tests specific to the dashboard (index.html) layout."""
+
+    def test_has_pillar_cards(self):
+        """Dashboard should have Predict/Prevent/Protect pillar cards."""
+        content = _read_page("index.html")
+        assert "pillar-predict" in content
+        assert "pillar-prevent" in content
+        assert "pillar-protect" in content
+
+    def test_has_pillar_tags(self):
+        """Dashboard should have pillar tag labels."""
+        content = _read_page("index.html")
+        assert "Predict" in content
+        assert "Prevent" in content
+        assert "Protect" in content
+
+    def test_has_ml_state_variables(self):
+        """Dashboard Alpine.js state should include ML variables."""
+        content = _read_page("index.html")
+        assert "mlAvailable" in content
+        assert "mlResult" in content
+        assert "mlLoading" in content
+        assert "mlAlerts" in content
+
+    def test_has_ml_health_check(self):
+        """Dashboard should call ML health check on init."""
+        content = _read_page("index.html")
+        assert "checkMLHealth" in content
+        assert "/api/ml/health" in content
+
+    def test_has_ml_prediction_fetch(self):
+        """Dashboard should fetch ML predictions."""
+        content = _read_page("index.html")
+        assert "loadMLPrediction" in content
+        assert "/api/ml/analyze" in content
+
+    def test_has_ml_alert_banner(self):
+        """Dashboard should have ML alert banner."""
+        content = _read_page("index.html")
+        assert "ml-alert-bar" in content
+        assert "mlAlerts" in content
+
+    def test_has_bowtie_section(self):
+        """Dashboard should have Bowtie visualization."""
+        content = _read_page("index.html")
+        assert "bowtieData" in content
+        assert "Bowtie" in content
+
+    def test_has_fta_threats_section(self):
+        """Dashboard should have FTA threats grid."""
+        content = _read_page("index.html")
+        assert "FTA Threats" in content
+        assert "active_threats" in content
+
+    def test_tagline_updated(self):
+        """Dashboard header should show predict/prevent/protect tagline."""
+        content = _read_page("index.html")
+        assert "predict" in content.lower()
+        assert "v0.7" in content
+
+    def test_chart_has_prediction_lines(self):
+        """Dashboard chart should support prediction line datasets."""
+        content = _read_page("index.html")
+        assert "Prediksi 7d" in content
+        assert "borderDash" in content
+
+    def test_graceful_ml_offline(self):
+        """Dashboard should handle ML server offline gracefully."""
+        content = _read_page("index.html")
+        assert "server offline" in content.lower()
+
+
+class TestRCAPageStructure:
+    """Tests specific to the RCA page (rca.html)."""
+
+    def test_has_bowtie_section(self):
+        content = _read_page("rca.html")
+        assert "bowtieData" in content
+        assert "Bowtie" in content
+
+    def test_has_fta_threats(self):
+        content = _read_page("rca.html")
+        assert "FTA" in content
+        assert "active_threats" in content
+
+    def test_has_rca_checklist(self):
+        content = _read_page("rca.html")
+        assert "Hari Raya" in content
+        assert "Cuaca" in content
+
+
+class TestPrediksiPageStructure:
+    """Tests specific to the Prediksi page (prediksi.html)."""
+
+    def test_has_ml_source_toggle(self):
+        content = _read_page("prediksi.html")
+        assert "source" in content
+        # Should support both ML and DB sources
+        assert "ml" in content.lower()
+
+    def test_has_prediction_display(self):
+        content = _read_page("prediksi.html")
+        assert "prediksi" in content.lower() or "prediction" in content.lower()
