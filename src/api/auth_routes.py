@@ -152,24 +152,28 @@ def _require_admin(user: dict = Depends(_current_user)) -> dict:
 
 @auth_router.post("/login", summary="Login dan dapatkan JWT")
 def login(form: OAuth2PasswordRequestForm = Depends()):
-    user = get_user_by_username(form.username)
-    # Always run verify_password to prevent timing-based username enumeration
-    hash_to_check = user["password_hash"] if user else _DUMMY_HASH
-    password_ok = verify_password(form.password, hash_to_check)
-    if not user or not password_ok:
-        raise HTTPException(
-            status_code=401,
-            detail="Username atau password salah",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    # Block disabled accounts from logging in
-    if not user.get("is_active", True):
-        raise HTTPException(status_code=403, detail="Akun dinonaktifkan")
-    return {
-        "access_token": _make_token(user),
-        "token_type": "bearer",
-        "user": _user_response(user),
-    }
+    try:
+        user = get_user_by_username(form.username)
+        # Always run verify_password to prevent timing-based username enumeration
+        hash_to_check = user["password_hash"] if user else _DUMMY_HASH
+        password_ok = verify_password(form.password, hash_to_check)
+        if not user or not password_ok:
+            raise HTTPException(
+                status_code=401,
+                detail="Username atau password salah",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        # Block disabled accounts from logging in
+        if not user.get("is_active", True):
+            raise HTTPException(status_code=403, detail="Akun dinonaktifkan")
+        return {
+            "access_token": _make_token(user),
+            "token_type": "bearer",
+            "user": _user_response(user),
+        }
+    except Exception as e:
+        import traceback
+        raise HTTPException(status_code=500, detail=str(e) + "\n" + traceback.format_exc())
 
 
 @auth_router.get("/me", summary="Data user yang sedang login")
