@@ -292,6 +292,11 @@ if os.path.exists(frontend_dir):
     def serve_frontend():
         return _html("index.html")
 
+    @app.get("/config.js", include_in_schema=False)
+    def serve_config_js():
+        """Serve runtime config JS at root path for HTML pages."""
+        return FileResponse(os.path.join(frontend_dir, "config.js"))
+
     @app.get("/login", include_in_schema=False)
     def serve_login():
         return _html("login.html")
