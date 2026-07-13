@@ -238,6 +238,12 @@ class TestDashboardStructure:
         assert "exportSingle" in content
         assert "Export CSV" in content or "Export Excel" in content
 
+    def test_bundle_commodities_clickable(self):
+        """Bundle commodity tags should be clickable via openDetail."""
+        content = _read_page("index.html")
+        assert 'openDetail(c.recommendation_id)' in content
+        assert "cursor:pointer" in content
+
 
 class TestFTAPageStructure:
     """Tests specific to the FTA/Analysis page (rca.html)."""

@@ -245,31 +245,11 @@ def get_overview(
         r.model_dump(mode="json") for r in recommendations[:3]
     ]
 
-    # ── Review bundles (basic: group kritikal/tinggi commodities) ────────
-    high_risk_recs = [
-        r for r in recommendations if r.risk_level in ("kritis", "tinggi")
-    ]
-    bundles: list[dict[str, Any]] = []
-    if len(high_risk_recs) >= 2:
-        bundles.append({
-            "name": "Paket Tinjauan Risiko Tinggi",
-            "reason": (
-                f"{len(high_risk_recs)} komoditas menunjukkan risiko "
-                "tinggi/kritis dalam horizon 7 hari"
-            ),
-            "commodities": [
-                {
-                    "name": r.commodity,
-                    "risk_level": r.risk_level,
-                    "display_priority_score": r.display_priority_score,
-                }
-                for r in high_risk_recs
-            ],
-            "missing_information": [
-                "Data stok tidak tersedia untuk seluruh komoditas",
-                "Kesiapan logistik belum dinilai",
-            ],
-        })
+    # ── Review bundles ──────────────────────────────────────────────────
+    from src.application.mvp_bundles import generate_bundles
+
+    rec_dicts = [r.model_dump(mode="json") for r in recommendations]
+    bundles = generate_bundles(rec_dicts)
 
     # ── Latest reviews ──────────────────────────────────────────────────
     try:

@@ -170,7 +170,7 @@ class Recommendation(BaseModel):
         return values
 
     @model_validator(mode="after")
-    def calculate_scores(self) -> Recommendation:
+    def calculate_scores(self) -> "Recommendation":
         self.raw_priority_score = calculate_priority_score(self.priority_signals)
         self.confidence_factor, self.confidence_level = calculate_confidence_factor(
             self.confidence_signals
@@ -180,3 +180,46 @@ class Recommendation(BaseModel):
             2,
         )
         return self
+
+
+class BundleCommodity(BaseModel):
+    """A single commodity entry inside a review bundle."""
+
+    recommendation_id: str
+    name: str
+    risk_level: str
+    display_priority_score: float
+
+    @field_validator("recommendation_id", "name", "risk_level")
+    @classmethod
+    def validate_required_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("value must not be empty")
+        return value
+
+
+class Bundle(BaseModel):
+    """A review bundle grouping related recommendations for coordinated review."""
+
+    bundle_id: str
+    name: str
+    reason: str
+    bundle_type: str  # risk_cluster | commodity_family | confidence_gap
+    commodities: list[BundleCommodity] = Field(min_length=1)
+    missing_information: list[str] = Field(default_factory=list)
+    priority_score: float = 0.0
+
+    @field_validator("bundle_id", "name", "reason", "bundle_type")
+    @classmethod
+    def validate_required_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("value must not be empty")
+        return value
+
+    @field_validator("missing_information")
+    @classmethod
+    def validate_missing_info(cls, values: list[str]) -> list[str]:
+        for value in values:
+            if not value.strip():
+                raise ValueError("missing information values must not be empty")
+        return values

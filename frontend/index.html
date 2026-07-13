@@ -475,6 +475,9 @@
               <div class="bundle-items">
                 <template x-for="c in b.commodities" :key="c.name">
                   <span class="priority-tag" :class="'tag-risk-' + c.risk_level"
+                        @click="openDetail(c.recommendation_id)"
+                        style="cursor:pointer;"
+                        :title="'Lihat detail ' + c.name"
                         x-text="c.name + ' (' + c.display_priority_score + ')'"></span>
                 </template>
               </div>
