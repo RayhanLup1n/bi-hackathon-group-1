@@ -21,18 +21,18 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.api.auth_routes import _current_user, _require_admin
-from src.data.commodity_data import (
+from src.infrastructure.postgres.commodity_data import (
     KOMODITAS_MAP,
     get_all_commodities,
     get_commodity_data,
     get_price_history,
     get_price_summary,
 )
-from src.data.weather_data import get_weather_for_rca, get_weather_summary
-from src.engine.het_monitor import check_het_all, check_het_status, get_het_summary
-from src.engine.rca_engine import run_rca
-from src.engine.bowtie_engine import BowtieResult, run_bowtie
-from src.models.schemas import CommodityData, RCAResult
+from src.infrastructure.postgres.weather_data import get_weather_for_rca, get_weather_summary
+from src.domain.engines.het_monitor import check_het_all, check_het_status, get_het_summary
+from src.domain.engines.rca_engine import run_rca
+from src.domain.engines.bowtie_engine import BowtieResult, run_bowtie
+from src.domain.schemas.models import CommodityData, RCAResult
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ def list_commodities() -> list[str]:
     """Return list of commodity keys (string) for backward compatibility with frontend."""
     # Ensure map is loaded
     if not KOMODITAS_MAP:
-        from src.data.commodity_data import init_commodity_data
+        from src.infrastructure.postgres.commodity_data import init_commodity_data
         init_commodity_data()
     return list(KOMODITAS_MAP.keys())
 
@@ -74,7 +74,7 @@ def list_commodities() -> list[str]:
 def list_commodities_detail() -> list[dict]:
     """Return list of commodities with key, name, and comcat_id."""
     if not KOMODITAS_MAP:
-        from src.data.commodity_data import init_commodity_data
+        from src.infrastructure.postgres.commodity_data import init_commodity_data
         init_commodity_data()
     return [
         {"key": key, "name": info["name"], "comcat_id": info["comcat_id"]}
@@ -373,7 +373,7 @@ def get_predictions(
     """Read ML predictions from database. Returns empty if no data yet."""
     import psycopg2
 
-    from src.data.database import db_cursor
+    from src.infrastructure.postgres.database import db_cursor
 
     try:
         with db_cursor() as cur:
@@ -419,7 +419,7 @@ def get_quality_report(_user: dict = Depends(_require_admin)) -> dict:
 
     Uses MVP komoditas filter by default. Queries BigQuery.
     """
-    from src.data.data_quality import get_quality_summary
+    from src.infrastructure.bigquery.data_quality import get_quality_summary
 
     try:
         return get_quality_summary()
@@ -433,7 +433,7 @@ def get_quality_report(_user: dict = Depends(_require_admin)) -> dict:
     summary="Data coverage summary (row counts, date range per komoditas)",
 )
 def get_coverage(_user: dict = Depends(_require_admin)) -> dict:
-    from src.data.data_quality import get_data_coverage
+    from src.infrastructure.bigquery.data_quality import get_data_coverage
 
     try:
         return get_data_coverage()
@@ -451,7 +451,7 @@ def get_outliers(
     last_n_days: int = Query(default=90, ge=7, le=365),
     _user: dict = Depends(_require_admin),
 ) -> dict:
-    from src.data.data_quality import check_outliers
+    from src.infrastructure.bigquery.data_quality import check_outliers
 
     try:
         items = check_outliers(z_threshold=z_threshold, last_n_days=last_n_days)
@@ -469,7 +469,7 @@ def get_missing_dates(
     last_n_days: int = Query(default=30, ge=7, le=365),
     _user: dict = Depends(_require_admin),
 ) -> dict:
-    from src.data.data_quality import check_missing_dates
+    from src.infrastructure.bigquery.data_quality import check_missing_dates
 
     try:
         items = check_missing_dates(last_n_days=last_n_days)
@@ -484,7 +484,7 @@ def get_missing_dates(
     summary="Duplicate rows (same comcat_id + kota_id + tanggal)",
 )
 def get_duplicates(_user: dict = Depends(_require_admin)) -> dict:
-    from src.data.data_quality import check_duplicates
+    from src.infrastructure.bigquery.data_quality import check_duplicates
 
     try:
         items = check_duplicates()

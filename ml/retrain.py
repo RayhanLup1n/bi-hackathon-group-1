@@ -27,11 +27,14 @@ from loguru import logger
 _HERE = Path(__file__).parent
 load_dotenv(_HERE / ".env", override=False)
 
-_HOST     = os.environ["SUPABASE_HOST"]
-_PORT     = os.environ["SUPABASE_PORT"]
-_DB       = os.environ["SUPABASE_DB"]
-_USER     = os.environ["SUPABASE_USER"]
-_PASSWORD = os.environ["SUPABASE_PASSWORD"]
+from src.infrastructure.postgres.database import _get_db_settings
+
+_DB_SETTINGS = _get_db_settings()
+_HOST     = _DB_SETTINGS["host"]
+_PORT     = _DB_SETTINGS["port"]
+_DB       = _DB_SETTINGS["name"]
+_USER     = _DB_SETTINGS["user"]
+_PASSWORD = _DB_SETTINGS["password"]
 
 PG_CONN = f"postgresql://{_USER}:{_PASSWORD}@{_HOST}:{_PORT}/{_DB}"
 

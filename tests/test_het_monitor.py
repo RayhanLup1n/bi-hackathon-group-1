@@ -12,7 +12,7 @@ Also tests check_het_all() and get_het_summary().
 """
 import pytest
 
-from src.engine.het_monitor import (
+from src.domain.engines.het_monitor import (
     HETStatus,
     HETResult,
     check_het_status,

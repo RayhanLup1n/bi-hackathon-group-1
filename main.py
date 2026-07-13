@@ -88,14 +88,15 @@ _setup_gcp_credentials()
 from src.api.routes import router, het_router, cuaca_router, stok_router, predictions_router, data_quality_router  # noqa: E402
 from src.api.auth_routes import auth_router  # noqa: E402
 from src.api.ml_routes import ml_router  # noqa: E402
+from src.api.mvp_routes import mvp_router  # noqa: E402
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database connections and seed data at startup."""
-    from src.data.database import init_pool, close_pool
-    from src.data.commodity_data import init_commodity_data
-    from src.data.auth_db import init_db_auth
+    from src.infrastructure.postgres.database import init_pool, close_pool
+    from src.infrastructure.postgres.commodity_data import init_commodity_data
+    from src.infrastructure.postgres.auth_db import init_db_auth
 
     # Initialize connection pool to Supabase PostgreSQL (Gold layer -- all app data)
     init_pool()
@@ -114,7 +115,7 @@ async def lifespan(app: FastAPI):
     # Cleanup on shutdown
     close_pool()
     # Close BigQuery client if it was initialized
-    from src.data.bigquery_client import close_bq_client
+    from src.infrastructure.bigquery.bigquery_client import close_bq_client
     close_bq_client()
     # Remove temp GCP credentials file if it was created
     _gcp_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
@@ -198,6 +199,7 @@ app.include_router(predictions_router)
 app.include_router(auth_router)
 app.include_router(ml_router)
 app.include_router(data_quality_router)
+app.include_router(mvp_router)
 
 
 @app.get("/health", tags=["system"])

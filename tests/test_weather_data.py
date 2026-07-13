@@ -16,7 +16,7 @@ from contextlib import contextmanager
 
 import pytest
 
-from src.data.weather_data import get_weather_for_rca
+from src.infrastructure.postgres.weather_data import get_weather_for_rca
 
 
 def _make_weather_rows(overrides: list[dict]) -> list[dict]:
@@ -43,7 +43,7 @@ def _mock_db_cursor(rows: list[dict]):
     return fake_cursor
 
 
-@patch("src.data.weather_data.db_cursor")
+@patch("src.infrastructure.postgres.weather_data.db_cursor")
 def test_extreme_heavy_rain(mock_db):
     """Heavy rain >100mm should trigger extreme weather."""
     rows = _make_weather_rows([
@@ -59,7 +59,7 @@ def test_extreme_heavy_rain(mock_db):
     assert "Bandung" in result.daerah
 
 
-@patch("src.data.weather_data.db_cursor")
+@patch("src.infrastructure.postgres.weather_data.db_cursor")
 def test_extreme_temperature(mock_db):
     """Temperature >38 C should trigger extreme weather."""
     rows = _make_weather_rows([
@@ -74,7 +74,7 @@ def test_extreme_temperature(mock_db):
     assert "Bandung" in result.daerah
 
 
-@patch("src.data.weather_data.db_cursor")
+@patch("src.infrastructure.postgres.weather_data.db_cursor")
 def test_extreme_wind(mock_db):
     """Wind >60 km/h should trigger extreme weather."""
     rows = _make_weather_rows([
@@ -89,7 +89,7 @@ def test_extreme_wind(mock_db):
     assert "angin" in result.desc.lower() or "Angin" in result.desc
 
 
-@patch("src.data.weather_data.db_cursor")
+@patch("src.infrastructure.postgres.weather_data.db_cursor")
 def test_drought_detection(mock_db):
     """14+ consecutive dry days should trigger drought."""
     # 15 days with <1mm precipitation (newest first)
@@ -106,7 +106,7 @@ def test_drought_detection(mock_db):
     assert "kekeringan" in result.desc.lower() or "Kekeringan" in result.desc
 
 
-@patch("src.data.weather_data.db_cursor")
+@patch("src.infrastructure.postgres.weather_data.db_cursor")
 def test_normal_weather(mock_db):
     """Normal weather (all within bounds) should not trigger."""
     rows = _make_weather_rows([
@@ -121,7 +121,7 @@ def test_normal_weather(mock_db):
     assert "Normal" in result.desc or "normal" in result.desc.lower()
 
 
-@patch("src.data.weather_data.db_cursor")
+@patch("src.infrastructure.postgres.weather_data.db_cursor")
 def test_no_data_fallback(mock_db):
     """No weather data should return non-extreme with appropriate message."""
     mock_db.side_effect = _mock_db_cursor([])
@@ -132,7 +132,7 @@ def test_no_data_fallback(mock_db):
     assert "tidak tersedia" in result.desc.lower()
 
 
-@patch("src.data.weather_data.db_cursor")
+@patch("src.infrastructure.postgres.weather_data.db_cursor")
 def test_rain_priority_over_heat(mock_db):
     """Heavy rain should be detected before heat (check order matters)."""
     rows = _make_weather_rows([
@@ -147,7 +147,7 @@ def test_rain_priority_over_heat(mock_db):
     assert "150" in result.desc or "hujan" in result.desc.lower()
 
 
-@patch("src.data.weather_data.db_cursor")
+@patch("src.infrastructure.postgres.weather_data.db_cursor")
 def test_drought_with_aggregated_rows(mock_db):
     """Drought detection works correctly with aggregated data.
 

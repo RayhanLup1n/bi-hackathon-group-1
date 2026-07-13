@@ -38,7 +38,7 @@ def _load_env() -> None:
 _load_env()
 
 from etl.config.log_config import setup_logging
-from src.data.database import init_pool, close_pool, db_cursor
+from src.infrastructure.postgres.database import init_pool, close_pool, db_cursor
 from etl.extractors.bmkg_extractor import BmkgExtractor
 
 

@@ -25,7 +25,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
-from src.data.auth_db import (
+from src.infrastructure.postgres.auth_db import (
     create_user,
     delete_user,
     get_user_by_username,

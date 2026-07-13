@@ -1,0 +1,67 @@
+name: Daily data refresh
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_year:
+        description: First year to refresh
+        required: false
+        default: "2026"
+      end_year:
+        description: Last year to refresh
+        required: false
+        default: "2026"
+  schedule:
+    - cron: "15 0 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: radar-daily-data-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GCP_PROJECT: ${{ vars.GCP_PROJECT || 'radar-pangan-hackathon' }}
+      BQ_LOCATION: ${{ vars.BQ_LOCATION || 'asia-southeast2' }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT || '5432' }}
+      DB_NAME: ${{ secrets.DB_NAME || 'postgres' }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_SSLMODE: require
+      JWT_SECRET: workflow-only-unused
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install project dependencies
+        run: uv sync --extra etl --extra dev
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+
+      - name: Load current price data
+        run: uv run python etl/scripts/load_historical.py --start-year "${{ inputs.start_year || '2026' }}" --end-year "${{ inputs.end_year || '2026' }}"
+
+      - name: Load current weather data
+        run: uv run python etl/scripts/load_weather_historical.py --start-year "${{ inputs.start_year || '2026' }}" --end-year "${{ inputs.end_year || '2026' }}"
+
+      - name: Run dbt transformations
+        run: uv run dbt run --profiles-dir etl/dbt_project --project-dir etl/dbt_project

@@ -12,11 +12,11 @@ import pytest
 from datetime import date
 from unittest.mock import patch
 
-from src.models.schemas import (
+from src.domain.schemas.models import (
     CommodityData, CuacaInfo, KotaInfo, StokInfo,
     CheckResult, RCAResult, DiagnosisType,
 )
-from src.engine.bowtie_engine import (
+from src.domain.engines.bowtie_engine import (
     run_bowtie, _map_rca_to_threats,
     FTA_THREATS, PREVENTION_BARRIERS, MITIGATION_BARRIERS,
     Barrier, BowtieResult,
