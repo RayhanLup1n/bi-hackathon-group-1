@@ -255,7 +255,8 @@ def get_overview(
     try:
         from src.infrastructure.postgres.review_repository import get_latest_reviews
         latest_reviews = get_latest_reviews(limit=5)
-    except Exception:
+    except Exception as exc:
+        logger.warning("Latest reviews unavailable: %s", exc)
         latest_reviews = []
 
     return {

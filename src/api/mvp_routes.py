@@ -29,6 +29,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from src.api.auth_routes import _current_user
+from src.api.errors import AppError, ServiceUnavailableError
 from src.application.mvp_orchestrator import (
     get_overview,
     get_priorities,
@@ -96,11 +97,13 @@ def api_overview(
     """
     try:
         return get_overview(sim_date=sim_date)
+    except AppError:
+        raise  # let global handler convert
     except Exception as exc:
-        logger.error("Overview failed: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Gagal memuat dashboard overview. Silakan coba beberapa saat lagi.",
+        logger.exception("Unexpected error in overview")
+        raise ServiceUnavailableError(
+            "Gagal memuat dashboard overview. Silakan coba beberapa saat lagi.",
+            internal_message=str(exc),
         )
 
 
@@ -129,11 +132,13 @@ def api_priorities(
             province_filter=province,
             risk_filter=risk,
         )
+    except AppError:
+        raise
     except Exception as exc:
-        logger.error("Priorities failed: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Gagal memuat daftar prioritas.",
+        logger.exception("Unexpected error in priorities")
+        raise ServiceUnavailableError(
+            "Gagal memuat daftar prioritas.",
+            internal_message=str(exc),
         )
 
 
@@ -163,11 +168,13 @@ def api_export_priorities(
                 "Content-Disposition": f'attachment; filename="{filename}"',
             },
         )
+    except AppError:
+        raise
     except Exception as exc:
-        logger.error("Export priorities failed: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Gagal mengekspor data prioritas.",
+        logger.exception("Unexpected error in export priorities")
+        raise ServiceUnavailableError(
+            "Gagal mengekspor data prioritas.",
+            internal_message=str(exc),
         )
 
 
@@ -187,11 +194,13 @@ def api_priority_detail(
     """
     try:
         detail = get_priority_detail(recommendation_id, sim_date=sim_date)
+    except AppError:
+        raise
     except Exception as exc:
-        logger.error("Priority detail failed: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Gagal memuat detail prioritas.",
+        logger.exception("Unexpected error in priority detail")
+        raise ServiceUnavailableError(
+            "Gagal memuat detail prioritas.",
+            internal_message=str(exc),
         )
 
     if detail is None:
@@ -244,11 +253,13 @@ def api_submit_review(
         return {"status": "ok", "review": review}
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+    except AppError:
+        raise
     except Exception as exc:
-        logger.error("Review save failed: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Gagal menyimpan review.",
+        logger.exception("Unexpected error in review save")
+        raise ServiceUnavailableError(
+            "Gagal menyimpan review.",
+            internal_message=str(exc),
         )
 
 
@@ -263,11 +274,13 @@ def api_transparency(
     """
     try:
         return get_transparency()
+    except AppError:
+        raise
     except Exception as exc:
-        logger.error("Transparency failed: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Gagal memuat data transparansi.",
+        logger.exception("Unexpected error in transparency")
+        raise ServiceUnavailableError(
+            "Gagal memuat data transparansi.",
+            internal_message=str(exc),
         )
 
 
@@ -281,11 +294,13 @@ def api_service_status(
     """
     try:
         return get_service_status()
+    except AppError:
+        raise
     except Exception as exc:
-        logger.error("Service status failed: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Gagal memeriksa status layanan.",
+        logger.exception("Unexpected error in service status")
+        raise ServiceUnavailableError(
+            "Gagal memeriksa status layanan.",
+            internal_message=str(exc),
         )
 
 
@@ -315,11 +330,13 @@ def api_search(
             max_results=20,
             offset=offset,
         )
+    except AppError:
+        raise
     except Exception as exc:
-        logger.error("Search failed: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Gagal melakukan pencarian.",
+        logger.exception("Unexpected error in search")
+        raise ServiceUnavailableError(
+            "Gagal melakukan pencarian.",
+            internal_message=str(exc),
         )
 
 
@@ -356,9 +373,11 @@ def api_export_single(
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+    except AppError:
+        raise
     except Exception as exc:
-        logger.error("Export single failed: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Gagal mengekspor detail prioritas.",
+        logger.exception("Unexpected error in export single")
+        raise ServiceUnavailableError(
+            "Gagal mengekspor detail prioritas.",
+            internal_message=str(exc),
         )

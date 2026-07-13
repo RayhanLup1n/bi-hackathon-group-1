@@ -4,10 +4,10 @@ import os
 import tempfile
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, Response as FastAPIResponse
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 # Configure logging before anything else
 logging.basicConfig(
@@ -89,6 +89,9 @@ from src.api.routes import router, het_router, cuaca_router, stok_router, predic
 from src.api.auth_routes import auth_router  # noqa: E402
 from src.api.ml_routes import ml_router  # noqa: E402
 from src.api.mvp_routes import mvp_router  # noqa: E402
+from src.api.errors import AppError  # noqa: E402
+from src.api.middleware.rate_limiter import limiter  # noqa: E402
+from slowapi.errors import RateLimitExceeded  # noqa: E402
 
 
 @asynccontextmanager
@@ -100,6 +103,19 @@ async def lifespan(app: FastAPI):
 
     # Initialize connection pool to Supabase PostgreSQL (Gold layer -- all app data)
     init_pool()
+
+    # Verify database connectivity
+    from src.infrastructure.postgres.database import get_conn, release_conn
+    try:
+        conn = get_conn()
+        conn.cursor().execute("SELECT 1")
+        release_conn(conn)
+        logger.info("Database connection verified")
+        app.state.db_healthy = True
+    except Exception as exc:
+        logger.critical("Database health check failed: %s", exc)
+        app.state.db_healthy = False
+        # App continues — endpoints throw ServiceUnavailableError if DB is down
 
     # Load commodity mapping from Supabase PostgreSQL (app.harga_pangan)
     init_commodity_data()
@@ -143,6 +159,9 @@ app = FastAPI(
     redoc_url="/redoc" if _ENABLE_DOCS else None,
     openapi_url="/api/openapi.json" if _ENABLE_DOCS else None,
 )
+
+# Attach rate limiter to app state (slowapi reads app.state.limiter)
+app.state.limiter = limiter
 
 # CORS middleware - allow same-origin, localhost dev, and production domains
 _allowed_origins = [
@@ -200,6 +219,37 @@ app.include_router(auth_router)
 app.include_router(ml_router)
 app.include_router(data_quality_router)
 app.include_router(mvp_router)
+
+
+# ── Exception handlers ────────────────────────────────────────────────────
+
+@app.exception_handler(AppError)
+async def _app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    """Convert AppError subclasses to proper HTTP error responses."""
+    if exc.internal_message:
+        logger.error(
+            "AppError %d: %s | internal=%s",
+            exc.status_code,
+            exc.detail,
+            exc.internal_message,
+        )
+    else:
+        logger.warning("AppError %d: %s", exc.status_code, exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+
+@app.exception_handler(RateLimitExceeded)
+async def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    """Return 429 Too Many Requests when rate limit is exceeded."""
+    logger.warning("Rate limit exceeded: %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Terlalu banyak permintaan. Silakan coba lagi nanti."},
+        headers={"Retry-After": str(exc.retry_after) if getattr(exc, "retry_after", None) else "60"},
+    )
 
 
 @app.get("/health", tags=["system"])
