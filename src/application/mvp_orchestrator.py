@@ -575,3 +575,111 @@ def get_service_status() -> dict[str, Any]:
         },
         "timestamp": datetime.now().isoformat(),
     }
+
+
+# ── Search & Export delegates ──────────────────────────────────────────────
+
+def search_priorities(
+    query: str,
+    sim_date: date | None = None,
+    max_results: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Search all recommendations by keyword query.
+
+    Delegates to search_service after building the full priority list.
+    """
+    from src.application.mvp_search import search_recommendations
+
+    priorities = get_priorities(sim_date=sim_date)
+    return search_recommendations(
+        priorities=priorities,
+        query=query,
+        max_results=max_results,
+        offset=offset,
+    )
+
+
+def export_priorities_file(
+    fmt: str,
+    recommendation_id: str | None = None,
+    sim_date: date | None = None,
+) -> tuple[bytes, str, str]:
+    """Generate an export file (CSV or Excel) for priorities.
+
+    Args:
+        fmt: "csv" or "xlsx".
+        recommendation_id: If set, export single recommendation detail.
+        sim_date: Optional simulation date.
+
+    Returns:
+        Tuple of (content_bytes, media_type, filename).
+    """
+    from src.application.mvp_export import (
+        export_priorities_csv,
+        export_priorities_xlsx,
+        export_single_csv,
+        export_single_xlsx,
+    )
+
+    today = sim_date or date.today()
+    now_ts = today.isoformat()
+
+    if recommendation_id:
+        # Single recommendation export
+        detail = get_priority_detail(recommendation_id, sim_date=sim_date)
+        if not detail:
+            raise ValueError(f"Recommendation '{recommendation_id}' tidak ditemukan.")
+
+        # Fetch review for single export
+        review = None
+        try:
+            from src.infrastructure.postgres.review_repository import get_review
+            review = get_review(recommendation_id)
+        except Exception:
+            pass
+
+        commodity = detail.get("commodity", "unknown").replace(" ", "_")
+        safe_id = recommendation_id.replace(" ", "_")
+
+        if fmt == "csv":
+            content = export_single_csv(detail, review=review)
+            filename = f"RADAR_Pangan_{commodity}_{safe_id}_{now_ts}.csv"
+            return (content, "text/csv; charset=utf-8", filename)
+        else:
+            content = export_single_xlsx(detail, review=review)
+            filename = f"RADAR_Pangan_{commodity}_{safe_id}_{now_ts}.xlsx"
+            return (
+                content,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                filename,
+            )
+    else:
+        # All priorities export
+        priorities = get_priorities(sim_date=sim_date)
+
+        # Collect reviews
+        reviews: dict[str, Any] = {}
+        try:
+            from src.infrastructure.postgres.review_repository import get_review
+            for rec in priorities:
+                rid = rec.get("recommendation_id", "")
+                if rid:
+                    r = get_review(rid)
+                    if r:
+                        reviews[rid] = r
+        except Exception:
+            pass
+
+        if fmt == "csv":
+            content = export_priorities_csv(priorities, reviews=reviews)
+            filename = f"RADAR_Pangan_Prioritas_{now_ts}.csv"
+            return (content, "text/csv; charset=utf-8", filename)
+        else:
+            content = export_priorities_xlsx(priorities, reviews=reviews)
+            filename = f"RADAR_Pangan_Prioritas_{now_ts}.xlsx"
+            return (
+                content,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                filename,
+            )

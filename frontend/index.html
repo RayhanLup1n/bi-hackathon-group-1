@@ -362,6 +362,35 @@
         </a>
       </div>
 
+      <!-- ── Search bar ── -->
+      <div class="search-bar" style="position:relative;margin-bottom:14px;">
+        <input type="text"
+               x-model="searchQuery"
+               @input="doSearch()"
+               @keydown.escape="searchQuery=''; searchResults=[];"
+               placeholder="Cari komoditas, wilayah, risiko..."
+               class="search-input"
+               style="width:100%;max-width:420px;padding:9px 13px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius);font-family:var(--mono);font-size:11px;box-shadow:var(--shadow);outline:none;">
+        <div class="search-dropdown" x-show="searchResults.length > 0"
+             @click.outside="searchResults=[]"
+             style="position:absolute;top:100%;left:0;max-width:420px;width:100%;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:100;max-height:320px;overflow-y:auto;margin-top:4px;">
+          <template x-for="r in searchResults" :key="r.recommendation_id">
+            <div @click="openDetail(r.recommendation_id); searchQuery=''; searchResults=[];"
+                 style="display:flex;align-items:center;gap:8px;padding:10px 13px;cursor:pointer;border-bottom:1px solid #e5e5e5;font-family:var(--sans);font-size:13px;">
+              <span x-text="r.commodity" style="font-weight:700;"></span>
+              <span class="priority-tag" :class="'tag-risk-' + r.risk_level" x-text="r.risk_level" style="font-size:8px;"></span>
+              <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted);" x-text="'Score: ' + r.relevance_score"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- ── Export buttons ── -->
+      <div class="export-buttons" style="display:flex;gap:6px;margin-bottom:14px;">
+        <button @click="exportPriorities('csv')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 12px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);">📥 CSV</button>
+        <button @click="exportPriorities('xlsx')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 12px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);">📊 Excel</button>
+      </div>
+
       <!-- ── Top 3 Priorities ── -->
       <div class="section-head" style="margin-top:20px;">Prioritas Utama</div>
 
@@ -542,6 +571,12 @@
       <template x-if="detail && !detailLoading">
         <div>
           <a href="/" class="back-link" @click.prevent="page='dashboard'; history.pushState({},'','/')">← Kembali ke Dashboard</a>
+
+          <!-- Detail export -->
+          <div style="display:flex;gap:6px;margin-top:8px;margin-bottom:8px;">
+            <button @click="exportSingle('csv')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:5px 10px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);">📥 Export CSV</button>
+            <button @click="exportSingle('xlsx')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:5px 10px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);">📊 Export Excel</button>
+          </div>
 
           <!-- Header -->
           <div class="detail-header">
@@ -793,7 +828,68 @@ function executiveDashboard() {
       }
     },
 
-    async loadTransparency() {
+    // ── Search ──────────────────────────────────────────────────
+    searchQuery: '',
+    searchResults: [],
+    searchDebounce: null,
+
+    doSearch() {
+      clearTimeout(this.searchDebounce);
+      if (!this.searchQuery || this.searchQuery.trim().length < 1) {
+        this.searchResults = [];
+        return;
+      }
+      this.searchDebounce = setTimeout(async () => {
+        try {
+          const data = await this.fetchJSON(
+            '/api/mvp/search?q=' + encodeURIComponent(this.searchQuery.trim()),
+          );
+          this.searchResults = (data && data.results) ? data.results : [];
+        } catch (e) {
+          console.error('Search error:', e);
+          this.searchResults = [];
+        }
+      }, 300);
+    },
+
+    // ── Export ──────────────────────────────────────────────────
+    async exportPriorities(fmt) {
+      try {
+        const res = await fetch('/api/mvp/priorities/export?format=' + fmt, {
+          headers: { Authorization: 'Bearer ' + this.token },
+        });
+        if (!res.ok) throw new Error('Export failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error('Export error:', e);
+      }
+    },
+
+    async exportSingle(fmt) {
+      if (!this.detailId) return;
+      try {
+        const res = await fetch(
+          '/api/mvp/priorities/' + encodeURIComponent(this.detailId) + '/export?format=' + fmt,
+          { headers: { Authorization: 'Bearer ' + this.token } },
+        );
+        if (!res.ok) throw new Error('Export failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error('Export error:', e);
+      }
+    },
       if (this.transparencyData) return;
       try {
         this.transparencyData = await this.fetchJSON('/api/mvp/transparency');

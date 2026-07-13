@@ -224,6 +224,20 @@ class TestDashboardStructure:
         content = _read_page("index.html")
         assert "ML service offline" in content or "ml offline" in content.lower()
 
+    def test_has_search_bar(self):
+        """Dashboard should have keyword search bar."""
+        content = _read_page("index.html")
+        assert "searchQuery" in content
+        assert "doSearch" in content
+        assert "Cari komoditas" in content
+
+    def test_has_export_buttons(self):
+        """Dashboard should have CSV + Excel export buttons."""
+        content = _read_page("index.html")
+        assert "exportPriorities" in content
+        assert "exportSingle" in content
+        assert "Export CSV" in content or "Export Excel" in content
+
 
 class TestFTAPageStructure:
     """Tests specific to the FTA/Analysis page (rca.html)."""

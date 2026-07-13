@@ -25,6 +25,7 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from src.api.auth_routes import _current_user
@@ -251,4 +252,113 @@ def api_service_status(
         raise HTTPException(
             status_code=500,
             detail="Gagal memeriksa status layanan.",
+        )
+
+
+# ── Search & Export endpoints ──────────────────────────────────────────────
+
+@mvp_router.get("/search", summary="Keyword search rekomendasi")
+def api_search(
+    q: str = Query(..., min_length=1, description="Query pencarian"),
+    sim_date: Optional[date] = Query(default=None),
+    offset: int = Query(default=0, ge=0),
+    user: dict = Depends(_current_user),
+) -> dict:
+    """Cari rekomendasi berdasarkan keyword di seluruh field.
+
+    Mencakup: nama komoditas, wilayah, level risiko, evidence label/value,
+    missing information, dan price condition.
+
+    Hasil diurutkan berdasarkan relevance score (cocok kata kunci)
+    lalu display priority score.
+    """
+    from src.application.mvp_orchestrator import search_priorities
+
+    try:
+        return search_priorities(
+            query=q,
+            sim_date=sim_date,
+            max_results=20,
+            offset=offset,
+        )
+    except Exception as exc:
+        logger.error("Search failed: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Gagal melakukan pencarian.",
+        )
+
+
+@mvp_router.get("/priorities/export", summary="Export seluruh prioritas (CSV/Excel)")
+def api_export_priorities(
+    fmt: str = Query(
+        ...,
+        alias="format",
+        pattern=r"^(csv|xlsx)$",
+        description="Format export: csv atau xlsx",
+    ),
+    sim_date: Optional[date] = Query(default=None),
+    user: dict = Depends(_current_user),
+) -> Response:
+    """Download seluruh prioritas dalam format CSV atau Excel."""
+    from src.application.mvp_orchestrator import export_priorities_file
+
+    try:
+        content, media_type, filename = export_priorities_file(
+            fmt=fmt,
+            sim_date=sim_date,
+        )
+        return Response(
+            content=content,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+            },
+        )
+    except Exception as exc:
+        logger.error("Export priorities failed: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Gagal mengekspor data prioritas.",
+        )
+
+
+@mvp_router.get(
+    "/priorities/{recommendation_id}/export",
+    summary="Export satu rekomendasi (CSV/Excel)",
+)
+def api_export_single(
+    recommendation_id: str,
+    fmt: str = Query(
+        ...,
+        alias="format",
+        pattern=r"^(csv|xlsx)$",
+        description="Format export: csv atau xlsx",
+    ),
+    sim_date: Optional[date] = Query(default=None),
+    user: dict = Depends(_current_user),
+) -> Response:
+    """Download detail satu rekomendasi dalam format CSV atau Excel."""
+    from src.application.mvp_orchestrator import export_priorities_file
+
+    try:
+        content, media_type, filename = export_priorities_file(
+            fmt=fmt,
+            recommendation_id=recommendation_id,
+            sim_date=sim_date,
+        )
+        return Response(
+            content=content,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+            },
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        logger.error("Export single failed: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Gagal mengekspor detail prioritas.",
         )
