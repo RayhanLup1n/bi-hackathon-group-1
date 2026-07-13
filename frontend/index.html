@@ -3,569 +3,263 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>R.A.D.A.R Pangan</title>
+  <title>R.A.D.A.R Pangan — Executive Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <script src="/config.js"></script>
-  <!-- Alpine.js CDN -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
-    /* -- Reset + Design tokens (inline fallback) -- */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #EEF7F1; --bg2: #F0FBF4;
-      --surface: #FFFFFF; --surface2: #F0FBF4;
-      --border: #1a1a1a; --border2: #1a1a1a;
-      --accent: #2ECC88; --accent2: #1D7A56;
-      --warn: #FBBF24; --danger: #F87171; --success: #34D399;
-      --highlight: #A7F3D0; --info: #67E8F9;
-      --text: #1a1a1a; --text2: #3f3f46; --muted: #71717a;
-      --mono: 'JetBrains Mono', monospace;
-      --sans: 'Inter', system-ui, sans-serif;
-      --radius: 16px; --radius-sm: 12px;
-      --shadow: 4px 4px 0px #1a1a1a; --shadow-lg: 6px 6px 0px #1a1a1a;
-      --bw: 2.5px;
+    /* ── Dashboard layout ── */
+    .dash-top-bar {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
     }
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
-    }
-    body::before {
-      content: ''; position: fixed; inset: 0;
-      background-image:
-        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
-        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
-      pointer-events: none; z-index: 0;
-    }
-
-    /* -- App container (inline fallback) -- */
-    .app {
-      position: relative; z-index: 1;
-      max-width: 1100px; margin: 0 auto;
-      padding: 24px 20px 48px;
-    }
-
-    /* -- Header (inline fallback) -- */
-    .header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 28px; padding: 14px 20px;
+    .dash-stat {
+      flex: 1; min-width: 140px;
       background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow);
+      border-radius: var(--radius); padding: 14px 18px;
+      box-shadow: var(--shadow); position: relative; overflow: hidden;
     }
-    .header-left { display: flex; align-items: center; gap: 14px; }
-    .logo-icon {
-      width: 52px; height: 52px;
-      border: var(--bw) solid var(--border); border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
-      overflow: hidden; padding: 0;
-    }
-    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
-    .header-title {
-      font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
-    }
-    .header-sub {
-      font-family: var(--mono); font-size: 10px; color: var(--muted);
-      margin-top: 2px; letter-spacing: 0.5px;
-    }
-    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .nav-link {
-      font-family: var(--mono); font-size: 11px; font-weight: 700;
-      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
-      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
-    }
-    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
-    .nav-link-default { background: var(--surface); color: var(--accent2); }
-    .nav-link-default:hover { background: #E0F5EA; }
-    .nav-link-active { background: var(--accent); color: #fff; }
-    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
-    .nav-link-danger:hover { background: #FECACA; }
-    .user-badge {
-      font-family: var(--mono); font-size: 11px; font-weight: 700;
-      padding: 7px 13px; background: var(--surface2);
-      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
-      box-shadow: 2px 2px 0 var(--border);
-    }
-    .user-badge strong { color: var(--accent2); }
-
-    /* -- Cards (inline fallback) -- */
-    .card {
-      background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); padding: 18px;
-      position: relative; overflow: hidden; box-shadow: var(--shadow);
-    }
-    .card::after {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 5px;
-      background: var(--accent); border-radius: var(--radius) var(--radius) 0 0;
-    }
-    .card + .card { margin-top: 14px; }
-    .card-label {
-      font-family: var(--mono); font-size: 10px; color: var(--text);
-      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
-      display: flex; align-items: center; gap: 6px; font-weight: 800;
-    }
-    .card-label::before {
-      content: ''; display: inline-block;
-      width: 4px; height: 12px; background: var(--accent);
-      border-radius: 2px; border: 1px solid var(--border);
-    }
-
-    /* -- Responsive header stacking -- */
-    @media (max-width: 640px) {
-      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
-      .header-right { width: 100%; justify-content: flex-start; }
-    }
-
-    /* -- Dashboard page-specific styles -- */
-
-    /* -- Main layout -- */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 16px;
-      align-items: start;
-    }
-    @media (max-width: 768px) {
-      .main-grid { grid-template-columns: 1fr; }
-    }
-
-    /* -- Cards (page overrides) -- */
-    .commodity-select {
-      width: 100%;
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 14px;
-      font-weight: 600;
-      padding: 10px 14px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      outline: none;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231a1a1a' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      box-shadow: 3px 3px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .commodity-select:focus {
-      outline: 3px solid var(--accent);
-      outline-offset: 2px;
-    }
-    .commodity-select:active {
-      transform: translate(2px, 2px);
-      box-shadow: 1px 1px 0 var(--border);
-    }
-
-    /* ── Price display ── */
-    .price-block { margin-top: 4px; }
-    .price-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
-    .price-now {
-      font-family: var(--mono);
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -1px;
-      line-height: 1;
-    }
-    .price-delta {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 8px;
-      border: 2px solid var(--border);
-    }
-    .delta-up { background: #FEE2E2; color: #DC2626; }
-    .delta-down { background: #D1FAE5; color: #059669; }
-    .price-pred {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-      font-weight: 500;
-    }
-    .price-pred span { color: var(--accent2); font-weight: 800; }
-
-    /* ── Signal grid ── */
-    .signal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .signal-item {
-      background: var(--surface2);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px 12px;
-      box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .signal-item.warn-item {
-      background: #FEF3C7;
-      box-shadow: 2px 2px 0 var(--border);
-    }
-    .signal-key { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.5px; font-weight: 600; }
-    .signal-val { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text); }
-    .signal-val.warn { color: #B45309; }
-    .signal-val.ok { color: #059669; }
-    .signal-val.danger { color: #DC2626; }
-
-    /* ── Anomaly banner ── */
-    .anomaly-banner {
-      border-radius: var(--radius);
-      padding: 16px 20px;
-      border: var(--bw) solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-      transition: all 0.3s ease;
-      box-shadow: var(--shadow);
-    }
-    .anomaly-banner.normal {
-      background: #D1FAE5;
-    }
-    .anomaly-banner.anomali {
-      background: #FEE2E2;
-    }
-    .anomaly-banner.blank {
-      background: var(--surface);
-    }
-    .anomaly-left { display: flex; align-items: center; gap: 10px; }
-    .anomaly-icon { font-size: 22px; line-height: 1; }
-    .anomaly-label { font-family: var(--mono); font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
-    .anomaly-status { font-size: 16px; font-weight: 900; margin-top: 1px; }
-    .anomaly-status.normal-text { color: #059669; }
-    .anomaly-status.danger-text { color: #DC2626; }
-    .anomaly-right { text-align: right; }
-    .anomaly-delta { font-family: var(--mono); font-size: 20px; font-weight: 800; }
-    .anomaly-threshold { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; font-weight: 600; }
-
-
-    /* ── Result card ── */
-    .result-card {
-      border-radius: var(--radius);
-      padding: 22px;
-      border: var(--bw) solid var(--border);
-      margin-top: 14px;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      box-shadow: var(--shadow-lg);
-    }
-    .result-card::before {
-      content: '';
-      position: absolute;
-      top: -60px; right: -60px;
-      width: 160px; height: 160px;
-      border-radius: 50%;
-      opacity: 0.15;
-    }
-    .result-card::after {
-      content: '';
-      position: absolute;
-      bottom: -40px; left: -40px;
-      width: 100px; height: 100px;
-      border-radius: 50%;
-      opacity: 0.10;
-    }
-    .result-demand { background: #D1FAE5; }
-    .result-demand::before { background: var(--success); }
-    .result-demand::after { background: var(--info); }
-    .result-supply { background: #FEF3C7; }
-    .result-supply::before { background: var(--warn); }
-    .result-supply::after { background: var(--danger); }
-    .result-distribusi { background: #E0F5EA; }
-    .result-distribusi::before { background: var(--accent); }
-    .result-distribusi::after { background: var(--highlight); }
-    .result-unknown { background: #F4F4F5; }
-
-    .result-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-    .result-meta { flex: 1; }
-    .result-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text2); margin-bottom: 5px; font-weight: 800; }
-    .result-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.2; }
-    .result-demand .result-title { color: #065F46; }
-    .result-supply .result-title { color: #92400E; }
-    .result-distribusi .result-title { color: #1D7A56; }
-    .result-unknown .result-title { color: var(--muted); }
-    .result-type-badge {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 800;
-      padding: 5px 14px;
-      border-radius: 8px;
-      flex-shrink: 0;
-      border: var(--bw) solid var(--border);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      box-shadow: 3px 3px 0 var(--border);
-    }
-    .result-demand .result-type-badge { background: #A7F3D0; color: #065F46; }
-    .result-supply .result-type-badge { background: #FDE68A; color: #92400E; }
-    .result-distribusi .result-type-badge { background: #A7F3D0; color: #1D7A56; }
-    .result-unknown .result-type-badge { background: #E4E4E7; color: var(--muted); }
-
-    .result-desc { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 14px; }
-
-    .action-box {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 14px 16px;
-      box-shadow: 2px 2px 0 var(--border);
-    }
-    .action-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 8px;
-      display: flex; align-items: center; gap: 6px;
-      font-weight: 800;
-    }
-    .action-label::before {
-      content: '';
-      display: inline-block;
-      width: 4px; height: 12px;
+    .dash-stat::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
       background: var(--accent);
-      border-radius: 2px;
-      border: 1px solid var(--border);
     }
-    .action-text { font-size: 13px; color: var(--text); line-height: 1.7; }
+    .dash-stat.critical::after { background: var(--danger); }
+    .dash-stat.warning::after { background: var(--warn); }
+    .dash-stat .stat-num { font-family: var(--mono); font-size: 28px; font-weight: 800; }
+    .dash-stat .stat-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
 
-    /* ── Sim date ── */
-    .sim-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .sim-date-input {
-      flex: 1;
-      min-width: 140px;
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      outline: none;
-      box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .sim-date-input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
-    .sim-date-input.active { background: #FEF3C7; color: #92400E; }
-    .sim-reset {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      white-space: nowrap;
-      box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .sim-reset:hover { background: #E0F5EA; }
-    .sim-reset:active {
-      transform: translate(2px, 2px);
-      box-shadow: 0 0 0 var(--border);
-    }
-    .sim-label { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 100%; margin-top: 4px; font-weight: 600; }
-    .sim-label.warn { color: #92400E; }
-
-    /* ── Run button — neobrutalist press effect ── */
-    .run-btn {
-      width: 100%;
-      padding: 14px;
-      background: var(--accent);
-      color: #ffffff;
-      font-family: var(--sans);
-      font-size: 14px;
-      font-weight: 800;
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      letter-spacing: 0.3px;
-      box-shadow: var(--shadow);
-      margin-top: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .run-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      box-shadow: none;
-      transform: translate(2px, 2px);
-    }
-    .run-btn:hover:not(:disabled) {
-      background: var(--accent2);
-    }
-    .run-btn:active:not(:disabled) {
-      transform: translate(4px, 4px);
-      box-shadow: 0 0 0 var(--border);
-    }
-
-    /* ── Footer ── */
-    .footer {
-      text-align: center;
-      margin-top: 32px;
-      padding-top: 20px;
-      border-top: var(--bw) solid var(--border);
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--muted);
-      font-weight: 600;
-    }
-    .footer a { color: var(--accent2); text-decoration: none; font-weight: 700; }
-    .footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
-    .footer-sep { margin: 0 10px; color: var(--border); }
-
-    /* ── Info panels (HET + weather) ── */
-    .wilayah-section {
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 2px dashed #d4d4d8;
-    }
-    .wilayah-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-weight: 800;
-    }
-    .info-panel {
-      padding: 10px 12px;
-      border-radius: var(--radius-sm);
-      border: var(--bw) solid var(--border);
-      background: var(--surface);
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--muted);
-      box-shadow: 2px 2px 0 var(--border);
-      transition: all 0.3s ease;
-    }
-
-    /* ── Price Trend Chart ── */
-    .chart-mini-card {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 16px 18px;
-      margin-bottom: 14px;
-    }
-    .chart-mini-card canvas { max-height: 200px; }
-    .chart-mini-label {
-      font-family: var(--mono); font-size: 10px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1.2px;
-      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
-    }
-    .chart-mini-label::before {
-      content: ''; display: inline-block;
-      width: 4px; height: 12px; background: var(--accent);
-      border-radius: 2px; border: 1px solid var(--border);
-    }
-
-    /* ── Animations ── */
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.6; transform: scale(0.85); }
-    }
-    @keyframes slide-up {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-in { animation: slide-up 0.35s ease both; }
-
-    /* ── Pillar Hero Cards (Predict · Prevent · Protect) ── */
-    .pillar-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    @media (max-width: 768px) {
-      .pillar-grid { grid-template-columns: 1fr; }
-    }
-    .pillar-card {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
-    }
-    .pillar-card::after {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 4px;
-    }
-    .pillar-card.pillar-predict::after { background: #6366f1; }
-    .pillar-card.pillar-prevent::after { background: #f59e0b; }
-    .pillar-card.pillar-protect::after  { background: #10b981; }
-    .pillar-tag {
-      font-family: var(--mono); font-size: 9px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1.5px;
-      padding: 2px 8px; border-radius: 6px;
-      border: 1.5px solid var(--border);
-      display: inline-block; margin-bottom: 10px;
-    }
-    .pillar-tag-predict  { background: rgba(99,102,241,0.1); color: #6366f1; }
-    .pillar-tag-prevent  { background: rgba(245,158,11,0.1); color: #d97706; }
-    .pillar-tag-protect  { background: rgba(16,185,129,0.1); color: #059669; }
-    .pillar-value {
-      font-family: var(--mono); font-size: 22px; font-weight: 800;
-      color: var(--text); line-height: 1.1; margin-bottom: 4px;
-    }
-    .pillar-sub {
-      font-family: var(--sans); font-size: 11px; color: var(--muted);
-      line-height: 1.4;
-    }
-    .pillar-badge {
-      font-family: var(--mono); font-size: 10px; font-weight: 700;
-      padding: 2px 8px; border-radius: 6px;
-      border: 1.5px solid var(--border);
-      display: inline-block; margin-top: 8px;
-    }
-
-    /* ── ML Alert Banner ── */
-    .ml-alert-bar {
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    /* ── Freshness indicator ── */
+    .freshness-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
       padding: 10px 16px; margin-bottom: 16px;
       background: var(--surface); border: var(--bw) solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      font-family: var(--mono); font-size: 10px; font-weight: 600;
     }
-    .ml-alert-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      display: inline-block; flex-shrink: 0;
-    }
-    .ml-alert-dot.red    { background: #dc2626; }
-    .ml-alert-dot.yellow { background: #f59e0b; }
-    .ml-alert-dot.green  { background: #10b981; }
+    .freshness-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; }
+    .freshness-dot.fresh { background: #34D399; }
+    .freshness-dot.stale { background: #FBBF24; }
+    .freshness-dot.very-stale { background: #F87171; }
 
+    /* ── Priority card ── */
+    .priority-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+      box-shadow: var(--shadow); margin-bottom: 12px;
+      cursor: pointer; transition: transform 0.12s, box-shadow 0.12s;
+      position: relative; overflow: hidden;
+    }
+    .priority-card:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+    .priority-card::before {
+      content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 5px;
+    }
+    .priority-card.risk-kritis::before { background: #DC2626; }
+    .priority-card.risk-tinggi::before { background: #F59E0B; }
+    .priority-card.risk-sedang::before { background: #6366F1; }
+    .priority-card.risk-rendah::before { background: #34D399; }
+
+    .priority-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .priority-rank {
+      font-family: var(--mono); font-size: 11px; font-weight: 800; color: var(--muted);
+      letter-spacing: 1px; margin-bottom: 2px;
+    }
+    .priority-name { font-size: 17px; font-weight: 900; letter-spacing: -0.3px; line-height: 1.2; }
+    .priority-region { font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+
+    .priority-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .priority-tag {
+      font-family: var(--mono); font-size: 9px; font-weight: 800; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 6px; border: 1.5px solid var(--border);
+      letter-spacing: 0.5px;
+    }
+    .tag-risk-kritis { background: #FEE2E2; color: #DC2626; }
+    .tag-risk-tinggi { background: #FEF3C7; color: #B45309; }
+    .tag-risk-sedang { background: #E0E7FF; color: #4338CA; }
+    .tag-risk-rendah { background: #D1FAE5; color: #059669; }
+    .tag-confidence-high { background: #D1FAE5; color: #059669; }
+    .tag-confidence-medium { background: #FEF3C7; color: #B45309; }
+    .tag-confidence-low { background: #FEE2E2; color: #DC2626; }
+
+    .priority-score {
+      font-family: var(--mono); font-size: 22px; font-weight: 800;
+      margin-left: auto; flex-shrink: 0;
+    }
+    .priority-next-step {
+      font-family: var(--sans); font-size: 11px; color: var(--text2);
+      margin-top: 8px; padding: 8px 10px; background: var(--surface2);
+      border-radius: 8px; border: 1.5px solid var(--border);
+      font-weight: 500; line-height: 1.4;
+    }
+
+    /* ── Evidence section (detail page) ── */
+    .evidence-block {
+      margin-bottom: 16px;
+    }
+    .evidence-block h3 {
+      font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+    }
+    .evidence-block h3::before {
+      content: ''; display: inline-block; width: 4px; height: 12px;
+      border-radius: 2px; border: 1px solid var(--border);
+    }
+    .evidence-block.facts h3::before { background: #34D399; }
+    .evidence-block.models h3::before { background: #6366F1; }
+    .evidence-block.factors h3::before { background: #F59E0B; }
+    .evidence-block.missing h3::before { background: #F87171; }
+
+    .evidence-item {
+      padding: 8px 12px; margin-bottom: 4px;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 12px; font-family: var(--sans);
+    }
+    .evidence-tag {
+      font-family: var(--mono); font-size: 8px; font-weight: 700;
+      text-transform: uppercase; padding: 1px 6px; border-radius: 4px;
+      border: 1px solid var(--border); margin-right: 6px;
+    }
+    .etag-fact { background: #D1FAE5; color: #059669; }
+    .etag-model { background: #E0E7FF; color: #4338CA; }
+    .etag-inference { background: #FEF3C7; color: #B45309; }
+    .etag-missing { background: #FEE2E2; color: #DC2626; }
+
+    /* ── Response option cards ── */
+    .response-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; margin-bottom: 6px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: 8px; box-shadow: 2px 2px 0 var(--border);
+    }
+    .response-icon {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      padding: 4px 8px; border-radius: 6px; border: 1.5px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ── Bundle card ── */
+    .bundle-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+      box-shadow: var(--shadow); margin-bottom: 10px;
+    }
+    .bundle-title { font-size: 15px; font-weight: 900; margin-bottom: 4px; }
+    .bundle-reason { font-size: 11px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+    .bundle-items { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ── Review buttons ── */
+    .review-btn {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      padding: 8px 14px; border: var(--bw) solid var(--border);
+      border-radius: 8px; cursor: pointer;
+      box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .review-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .review-btn.bahas { background: #D1FAE5; color: #059669; }
+    .review-btn.bahas:hover { background: #A7F3D0; }
+    .review-btn.tunda { background: #FEF3C7; color: #B45309; }
+    .review-btn.tunda:hover { background: #FDE68A; }
+    .review-btn.tolak { background: #FEE2E2; color: #DC2626; }
+    .review-btn.tolak:hover { background: #FECACA; }
+    .review-btn.active-review { box-shadow: inset 2px 2px 0 var(--border); transform: translate(2px, 2px); }
+
+    /* ── Filter bar ── */
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-bar select, .filter-bar input {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      padding: 8px 12px; border-radius: 8px; outline: none;
+      box-shadow: 2px 2px 0 var(--border);
+    }
+
+    /* ── Section heading ── */
+    .section-head {
+      font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--text); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px; font-weight: 800;
+    }
+    .section-head::after {
+      content: ''; flex: 1; height: 2px; background: var(--border);
+      opacity: 0.15;
+    }
+
+    /* ── Skeleton ── */
+    .skeleton { background: #e5e7eb; border-radius: 8px; animation: sk-pulse 1.5s ease-in-out infinite; }
+    @keyframes sk-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+
+    /* ── Error / stale banner ── */
+    .stale-banner {
+      padding: 10px 16px; margin-bottom: 16px;
+      background: #FEF3C7; border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      font-family: var(--mono); font-size: 10px; font-weight: 600; color: #92400E;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .offline-banner {
+      padding: 10px 16px; margin-bottom: 16px;
+      background: #FEE2E2; border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      font-family: var(--mono); font-size: 10px; font-weight: 600; color: #DC2626;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── Review note textarea ── */
+    .review-note-input {
+      width: 100%; min-height: 60px; margin-top: 8px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      font-family: var(--sans); font-size: 12px; padding: 8px 10px;
+      border-radius: 8px; resize: vertical;
+    }
+
+    /* ── Detail page header ── */
+    .detail-header {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .detail-commodity { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+    .detail-region { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .detail-scores { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
+    .detail-score-item { text-align: center; }
+    .detail-score-val { font-family: var(--mono); font-size: 20px; font-weight: 800; }
+    .detail-score-lbl { font-family: var(--mono); font-size: 8px; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; }
+
+    /* ── Back link ── */
+    .back-link {
+      font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent2);
+      text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+      margin-bottom: 12px;
+    }
+    .back-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+    /* ── Review status indicator ── */
+    .review-status {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      padding: 5px 10px; border-radius: 6px; border: 1.5px solid var(--border);
+    }
+    .review-status.belum { background: #F4F4F5; color: var(--muted); }
+    .review-status.bahas { background: #D1FAE5; color: #059669; }
+    .review-status.tunda { background: #FEF3C7; color: #B45309; }
+    .review-status.tolak { background: #FEE2E2; color: #DC2626; }
+
+    /* ── Empty state ── */
+    .empty-card {
+      text-align: center; padding: 40px 20px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      font-family: var(--mono); font-size: 13px; color: var(--muted);
+    }
   </style>
 </head>
 <body>
 
-<!-- ════════════════════════════════════════════════════════════════════════════
-     ALPINE.JS APP — Single reactive component
-     ════════════════════════════════════════════════════════════════════════════ -->
-<div class="app" x-data="radar()">
+<!-- ═══════════════════════════════════════════════════════════════════════
+     EXECUTIVE DASHBOARD — Single Alpine.js app
+     Route: / (dashboard) or /detail/{recommendation_id}
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="app" x-data="executiveDashboard()">
 
   <!-- ── Header ── -->
   <header class="header">
@@ -573,18 +267,15 @@
       <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">predict &middot; prevent &middot; protect &nbsp;&middot;&nbsp; v0.7</div>
+        <div class="header-sub">decision-support &middot; v0.8</div>
       </div>
     </div>
     <div class="header-right">
       <span class="user-badge">
         <strong x-text="user?.username || '—'"></strong> &middot; <span x-text="user?.role || ''"></span>
       </span>
-      <a href="/" class="nav-link nav-link-active">Dashboard</a>
+      <a href="/" class="nav-link" :class="page === 'dashboard' ? 'nav-link-active' : 'nav-link-default'">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
-      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
-      </template>
       <template x-if="user?.is_admin || user?.role === 'admin'">
         <a href="/admin" class="nav-link nav-link-default">Admin</a>
       </template>
@@ -592,384 +283,411 @@
     </div>
   </header>
 
-  <!-- ── ML Alert Banner ── -->
-  <template x-if="mlAvailable && mlAlerts && mlAlerts.total_alerts > 0">
-    <div class="ml-alert-bar animate-in">
-      <span class="ml-alert-dot" :class="mlAlerts.alerts.some(a => a.decision?.final_alert_level === 'red') ? 'red' : 'yellow'"></span>
-      <span x-text="mlAlerts.total_alerts + ' alert aktif hari ini'"></span>
-      <span style="color:var(--muted);">·</span>
-      <span style="color:#dc2626;" x-show="mlAlerts.alerts.filter(a => a.decision?.final_alert_level === 'red').length > 0"
-            x-text="mlAlerts.alerts.filter(a => a.decision?.final_alert_level === 'red').length + ' RED'"></span>
-      <span style="color:#d97706;" x-show="mlAlerts.alerts.filter(a => a.decision?.final_alert_level === 'yellow').length > 0"
-            x-text="mlAlerts.alerts.filter(a => a.decision?.final_alert_level === 'yellow').length + ' YELLOW'"></span>
-      <a href="/prediksi" style="margin-left:auto;color:var(--accent2);font-size:10px;text-decoration:underline;">Detail →</a>
-    </div>
-  </template>
+  <!-- ═══════════ DASHBOARD VIEW ═══════════ -->
+  <template x-if="page === 'dashboard'">
 
-  <!-- ── 3 Pillar Hero Cards: Predict · Prevent · Protect ── -->
-  <div class="pillar-grid" x-show="currentData">
+    <!-- ── Service warnings ── -->
+    <template x-if="overview">
+      <div>
+        <div class="offline-banner" x-show="overview.service_health.ml_service === 'offline'">
+          <span>⚠️</span> ML service offline — confidence dan forecast dibatasi. Monitoring historis tetap tersedia.
+        </div>
+        <div class="stale-banner" x-show="overview.data_freshness.status === 'stale' || overview.data_freshness.status === 'very_stale'">
+          <span x-text="overview.data_freshness.status === 'very_stale' ? '🔴' : '🟡'"></span>
+          Data terakhir: <strong x-text="overview.data_freshness.latest_date"></strong>
+          (<span x-text="overview.data_freshness.age_days + ' hari lalu'"></span>) — confidence dibatasi.
+        </div>
+      </div>
+    </template>
 
-    <!-- PREDICT -->
-    <div class="pillar-card pillar-predict">
-      <div class="pillar-tag pillar-tag-predict">Predict</div>
-      <template x-if="mlAvailable && mlResult && mlResult.predictions">
-        <div>
-          <div class="pillar-value" x-text="fmt(Math.round(mlResult.predictions.p50_7d || 0))"></div>
-          <div class="pillar-sub">Prediksi 7 hari ke depan (P50)</div>
-          <div style="display:flex;gap:10px;margin-top:8px;">
+    <!-- ── Loading skeleton ── -->
+    <template x-if="loading && !overview">
+      <div>
+        <div style="display:flex;gap:12px;margin-bottom:20px;">
+          <div class="skeleton" style="flex:1;height:70px;"></div>
+          <div class="skeleton" style="flex:1;height:70px;"></div>
+          <div class="skeleton" style="flex:1;height:70px;"></div>
+        </div>
+        <div class="skeleton" style="height:120px;margin-bottom:14px;"></div>
+        <div class="skeleton" style="height:120px;margin-bottom:14px;"></div>
+      </div>
+    </template>
+
+    <!-- ── Error state ── -->
+    <template x-if="error && !overview">
+      <div class="empty-card">
+        <p style="font-size:16px;font-weight:700;margin-bottom:8px;">⚠️ Gagal memuat dashboard</p>
+        <p x-text="error"></p>
+        <button class="btn btn-primary" style="margin-top:12px;" @click="loadOverview()">Coba Lagi</button>
+      </div>
+    </template>
+
+    <!-- ── Dashboard content ── -->
+    <template x-if="overview">
+
+      <!-- ── Top stat bar ── -->
+      <div class="dash-top-bar">
+        <div class="dash-stat">
+          <div class="stat-num" x-text="overview.summary.total_commodities"></div>
+          <div class="stat-label">Komoditas Dipantau</div>
+        </div>
+        <div class="dash-stat" :class="overview.summary.has_critical ? 'critical' : (overview.summary.has_high ? 'warning' : '')">
+          <div class="stat-num" :style="overview.summary.has_critical ? 'color:#DC2626;' : ''"
+               x-text="(overview.summary.risk_counts.kritis || 0) + (overview.summary.risk_counts.tinggi || 0)"></div>
+          <div class="stat-label">Risiko Tinggi/Kritis</div>
+        </div>
+        <div class="dash-stat">
+          <div class="stat-num" x-text="overview.data_freshness.coverage_ratio ? (overview.data_freshness.coverage_ratio * 100).toFixed(0) + '%' : '—'"></div>
+          <div class="stat-label">Cakupan Data</div>
+        </div>
+      </div>
+
+      <!-- ── Freshness bar ── -->
+      <div class="freshness-bar">
+        <span class="freshness-dot" :class="overview.data_freshness.status"></span>
+        <span>Data: <strong x-text="overview.data_freshness.latest_date"></strong></span>
+        <span style="color:var(--muted);">·</span>
+        <span x-text="overview.data_freshness.age_days + ' hari lalu'"></span>
+        <span style="color:var(--muted);">·</span>
+        <span>ML: <strong :style="overview.service_health.ml_service === 'online' ? 'color:#059669;' : 'color:#DC2626;'"
+              x-text="overview.service_health.ml_service"></strong></span>
+        <span style="color:var(--muted);">·</span>
+        <span x-text="'Rendah: ' + (overview.summary.risk_counts.rendah || 0)"></span>
+        <span style="color:var(--muted);">·</span>
+        <span x-text="'Sedang: ' + (overview.summary.risk_counts.sedang || 0)"></span>
+        <span style="color:var(--muted);">·</span>
+        <span style="font-weight:800;color:#DC2626;" x-text="'Kritis: ' + (overview.summary.risk_counts.kritis || 0)"></span>
+        <a href="/transparency" style="margin-left:auto;font-size:10px;color:var(--accent2);" @click.prevent="showTransparency = !showTransparency">
+          <span x-text="showTransparency ? 'Sembunyikan' : 'Transparansi'"></span> →
+        </a>
+      </div>
+
+      <!-- ── Top 3 Priorities ── -->
+      <div class="section-head" style="margin-top:20px;">Prioritas Utama</div>
+
+      <template x-if="overview.top_priorities.length === 0">
+        <div class="empty-card">Tidak ada prioritas risiko tinggi saat ini. Semua komoditas dalam kondisi normal.</div>
+      </template>
+
+      <template x-for="(p, idx) in overview.top_priorities" :key="p.recommendation_id">
+        <div class="priority-card animate-in"
+             :class="'risk-' + p.risk_level"
+             :style="'animation-delay:' + (idx * 0.08) + 's'"
+             @click="openDetail(p.recommendation_id)">
+          <div class="priority-header">
             <div>
-              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);">14 hari:</span>
-              <span style="font-family:var(--mono);font-size:12px;font-weight:700;" x-text="mlResult.predictions.p50_14d ? fmt(Math.round(mlResult.predictions.p50_14d)) : '—'"></span>
+              <div class="priority-rank" x-text="'#' + (idx + 1) + ' · ' + p.price_condition"></div>
+              <div class="priority-name" x-text="p.commodity"></div>
+              <div class="priority-region" x-text="p.region"></div>
             </div>
-            <div>
-              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);">Batas atas:</span>
-              <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:#dc2626;" x-text="mlResult.predictions.p90_7d ? fmt(Math.round(mlResult.predictions.p90_7d)) : '—'"></span>
-            </div>
+            <div class="priority-score" :style="'color:' + riskColor(p.risk_level)"
+                 x-text="p.display_priority_score"></div>
           </div>
+          <div class="priority-meta">
+            <span class="priority-tag" :class="'tag-risk-' + p.risk_level" x-text="p.risk_level.toUpperCase()"></span>
+            <span class="priority-tag" :class="'tag-confidence-' + p.confidence_level" x-text="'Confidence: ' + p.confidence_level"></span>
+            <span class="priority-tag" style="background:var(--surface2);" x-text="p.time_horizon_days + ' hari'"></span>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto;"
+                  x-text="p.knowledge_status === 'fact' ? '📋 Fakta' : p.knowledge_status === 'model_output' ? '🤖 Model' : '🔍 Inference'"></span>
+          </div>
+          <div class="priority-next-step" x-text="'→ ' + p.next_step"></div>
         </div>
       </template>
-      <template x-if="mlAvailable && mlLoading">
-        <div>
-          <div class="pillar-value" style="color:var(--muted);">⟳</div>
-          <div class="pillar-sub">Memuat prediksi ML...</div>
-        </div>
-      </template>
-      <template x-if="!mlAvailable">
-        <div>
-          <div class="pillar-value" style="color:var(--muted);">—</div>
-          <div class="pillar-sub" style="color:var(--muted);">ML server offline</div>
-        </div>
-      </template>
-    </div>
 
-    <!-- PREVENT -->
-    <div class="pillar-card pillar-prevent">
-      <div class="pillar-tag pillar-tag-prevent">Prevent</div>
-      <template x-if="hetData">
-        <div>
-          <div class="pillar-value" :style="'color:' + hetStyle.color" x-text="hetStyle.icon + ' ' + hetData.status.toUpperCase()"></div>
-          <div class="pillar-sub">Status HET — <span x-text="hetData.pct_of_het ? hetData.pct_of_het + '% dari batas' : 'tidak tersedia'"></span></div>
-          <div class="pillar-sub" style="margin-top:4px;" x-text="hetData.het_harga ? 'HET: Rp ' + (hetData.het_harga||0).toLocaleString('id-ID') + '/kg' : ''"></div>
-          <div style="margin-top:6px;" x-show="currentData && currentData.cuaca">
-            <span class="pillar-badge"
-                  :style="currentData.cuaca.ekstrem ? 'background:#FEF3C7;color:#92400e;' : 'background:#ECFDF5;color:#059669;'"
-                  x-text="(currentData.cuaca.ekstrem ? '⛈ ' : '☀ ') + currentData.cuaca.desc"></span>
-          </div>
-        </div>
-      </template>
-      <template x-if="!hetData">
-        <div>
-          <div class="pillar-value" style="color:var(--muted);">—</div>
-          <div class="pillar-sub">Memuat status HET...</div>
-        </div>
-      </template>
-    </div>
-
-    <!-- PROTECT -->
-    <div class="pillar-card pillar-protect">
-      <div class="pillar-tag pillar-tag-protect">Protect</div>
-      <template x-if="mlAvailable && mlResult && mlResult.decision">
-        <div>
-          <div class="pillar-value" :style="'color:' + mlAlertStyle.color" x-text="mlAlertStyle.icon + ' ' + mlAlertStyle.label"></div>
-          <div class="pillar-sub">Alert Level ML</div>
-          <div class="pillar-sub" style="margin-top:6px;font-size:10px;line-height:1.4;"
-               x-text="mlResult.decision.rekomendasi ? mlResult.decision.rekomendasi.substring(0, 100) + (mlResult.decision.rekomendasi.length > 100 ? '...' : '') : 'Tidak ada rekomendasi'"></div>
-        </div>
-      </template>
-      <template x-if="mlAvailable && !mlResult">
-        <div>
-          <div class="pillar-value">
-            <span x-text="currentData ? fmt(currentData.price_now) : '—'"></span>
-          </div>
-          <div class="pillar-sub">Harga saat ini</div>
-          <div class="pillar-badge" style="background:#ECFDF5;color:#059669;" x-show="currentData">
-            <span x-text="(deltaPct >= 0 ? '▲ +' : '▼ ') + deltaPct.toFixed(1) + '%'"></span> vs kemarin
-          </div>
-        </div>
-      </template>
-      <template x-if="!mlAvailable">
-        <div>
-          <div class="pillar-value">
-            <span x-text="currentData ? fmt(currentData.price_now) : '—'"></span>
-          </div>
-          <div class="pillar-sub">Harga saat ini · ML offline</div>
-          <div class="pillar-badge" :style="deltaPct >= 0 ? 'background:#FEE2E2;color:#dc2626;' : 'background:#ECFDF5;color:#059669;'" x-show="currentData">
-            <span x-text="(deltaPct >= 0 ? '▲ +' : '▼ ') + deltaPct.toFixed(1) + '%'"></span> vs kemarin
-          </div>
-        </div>
-      </template>
-    </div>
-  </div>
-
-  <!-- ── Main grid ── -->
-  <div class="main-grid">
-
-    <!-- ── Left panel: controls ── -->
-    <div class="left-panel">
-
-      <!-- Commodity + HET + Weather + Price -->
-      <div class="card">
-        <div class="card-label">Komoditas</div>
-        <select class="commodity-select" x-model="selectedKey" @change="selectCommodity()">
-          <template x-for="c in commodities" :key="c.key">
-            <option :value="c.key" x-text="c.name"></option>
+      <!-- ── Full priority list ── -->
+      <div class="section-head" style="margin-top:24px;">Daftar Prioritas Lengkap</div>
+      <div class="filter-bar">
+        <select x-model="filterRisk" @change="loadPriorities()">
+          <option value="">Semua Risiko</option>
+          <option value="kritis">Kritis</option>
+          <option value="tinggi">Tinggi</option>
+          <option value="sedang">Sedang</option>
+          <option value="rendah">Rendah</option>
+        </select>
+        <select x-model="filterProvince" @change="loadPriorities()">
+          <option value="">Semua Provinsi</option>
+          <template x-for="pv in overview.provinces" :key="pv.id">
+            <option :value="pv.name" x-text="pv.name"></option>
           </template>
         </select>
-
-        <!-- HET Status -->
-        <div class="wilayah-section">
-          <div class="wilayah-label">📊 Status HET</div>
-          <div class="info-panel"
-               :style="hetData ? `background:${hetStyle.bg};border-color:${hetStyle.border};color:${hetStyle.color}` : ''">
-            <template x-if="hetData">
-              <div>
-                <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;margin-bottom:3px">
-                  <span x-text="hetStyle.icon"></span>
-                  <span x-text="hetData.status.toUpperCase()"></span>
-                  <span x-show="hetData.pct_of_het" x-text="'(' + hetData.pct_of_het + '%)'"></span>
-                </div>
-                <div x-show="hetData.het_harga" style="font-size:11px;opacity:0.8"
-                     x-text="'HET: Rp ' + (hetData.het_harga||0).toLocaleString('id-ID') + '/kg'"></div>
-                <div style="font-size:10px;margin-top:2px;opacity:0.7" x-text="hetData.keterangan || ''"></div>
-              </div>
-            </template>
-            <template x-if="!hetData"><span>Memuat...</span></template>
-          </div>
-        </div>
-
-        <!-- Weather -->
-        <div class="wilayah-section" style="margin-top:8px; border-top:none;">
-          <div class="wilayah-label">🌤 Cuaca (Open-Meteo)</div>
-          <div class="info-panel"
-               :style="currentData ? `background:${weatherStyle.bg};border-color:${weatherStyle.border};color:${weatherStyle.color}` : ''">
-            <template x-if="currentData">
-              <div>
-                <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12px;margin-bottom:2px">
-                  <span x-text="currentData.cuaca.ekstrem ? '⛈' : '☀'"></span>
-                  <span x-text="currentData.cuaca.desc"></span>
-                </div>
-                <div x-show="currentData.cuaca.daerah" style="font-size:10px;opacity:0.8"
-                     x-text="'Lokasi: ' + currentData.cuaca.daerah"></div>
-                <div style="font-size:10px;margin-top:2px;opacity:0.7" x-text="currentData.cuaca.detail || ''"></div>
-              </div>
-            </template>
-            <template x-if="!currentData"><span>Memuat...</span></template>
-          </div>
-        </div>
-
-        <!-- Price -->
-        <div class="price-block" style="margin-top:16px">
-          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Harga Sekarang</div>
-          <div class="price-row">
-            <span class="price-now" x-text="currentData ? fmt(currentData.price_now) : '—'"></span>
-            <span x-show="currentData" class="price-delta"
-                  :class="deltaPct >= 0 ? 'delta-up' : 'delta-down'"
-                  x-text="(deltaPct >= 0 ? '▲ +' : '▼ ') + deltaPct.toFixed(1) + '%'"></span>
-          </div>
-          <!-- ML Prediction -->
-          <template x-if="mlAvailable && mlResult && mlResult.predictions">
-            <div style="margin-top:8px;padding:8px 10px;background:rgba(99,102,241,0.06);border:1.5px solid rgba(99,102,241,0.2);border-radius:8px;">
-              <div style="font-family:var(--mono);font-size:9px;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-weight:700;">Prediksi ML</div>
-              <div style="display:flex;gap:12px;font-family:var(--sans);font-size:12px;">
-                <div>
-                  <span style="color:var(--muted);font-size:10px;">7 hari:</span>
-                  <span style="font-weight:700;color:var(--text);" x-text="mlResult.predictions.p50_7d ? fmt(Math.round(mlResult.predictions.p50_7d)) : '—'"></span>
-                </div>
-                <div>
-                  <span style="color:var(--muted);font-size:10px;">14 hari:</span>
-                  <span style="font-weight:700;color:var(--text);" x-text="mlResult.predictions.p50_14d ? fmt(Math.round(mlResult.predictions.p50_14d)) : '—'"></span>
-                </div>
-              </div>
-            </div>
-          </template>
-          <template x-if="mlAvailable && mlLoading">
-            <div style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--muted);">
-              ⟳ Memuat prediksi ML...
-            </div>
-          </template>
-          <template x-if="!mlAvailable">
-            <div class="price-pred" style="opacity:0.5;">Prediksi ML: <span style="color:var(--muted);">server offline</span></div>
-          </template>
-        </div>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:8px 0;"
+              x-text="allPriorities.length + ' hasil'"></span>
       </div>
 
-      <!-- Signal inputs -->
-      <div class="card">
-        <div class="card-label">Sinyal Input</div>
-        <div class="signal-grid">
-          <div class="signal-item">
-            <div class="signal-key">Tgl. Analisis</div>
-            <div class="signal-val" :class="simDate ? 'warn' : ''"
-                 x-text="simDate ? simDate + ' (sim)' : todayISO()"></div>
-          </div>
-          <div class="signal-item" :class="currentData && currentData.cuaca.ekstrem ? 'warn-item' : ''">
-            <div class="signal-key">Cuaca</div>
-            <div class="signal-val" :class="currentData && currentData.cuaca.ekstrem ? 'warn' : 'ok'"
-                 x-text="currentData ? currentData.cuaca.desc : '—'"></div>
-          </div>
-          <div class="signal-item" :class="kotaRatio >= 0.6 ? 'warn-item' : ''">
-            <div class="signal-key">Kota Naik</div>
-            <div class="signal-val" :class="kotaRatio >= 0.6 ? 'warn' : ''"
-                 x-text="currentData ? kotaNaik + ' / ' + totalKota + ' kota' : '—'"></div>
-          </div>
-          <div class="signal-item" :class="currentData && currentData.stok.kelas !== 'ok' ? 'warn-item' : ''">
-            <div class="signal-key">Stok Pedagang</div>
-            <div class="signal-val" :class="currentData ? currentData.stok.kelas : ''"
-                 x-text="currentData ? currentData.stok.status : '—'"></div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px"
-                 x-text="currentData ? (currentData.stok.pct * 100).toFixed(1) + '% kapasitas' : ''"></div>
-          </div>
-        </div>
-      </div>
+      <template x-if="allPriorities.length === 0">
+        <div class="empty-card">Tidak ada hasil dengan filter aktif.</div>
+      </template>
 
-      <!-- Simulation date -->
-      <div class="card">
-        <div class="card-label">Simulasi Tanggal</div>
-        <div class="sim-row">
-          <input type="date" class="sim-date-input" :class="simDate ? 'active' : ''"
-                 x-model="simDate" @change="onSimDateChange()"
-                 min="2020-01-01" max="2026-12-31">
-          <button class="sim-reset" @click="simDate = ''; onSimDateChange()">↺ Hari ini</button>
-        </div>
-        <div class="sim-label" :class="simDate ? 'warn' : ''"
-             x-text="simDate ? '⚠ simulasi aktif: ' + simDate : '— menggunakan tanggal hari ini'"></div>
-      </div>
-
-      <!-- Run button -->
-      <button class="run-btn" @click="runRCA()" :disabled="!selectedKey || rcaRunning">
-        <span x-text="rcaRunning ? '⟳' : '▶'"></span>
-        <span x-text="rcaRunning ? 'Menganalisis...' : 'Jalankan Analisis'"></span>
-      </button>
-
-    </div>
-
-    <!-- ── Right panel: FTA Analysis ── -->
-    <div class="right-panel">
-
-      <!-- Anomaly banner -->
-      <div class="anomaly-banner" :class="!currentData ? 'blank' : (isAnomaly ? 'anomali' : 'normal')">
-        <div class="anomaly-left">
-          <div class="anomaly-icon" x-text="!currentData ? '🔍' : (isAnomaly ? '⚠️' : '✅')"></div>
-          <div>
-            <div class="anomaly-label">Status Anomali Harga</div>
-            <div class="anomaly-status"
-                 :class="!currentData ? '' : (isAnomaly ? 'danger-text' : 'normal-text')"
-                 :style="!currentData ? 'color:var(--muted)' : ''"
-                 x-text="!currentData ? 'Pilih komoditas' : (isAnomaly ? 'ANOMALI TERDETEKSI' : 'Harga Normal')"></div>
-          </div>
-        </div>
-        <div class="anomaly-right">
-          <div class="anomaly-delta"
-               :style="!currentData ? 'color:var(--muted)' : (isAnomaly ? 'color:var(--danger)' : 'color:var(--success)')"
-               x-text="currentData ? '+' + deltaPct.toFixed(1) + '%' : '—'"></div>
-          <div class="anomaly-threshold"
-               x-text="currentData ? 'threshold: ' + currentData.price_threshold + '%' : 'threshold: —'"></div>
-        </div>
-      </div>
-
-      <!-- Price Trend Mini Chart -->
-      <div class="chart-mini-card" x-show="currentData">
-        <div class="chart-mini-label">Tren Harga 30 Hari</div>
-        <canvas id="dashPriceChart"></canvas>
-      </div>
-
-      <!-- Result box -->
-      <div x-show="rcaResult" x-transition class="result-card animate-in"
-           :class="'result-' + (rcaResult ? rcaResult.diagnosis : 'unknown')">
-        <template x-if="rcaResult">
-          <div>
-            <div class="result-top">
-              <div class="result-meta">
-                <div class="result-label">Diagnosis FTA</div>
-                <div class="result-title" x-text="rcaResult.title"></div>
-              </div>
-              <div class="result-type-badge" x-text="typeLabels[rcaResult.diagnosis] || rcaResult.diagnosis"></div>
+      <template x-for="p in allPriorities" :key="p.recommendation_id">
+        <div class="priority-card" :class="'risk-' + p.risk_level"
+             style="padding:12px 16px;margin-bottom:6px;"
+             @click="openDetail(p.recommendation_id)">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:700;" x-text="'#' + p.rank"></span>
+            <div style="flex:1;">
+              <span style="font-size:14px;font-weight:700;" x-text="p.commodity"></span>
+              <span style="font-size:10px;color:var(--muted);margin-left:6px;" x-text="p.region"></span>
             </div>
-            <div class="result-desc" x-text="rcaResult.description"></div>
-            <div class="action-box">
-              <div class="action-label">Rekomendasi Aksi</div>
-              <div class="action-text" x-text="rcaResult.action"></div>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <!-- FTA + Bowtie Summary (shown after analysis runs) -->
-      <template x-if="bowtieData">
-        <div class="animate-in" style="margin-top:14px;">
-          <!-- FTA Threat Summary -->
-          <div class="card">
-            <div class="card-label" style="display:flex;align-items:center;justify-content:space-between;">
-              <span>FTA Threats</span>
-              <span class="signal-val ok" style="font-size:10px;background:#E0F5EA;padding:2px 9px;border-radius:6px;border:1.5px solid var(--border);"
-                    x-text="bowtieData.active_threats.filter(t => t.active).length + ' aktif · ' + bowtieData.severity_level"></span>
-            </div>
-            <div class="signal-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
-              <template x-for="t in bowtieData.active_threats" :key="t.id">
-                <div class="signal-item" :class="t.active ? 'warn-item' : ''" :style="!t.active ? 'opacity:0.7;' : ''">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-                    <span class="signal-val" style="font-size:12px;" x-text="t.id + ': ' + t.name"></span>
-                    <span class="signal-key" style="margin-bottom:0;padding:2px 6px;border-radius:4px;border:1px solid var(--border);"
-                          :style="t.active ? 'background:#FEF3C7;color:#92400e;' : 'background:var(--surface);'"
-                          x-text="t.active ? 'AKTIF' : 'NORMAL'"></span>
-                  </div>
-                  <div class="signal-key" style="margin-bottom:0;font-size:10px;line-height:1.4;" x-text="t.desc"></div>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <!-- Bowtie Visualization -->
-          <div class="card">
-            <div class="card-label" style="display:flex;align-items:center;justify-content:space-between;">
-              <span>Bowtie Analysis</span>
-              <span class="signal-val" style="font-size:10px;background:#E0F5EA;padding:2px 9px;border-radius:6px;border:1.5px solid var(--border);"
-                    :class="bowtieData.active_threats.filter(t => t.active).length > 0 ? 'warn' : 'ok'"
-                    x-text="bowtieData.active_threats.filter(t => t.active).length > 0 ? 'Threat Aktif' : 'Clear'"></span>
-            </div>
-            <!-- Summary -->
-            <div class="signal-item" style="margin-bottom:12px;">
-              <div class="signal-key" style="margin-bottom:0;font-size:11px;line-height:1.5;" x-text="bowtieData.summary"></div>
-            </div>
-            <!-- Barriers layout -->
-            <div style="display:flex;gap:10px;flex-wrap:wrap;">
-              <!-- Prevention -->
-              <div class="signal-item" style="flex:1;min-width:180px;background:#ECFDF5;">
-                <div class="signal-key" style="color:#059669;margin-bottom:8px;"
-                     x-text="'Pencegahan (' + bowtieData.prevention.filter(b => b.active).length + ' aktif)'"></div>
-                <template x-for="b in bowtieData.prevention" :key="b.id">
-                  <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
-                       :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
-                    <span x-text="b.active ? '🟢' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
-                    <span x-text="b.id + ': ' + b.name"></span>
-                  </div>
-                </template>
-              </div>
-              <!-- Hazard Event -->
-              <div class="signal-item warn-item" style="flex:0 0 auto;min-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
-                <div class="signal-key" style="color:#92400e;margin-bottom:6px;">Hazard</div>
-                <div style="font-size:20px;">⚠️</div>
-                <div class="signal-val warn" style="font-size:11px;margin-top:4px;" x-text="bowtieData.hazard_event"></div>
-              </div>
-              <!-- Mitigation -->
-              <div class="signal-item" style="flex:1;min-width:180px;background:#FEE2E2;">
-                <div class="signal-key" style="color:#dc2626;margin-bottom:8px;"
-                     x-text="'Mitigasi (' + bowtieData.mitigation.filter(b => b.active).length + ' aktif)'"></div>
-                <template x-for="b in bowtieData.mitigation" :key="b.id">
-                  <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
-                       :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
-                    <span x-text="b.active ? '🔴' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
-                    <span x-text="b.id + ': ' + b.name"></span>
-                  </div>
-                </template>
-              </div>
-            </div>
+            <span class="priority-tag" :class="'tag-risk-' + p.risk_level" x-text="p.risk_level"></span>
+            <span style="font-family:var(--mono);font-size:14px;font-weight:700;" :style="'color:' + riskColor(p.risk_level)"
+                  x-text="p.display_priority_score"></span>
           </div>
         </div>
       </template>
 
+      <!-- ── Review bundles ── -->
+      <template x-if="overview.review_bundles.length > 0">
+        <div>
+          <div class="section-head" style="margin-top:24px;">Paket Tinjauan Bersama</div>
+          <template x-for="b in overview.review_bundles" :key="b.name">
+            <div class="bundle-card">
+              <div class="bundle-title" x-text="b.name"></div>
+              <div class="bundle-reason" x-text="b.reason"></div>
+              <div class="bundle-items">
+                <template x-for="c in b.commodities" :key="c.name">
+                  <span class="priority-tag" :class="'tag-risk-' + c.risk_level"
+                        x-text="c.name + ' (' + c.display_priority_score + ')'"></span>
+                </template>
+              </div>
+              <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:8px;">
+                ⚠ <span x-text="b.missing_information.join(' · ')"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- ── Latest reviews ── -->
+      <template x-if="overview.latest_reviews.length > 0">
+        <div>
+          <div class="section-head" style="margin-top:24px;">Review Terbaru</div>
+          <template x-for="r in overview.latest_reviews" :key="r.id">
+            <div class="evidence-item" style="display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <span class="review-status" :class="statusClass(r.status)" x-text="r.status"></span>
+                <span style="font-family:var(--mono);font-size:10px;margin-left:8px;color:var(--text2);" x-text="r.recommendation_id"></span>
+              </div>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);" x-text="r.created_at?.substring(0,10)"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- ── Transparency panel (expandable) ── -->
+      <template x-if="showTransparency">
+        <div class="animate-in" style="margin-top:20px;" x-data="{}" x-init="loadTransparency()">
+          <div class="section-head">Transparansi Data & Model</div>
+          <template x-if="transparencyData">
+            <div class="card">
+              <div class="card-label">Sumber Data</div>
+              <template x-for="ds in transparencyData.data_sources" :key="ds.name">
+                <div class="evidence-item" style="margin-bottom:4px;">
+                  <strong x-text="ds.name"></strong> — <span x-text="ds.type"></span>
+                  <div style="font-size:10px;color:var(--muted);margin-top:2px;">
+                    Update: <span x-text="ds.update_cadence"></span> ·
+                    Terbaru: <span x-text="ds.latest_data"></span> ·
+                    Cakupan: <span x-text="ds.coverage"></span>
+                  </div>
+                </div>
+              </template>
+
+              <div class="card-label" style="margin-top:12px;">Konfigurasi Prioritas</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--mono);font-size:10px;">
+                <template x-for="(w, name) in transparencyData.priority_config.weights" :key="name">
+                  <div class="evidence-item" style="font-size:10px;">
+                    <span x-text="name"></span>: <strong x-text="(w * 100).toFixed(0) + '%'"></strong>
+                  </div>
+                </template>
+              </div>
+
+              <div class="card-label" style="margin-top:12px;">Keterbatasan</div>
+              <template x-for="lim in transparencyData.known_limitations" :key="lim">
+                <div class="evidence-item" style="font-size:10px;" x-text="'• ' + lim"></div>
+              </template>
+
+              <div style="margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--warn);padding:6px 10px;background:#FEF3C7;border-radius:6px;border:1.5px solid var(--border);"
+                   x-text="transparencyData.knowledge_status_note"></div>
+            </div>
+          </template>
+        </div>
+      </template>
+
+    </template>  <!-- end dashboard content -->
+  </template>  <!-- end dashboard view -->
+
+  <!-- ═══════════ DETAIL VIEW ═══════════ -->
+  <template x-if="page === 'detail'">
+    <div>
+
+      <!-- Loading -->
+      <template x-if="detailLoading">
+        <div>
+          <div class="skeleton" style="height:100px;margin-bottom:14px;"></div>
+          <div class="skeleton" style="height:200px;margin-bottom:14px;"></div>
+        </div>
+      </template>
+
+      <!-- Error -->
+      <template x-if="detailError">
+        <div class="empty-card">
+          <p style="font-size:16px;font-weight:700;margin-bottom:8px;">⚠️ Gagal memuat detail</p>
+          <p x-text="detailError"></p>
+          <button class="btn btn-primary" style="margin-top:12px;" @click="openDetail(detailId)">Coba Lagi</button>
+          <br>
+          <a href="/" class="back-link" style="margin-top:12px;">← Kembali ke Dashboard</a>
+        </div>
+      </template>
+
+      <!-- Detail content -->
+      <template x-if="detail && !detailLoading">
+        <div>
+          <a href="/" class="back-link" @click.prevent="page='dashboard'; history.pushState({},'','/')">← Kembali ke Dashboard</a>
+
+          <!-- Header -->
+          <div class="detail-header">
+            <div class="detail-commodity" x-text="detail.commodity"></div>
+            <div class="detail-region" x-text="detail.region + ' · ' + detail.price_condition + ' · Horizon ' + detail.time_horizon_days + ' hari'"></div>
+            <div class="detail-scores">
+              <div class="detail-score-item">
+                <div class="detail-score-val" :style="'color:' + riskColor(detail.risk_level)" x-text="detail.display_priority_score"></div>
+                <div class="detail-score-lbl">Priority Score</div>
+              </div>
+              <div class="detail-score-item">
+                <div class="detail-score-val" style="font-size:14px;" x-text="'Rp ' + (detail.raw_priority_score || 0).toFixed(0)"></div>
+                <div class="detail-score-lbl">Raw Score</div>
+              </div>
+              <div class="detail-score-item">
+                <div class="detail-score-val" style="font-size:14px;" x-text="(detail.confidence_factor * 100).toFixed(0) + '%'"></div>
+                <div class="detail-score-lbl">Confidence Factor</div>
+              </div>
+              <div class="detail-score-item">
+                <span class="priority-tag" :class="'tag-risk-' + detail.risk_level" x-text="detail.risk_level.toUpperCase()"></span>
+                <div class="detail-score-lbl" style="margin-top:4px;">Tingkat Risiko</div>
+              </div>
+            </div>
+
+            <!-- Review status -->
+            <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
+              <span class="review-status" :class="statusClass(detail.review?.status || 'Belum Ditinjau')"
+                    x-text="detail.review?.status || 'Belum Ditinjau'"></span>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);"
+                    x-show="detail.review" x-text="'oleh user #' + detail.review.reviewer_user_id + ' · ' + (detail.review.created_at || '').substring(0,10)"></span>
+            </div>
+          </div>
+
+          <!-- Evidence groups -->
+          <!-- 1. Observed Facts -->
+          <div class="evidence-block facts" x-show="detail.observed_facts?.length">
+            <h3>Fakta Teramati</h3>
+            <template x-for="f in detail.observed_facts" :key="f.label">
+              <div class="evidence-item">
+                <span class="evidence-tag etag-fact">FAKTA</span>
+                <strong x-text="f.label"></strong>
+                <span x-show="f.value" style="margin-left:4px;" x-text="': ' + f.value"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 2. Model Outputs -->
+          <div class="evidence-block models" x-show="detail.model_outputs?.length">
+            <h3>Output Model</h3>
+            <template x-for="m in detail.model_outputs" :key="m.label">
+              <div class="evidence-item">
+                <span class="evidence-tag etag-model">MODEL</span>
+                <strong x-text="m.label"></strong>
+                <span x-show="m.value" style="margin-left:4px;" x-text="': ' + m.value"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 3. Possible Factors -->
+          <div class="evidence-block factors" x-show="detail.possible_factors?.length">
+            <h3>Faktor yang Mungkin Berkontribusi</h3>
+            <template x-for="f in detail.possible_factors" :key="f.label">
+              <div class="evidence-item">
+                <span class="evidence-tag etag-inference">INFERENSI</span>
+                <strong x-text="f.label"></strong>
+                <span x-show="f.value" style="margin-left:4px;" x-text="': ' + f.value"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 4. Missing Information -->
+          <div class="evidence-block missing" x-show="detail.missing_information?.length">
+            <h3>Informasi yang Belum Tersedia</h3>
+            <template x-for="m in detail.missing_information" :key="m">
+              <div class="evidence-item">
+                <span class="evidence-tag etag-missing">MISSING</span>
+                <span x-text="m"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 5. Next Step -->
+          <div class="card" x-show="detail.next_step" style="margin-bottom:14px;">
+            <div class="card-label">Langkah Berikutnya</div>
+            <div class="priority-next-step" style="font-size:14px;font-weight:600;" x-text="'→ ' + detail.next_step"></div>
+          </div>
+
+          <!-- 6. Response Options -->
+          <div class="card" x-show="detail.response_options?.length" style="margin-bottom:14px;">
+            <div class="card-label">Opsi Respons</div>
+            <template x-for="ro in detail.response_options" :key="ro.label">
+              <div class="response-option">
+                <span class="response-icon" :style="'background:' + responseBg(ro.type) + ';color:' + responseColor(ro.type)"
+                      x-text="ro.type?.substring(0,4) || '—'"></span>
+                <span style="font-family:var(--sans);font-size:13px;font-weight:500;" x-text="ro.label"></span>
+              </div>
+            </template>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:8px;">
+              ⚠ Response options adalah rekomendasi tinjauan, bukan instruksi kebijakan.
+            </div>
+          </div>
+
+          <!-- 7. Sources -->
+          <div class="card" x-show="detail.sources?.length" style="margin-bottom:14px;">
+            <div class="card-label">Sumber Data & Metodologi</div>
+            <template x-for="s in detail.sources" :key="s.name">
+              <div class="evidence-item" style="font-size:10px;">
+                <strong x-text="s.name"></strong>
+                <span x-show="s.cutoff" style="margin-left:4px;" x-text="'· cutoff: ' + s.cutoff"></span>
+                <span x-show="s.version" style="margin-left:4px;" x-text="'· v' + s.version"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 8. Price History Chart (if available) -->
+          <div class="card" x-show="detail.price_history?.length" style="margin-bottom:14px;">
+            <div class="card-label">Histori Harga 30 Hari</div>
+            <canvas id="detailPriceChart" style="max-height:200px;"></canvas>
+          </div>
+
+          <!-- 9. Human Review -->
+          <div class="card" style="margin-bottom:14px;">
+            <div class="card-label">Human Review</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+              <button class="review-btn bahas" :class="reviewStatus === 'Untuk Dibahas' ? 'active-review' : ''"
+                      @click="reviewStatus = 'Untuk Dibahas'">📋 Untuk Dibahas</button>
+              <button class="review-btn tunda" :class="reviewStatus === 'Ditunda' ? 'active-review' : ''"
+                      @click="reviewStatus = 'Ditunda'">⏸ Ditunda</button>
+              <button class="review-btn tolak" :class="reviewStatus === 'Ditolak' ? 'active-review' : ''"
+                      @click="reviewStatus = 'Ditolak'">✕ Ditolak</button>
+            </div>
+            <textarea class="review-note-input" x-model="reviewNote" placeholder="Alasan atau catatan reviewer (opsional)..."></textarea>
+            <button class="btn btn-primary" style="margin-top:8px;" @click="submitReview()" :disabled="reviewSubmitting">
+              <span x-text="reviewSubmitting ? '⟳ Menyimpan...' : 'Simpan Review'"></span>
+            </button>
+            <div x-show="reviewSaved" style="margin-top:8px;font-family:var(--mono);font-size:11px;color:#059669;font-weight:700;">
+              ✅ Review tersimpan
+            </div>
+            <div x-show="reviewError" style="margin-top:8px;font-family:var(--mono);font-size:11px;color:#DC2626;font-weight:600;"
+                 x-text="reviewError"></div>
+          </div>
+
+        </div>
+      </template>
     </div>
-  </div>
+  </template>
 
   <!-- ── Footer ── -->
   <footer class="footer">
@@ -982,124 +700,42 @@
 
 </div>
 
-<!-- ════════════════════════════════════════════════════════════════════════════
-     ALPINE.JS COMPONENT
-     ════════════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════════════════
+     ALPINE.JS COMPONENT — Executive Dashboard
+     ═══════════════════════════════════════════════════════════════════════ -->
 <script>
-function radar() {
+function executiveDashboard() {
   return {
-    // ── Auth ────────────────────────────────────────────────────────────────
+    // ── Auth ──────────────────────────────────────────────────
     user: null,
     token: null,
 
-    // ── Data state ──────────────────────────────────────────────────────────
-    commodities: [],
-    selectedKey: '',
-    simDate: '',
-    currentData: null,
-    hetData: null,
-    rcaResult: null,
-    bowtieData: null,
+    // ── Page routing ───────────────────────────────────────────
+    page: 'dashboard',     // 'dashboard' | 'detail'
+    detailId: null,
 
-    // ── ML state ──────────────────────────────────────────────────────────
-    mlAvailable: false,       // true if ML server is reachable
-    mlLoading: false,         // true while fetching ML prediction
-    mlResult: null,           // FullAnalysisResult from /api/ml/analyze
-    mlAlerts: null,           // alerts summary from /api/ml/alerts
+    // ── Dashboard state ───────────────────────────────────────
+    loading: true,
+    error: null,
+    overview: null,
+    allPriorities: [],
+    filterRisk: '',
+    filterProvince: '',
+    showTransparency: false,
+    transparencyData: null,
 
-    // ── UI state ────────────────────────────────────────────────────────────
-    rcaRunning: false,
-    dashChart: null,  // Chart.js instance for dashboard mini chart
+    // ── Detail state ──────────────────────────────────────────
+    detail: null,
+    detailLoading: false,
+    detailError: null,
+    reviewStatus: 'Untuk Dibahas',
+    reviewNote: '',
+    reviewSubmitting: false,
+    reviewSaved: false,
+    reviewError: null,
 
-    // Type labels for result card
-    typeLabels: { demand: 'Demand', supply: 'Supply', distribusi: 'Distribusi', unknown: 'Unknown' },
-
-    // HET status → color mapping
-    hetColorMap: {
-      aman:            { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  color: '#059669', icon: '✅' },
-      waspada:         { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#d97706', icon: '⚠️' },
-      kritis:          { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   color: '#dc2626', icon: '🔴' },
-      melampaui:       { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',   color: '#dc2626', icon: '🚨' },
-      tidak_tersedia:  { bg: 'var(--surface2)',        border: 'var(--border)',          color: 'var(--muted)', icon: '—' },
-    },
-
-    // ── Computed properties ─────────────────────────────────────────────────
-
-    get deltaPct() {
-      if (!this.currentData || !this.currentData.price_prev) return 0;
-      return ((this.currentData.price_now - this.currentData.price_prev) / this.currentData.price_prev) * 100;
-    },
-
-    get isAnomaly() {
-      if (!this.currentData) return false;
-      return this.deltaPct >= this.currentData.price_threshold;
-    },
-
-    get kotaNaik() {
-      if (!this.currentData) return 0;
-      return this.currentData.kota_list.filter(k => k.naik).length;
-    },
-
-    get totalKota() {
-      if (!this.currentData) return 0;
-      return this.currentData.kota_list.length;
-    },
-
-    get kotaRatio() {
-      return this.totalKota > 0 ? this.kotaNaik / this.totalKota : 0;
-    },
-
-    get hetStyle() {
-      if (!this.hetData) return this.hetColorMap.tidak_tersedia;
-      return this.hetColorMap[this.hetData.status] || this.hetColorMap.tidak_tersedia;
-    },
-
-    get weatherStyle() {
-      if (!this.currentData) return { bg: '', border: '', color: '' };
-      const ext = this.currentData.cuaca.ekstrem;
-      return {
-        bg:     ext ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.05)',
-        border: ext ? 'rgba(245,158,11,0.3)'  : 'rgba(16,185,129,0.2)',
-        color:  ext ? '#d97706'                : '#059669',
-      };
-    },
-
-    get mlAlertLevel() {
-      if (!this.mlResult || !this.mlResult.decision) return 'unknown';
-      return this.mlResult.decision.final_alert_level || 'green';
-    },
-
-    get mlAlertStyle() {
-      const map = {
-        red:    { bg: 'rgba(239,68,68,0.1)',  border: 'rgba(239,68,68,0.3)',  color: '#dc2626', label: 'KRITIS', icon: '🚨' },
-        yellow: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', color: '#d97706', label: 'WASPADA', icon: '⚠️' },
-        green:  { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)', color: '#059669', label: 'AMAN', icon: '✅' },
-      };
-      return map[this.mlAlertLevel] || map.green;
-    },
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
-    fmt(n) {
-      return 'Rp ' + (n || 0).toLocaleString('id-ID');
-    },
-
-    todayISO() {
-      return new Date().toISOString().slice(0, 10);
-    },
-
-    async fetchJSON(url, opts = {}) {
-      const headers = { ...(this.token ? { Authorization: 'Bearer ' + this.token } : {}), ...(opts.headers || {}) };
-      const res = await fetch(url, { ...opts, headers });
-      if (res.status === 401) { this.logout(); return null; }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    },
-
-    // ── Init ────────────────────────────────────────────────────────────────
-
+    // ── Init ──────────────────────────────────────────────────
     async init() {
-      // Auth check
       this.token = localStorage.getItem('rca_token');
       if (!this.token) { window.location.replace('/login'); return; }
 
@@ -1112,278 +748,184 @@ function radar() {
         return;
       }
 
-      // Load commodities
+      // Cek apakah ada detail ID di URL hash
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#/detail/')) {
+        this.detailId = hash.replace('#/detail/', '');
+        this.page = 'detail';
+        this.openDetail(this.detailId);
+      } else {
+        await this.loadOverview();
+      }
+    },
+
+    // ── Routing helpers ───────────────────────────────────────
+    navigateTo(url) {
+      window.history.pushState({}, '', url);
+    },
+
+    // ── Dashboard loaders ─────────────────────────────────────
+    async loadOverview() {
+      this.loading = true;
+      this.error = null;
       try {
-        this.commodities = await this.fetchJSON('/api/commodities/detail') || [];
-        if (this.commodities.length > 0) {
-          this.selectedKey = this.commodities[0].key;
-          await this.selectCommodity();
+        this.overview = await this.fetchJSON('/api/mvp/overview');
+        if (this.overview) {
+          await this.loadPriorities();
         }
       } catch (e) {
-        console.error('Gagal load komoditas:', e);
-      }
-
-      // Check ML server availability (non-blocking)
-      this.checkMLHealth();
-    },
-
-    logout() {
-      localStorage.removeItem('rca_token');
-      localStorage.removeItem('rca_user');
-      window.location.replace('/login');
-    },
-
-    // ── ML Integration ───────────────────────────────────────────────────────
-
-    async checkMLHealth() {
-      try {
-        const h = await this.fetchJSON('/api/ml/health');
-        this.mlAvailable = h && h.status === 'ok';
-      } catch {
-        this.mlAvailable = false;
-      }
-      // If ML available, load alerts summary
-      if (this.mlAvailable) {
-        this.loadMLAlerts();
-      }
-    },
-
-    async loadMLAlerts() {
-      if (!this.mlAvailable) return;
-      try {
-        const data = await this.fetchJSON('/api/ml/alerts?min_alert_level=yellow');
-        this.mlAlerts = data;
-      } catch {
-        this.mlAlerts = null;
-      }
-    },
-
-    async loadMLPrediction() {
-      if (!this.mlAvailable || !this.selectedKey) return;
-
-      // Resolve commodity name from key
-      const commodity = this.commodities.find(c => c.key === this.selectedKey);
-      if (!commodity) return;
-
-      // ML API needs komoditas_nama (human-readable), not key
-      const komoditasNama = commodity.name;
-      // Use first city from kota_list if available, otherwise default
-      const kotaNama = this.currentData?.kota_list?.[0]?.kota || 'Jakarta Pusat';
-      const tanggal = this.simDate || this.todayISO();
-
-      this.mlLoading = true;
-      this.mlResult = null;
-
-      try {
-        const result = await this.fetchJSON('/api/ml/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ komoditas_nama: komoditasNama, kota_nama: kotaNama, tanggal }),
-        });
-        this.mlResult = result;
-        // Rebuild chart to include prediction lines
-        this.buildDashChart();
-      } catch (e) {
-        console.error('ML prediction gagal:', e);
-        this.mlResult = null;
+        this.error = 'Gagal menghubungi server. Periksa koneksi dan coba lagi.';
+        console.error('Overview error:', e);
       } finally {
-        this.mlLoading = false;
+        this.loading = false;
       }
     },
 
-    // ── Commodity selection ─────────────────────────────────────────────────
+    async loadPriorities() {
+      let url = '/api/mvp/priorities?';
+      if (this.filterRisk) url += 'risk=' + encodeURIComponent(this.filterRisk) + '&';
+      if (this.filterProvince) url += 'province=' + encodeURIComponent(this.filterProvince) + '&';
+      try {
+        this.allPriorities = await this.fetchJSON(url) || [];
+      } catch (e) {
+        console.error('Priorities error:', e);
+        this.allPriorities = [];
+      }
+    },
 
-    async selectCommodity() {
-      if (!this.selectedKey) return;
-      const sim = this.simDate ? `?sim_date=${this.simDate}` : '';
+    async loadTransparency() {
+      if (this.transparencyData) return;
+      try {
+        this.transparencyData = await this.fetchJSON('/api/mvp/transparency');
+      } catch (e) {
+        console.error('Transparency error:', e);
+      }
+    },
+
+    // ── Detail ────────────────────────────────────────────────
+    async openDetail(recId) {
+      this.page = 'detail';
+      this.detailId = recId;
+      this.detailLoading = true;
+      this.detailError = null;
+      this.detail = null;
+      this.reviewSaved = false;
+      this.reviewError = null;
+      this.navigateTo('#/detail/' + recId);
 
       try {
-        // Load commodity data
-        this.currentData = await this.fetchJSON(`/api/commodity/${this.selectedKey}${sim}`);
-
-        // Load HET status
-        this.fetchJSON(`/api/het/${this.selectedKey}${sim}`)
-          .then(data => { this.hetData = data; })
-          .catch(() => { this.hetData = null; });
-
-        // Build price trend mini chart
-        this.buildDashChart();
-
-        // Reset state
-        this.rcaResult = null;
-        this.bowtieData = null;
-        this.mlResult = null;
-
-        // Auto-load FTA + Bowtie analysis (non-blocking)
-        this.runRCA();
-
-        // Load ML prediction (non-blocking)
-        this.loadMLPrediction();
+        this.detail = await this.fetchJSON('/api/mvp/priorities/' + encodeURIComponent(recId));
+        if (this.detail) {
+          this.reviewStatus = this.detail.review?.status || 'Untuk Dibahas';
+          this.reviewNote = this.detail.review?.note || '';
+          // Render price chart after DOM update
+          await this.$nextTick();
+          this.buildDetailChart();
+        }
       } catch (e) {
-        console.error('Gagal load data:', e);
+        this.detailError = 'Gagal memuat detail prioritas.';
+        console.error('Detail error:', e);
+      } finally {
+        this.detailLoading = false;
       }
     },
 
-    // ── Simulation date ─────────────────────────────────────────────────────
+    async submitReview() {
+      if (!this.detailId || this.reviewSubmitting) return;
+      this.reviewSubmitting = true;
+      this.reviewSaved = false;
+      this.reviewError = null;
 
-    async onSimDateChange() {
-      await this.selectCommodity();
-    },
-
-    // ── Dashboard Mini Chart ─────────────────────────────────────────────
-
-    async buildDashChart() {
-      if (!this.selectedKey) return;
-
-      // Resolve comcat_id from selected commodity key
-      const commodity = this.commodities.find(c => c.key === this.selectedKey);
-      const comcatId = commodity?.comcat_id || this.selectedKey;
-      const sim = this.simDate ? `&sim_date=${this.simDate}` : '';
-
-      let historyData = [];
       try {
-        const data = await this.fetchJSON(`/api/prices/${comcatId}/history?n_days=30${sim}`);
-        if (data) historyData = data;
+        const result = await this.fetchJSON(
+          '/api/mvp/priorities/' + encodeURIComponent(this.detailId) + '/review',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: this.reviewStatus,
+              note: this.reviewNote || null,
+            }),
+          }
+        );
+        if (result) {
+          this.reviewSaved = true;
+          // Refresh detail to get updated review
+          await this.openDetail(this.detailId);
+          // Refresh overview to update latest reviews
+          await this.loadOverview();
+        }
       } catch (e) {
-        console.error('Failed to fetch price history:', e);
-        return;
+        this.reviewError = 'Gagal menyimpan review: ' + (e.message || 'Periksa izin akses.');
+        console.error('Review error:', e);
+      } finally {
+        this.reviewSubmitting = false;
       }
+    },
 
-      if (historyData.length === 0) return;
+    // ── Detail chart ──────────────────────────────────────────
+    buildDetailChart() {
+      if (!this.detail?.price_history?.length) return;
 
-      // Wait for canvas to render
-      await this.$nextTick();
-      const canvas = document.getElementById('dashPriceChart');
+      const canvas = document.getElementById('detailPriceChart');
       if (!canvas) return;
 
-      // Destroy existing chart
-      if (this.dashChart) {
-        this.dashChart.destroy();
-        this.dashChart = null;
-      }
+      // Destroy existing
+      if (this._detailChart) { this._detailChart.destroy(); this._detailChart = null; }
 
-      const labels = historyData.map(d => {
-        const parts = d.tanggal.split('-');
+      const history = this.detail.price_history;
+      const labels = history.map(d => {
+        const parts = (d.tanggal || '').split('-');
         return parts[2] + '/' + parts[1];
       });
-      const prices = historyData.map(d => d.avg_harga);
+      const prices = history.map(d => d.avg_harga);
 
-      // Determine color based on trend (last vs first)
       const trendUp = prices[prices.length - 1] > prices[0];
       const lineColor = trendUp ? '#DC2626' : '#1D7A56';
       const fillColor = trendUp ? 'rgba(220,38,38,0.06)' : 'rgba(46,204,136,0.08)';
 
-      // Build datasets array
-      const datasets = [{
-        label: 'Harga Rata-rata',
-        data: prices,
-        borderColor: lineColor,
-        backgroundColor: fillColor,
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        tension: 0.4,
-        fill: true,
-      }];
-
-      // Add ML prediction lines if available
-      if (this.mlResult && this.mlResult.predictions) {
-        const pred = this.mlResult.predictions;
-
-        if (pred.p50_7d) {
-          // Add future label for 7d prediction point
-          labels.push('+7d');
-
-          // P50 prediction line: nulls for historical, connect from last actual price
-          const predLine = new Array(prices.length).fill(null);
-          predLine[prices.length - 1] = prices[prices.length - 1]; // connect from last
-          predLine.push(Math.round(pred.p50_7d));
-
-          // Build pointRadius array: all 0 except last point
-          const pointRadii = new Array(predLine.length).fill(0);
-          pointRadii[predLine.length - 1] = 5;
-
-          datasets.push({
-            label: 'Prediksi 7d (P50)',
-            data: predLine,
-            borderColor: '#6366f1',
-            borderWidth: 2,
-            borderDash: [6, 4],
-            pointRadius: pointRadii,
-            pointBackgroundColor: '#6366f1',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            tension: 0,
-            fill: false,
-          });
-
-          // Add P90 upper bound as dashed red line
-          if (pred.p90_7d) {
-            const p90Line = new Array(prices.length).fill(null);
-            p90Line[prices.length - 1] = prices[prices.length - 1];
-            p90Line.push(Math.round(pred.p90_7d));
-
-            datasets.push({
-              label: 'Batas Atas 7d (P90)',
-              data: p90Line,
-              borderColor: 'rgba(239,68,68,0.5)',
-              borderWidth: 1.5,
-              borderDash: [4, 4],
-              pointRadius: 0,
-              tension: 0,
-              fill: false,
-            });
-          }
-        }
-      }
-
-      this.dashChart = new Chart(canvas, {
+      this._detailChart = new Chart(canvas, {
         type: 'line',
         data: {
-          labels: labels,
-          datasets: datasets,
+          labels,
+          datasets: [{
+            label: 'Harga Rata-rata',
+            data: prices,
+            borderColor: lineColor,
+            backgroundColor: fillColor,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.4,
+            fill: true,
+          }],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           interaction: { intersect: false, mode: 'index' },
           plugins: {
-            legend: {
-              display: datasets.length > 1,
-              position: 'bottom',
-              labels: {
-                boxWidth: 12, boxHeight: 2,
-                font: { family: "'JetBrains Mono', monospace", size: 9 },
-                padding: 8,
-              },
-            },
+            legend: { display: false },
             tooltip: {
               backgroundColor: '#1a1a1a',
               titleFont: { family: "'JetBrains Mono', monospace", size: 10 },
               bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
-              padding: 8,
-              cornerRadius: 6,
+              padding: 8, cornerRadius: 6,
               callbacks: {
-                label: function(ctx) {
-                  const val = Math.round(ctx.parsed.y);
-                  return ctx.dataset.label + ': Rp ' + val.toLocaleString('id-ID');
-                },
+                label: ctx => 'Rp ' + Math.round(ctx.parsed.y).toLocaleString('id-ID'),
               },
             },
           },
           scales: {
             x: {
               grid: { display: false },
-              ticks: {
-                font: { family: "'JetBrains Mono', monospace", size: 8 },
-                maxTicksLimit: 8,
-              },
+              ticks: { font: { family: "'JetBrains Mono', monospace", size: 8 }, maxTicksLimit: 8 },
             },
             y: {
               grid: { color: 'rgba(0,0,0,0.04)' },
               ticks: {
                 font: { family: "'JetBrains Mono', monospace", size: 9 },
-                callback: function(val) { return 'Rp ' + (val / 1000).toFixed(0) + 'k'; },
+                callback: v => 'Rp ' + (v / 1000).toFixed(0) + 'k',
               },
             },
           },
@@ -1391,35 +933,50 @@ function radar() {
       });
     },
 
-    // ── FTA ANALYSIS ─────────────────────────────────────────────────────────
-
-    async runRCA() {
-      if (!this.selectedKey || this.rcaRunning) return;
-
-      this.rcaRunning = true;
-      this.rcaResult = null;
-
-      const sim = this.simDate ? `?sim_date=${this.simDate}` : '';
-
-      try {
-        const result = await this.fetchJSON(`/api/analysis/${this.selectedKey}${sim}`);
-        if (!result) return;
-
-        this.rcaResult = result;
-
-        // Load Bowtie analysis (uses same commodity key)
-        try {
-          this.bowtieData = await this.fetchJSON(`/api/bowtie/${this.selectedKey}${sim}`);
-        } catch (e) {
-          console.error('Bowtie gagal:', e);
-          this.bowtieData = null;
-        }
-
-      } catch (e) {
-        console.error('Analisis gagal:', e);
-      } finally {
-        this.rcaRunning = false;
+    // ── Helpers ────────────────────────────────────────────────
+    async fetchJSON(url, opts = {}) {
+      const headers = {
+        ...(this.token ? { Authorization: 'Bearer ' + this.token } : {}),
+        ...(opts.headers || {}),
+      };
+      const res = await fetch(url, { ...opts, headers });
+      if (res.status === 401) { this.logout(); return null; }
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || 'HTTP ' + res.status);
       }
+      return res.json();
+    },
+
+    riskColor(level) {
+      const map = { kritis: '#DC2626', tinggi: '#D97706', sedang: '#4338CA', rendah: '#059669' };
+      return map[level] || '#71717a';
+    },
+
+    statusClass(status) {
+      if (!status) return 'belum';
+      const s = status.toLowerCase();
+      if (s.includes('belum')) return 'belum';
+      if (s.includes('bahas')) return 'bahas';
+      if (s.includes('tunda')) return 'tunda';
+      if (s.includes('tolak')) return 'tolak';
+      return 'belum';
+    },
+
+    responseBg(type) {
+      const map = { monitor: '#D1FAE5', verifikasi: '#E0E7FF', koordinasikan: '#FEF3C7', pertimbangkan_intervensi: '#FEE2E2' };
+      return map[type?.toLowerCase()] || '#F4F4F5';
+    },
+
+    responseColor(type) {
+      const map = { monitor: '#059669', verifikasi: '#4338CA', koordinasikan: '#B45309', pertimbangkan_intervensi: '#DC2626' };
+      return map[type?.toLowerCase()] || '#71717a';
+    },
+
+    logout() {
+      localStorage.removeItem('rca_token');
+      localStorage.removeItem('rca_user');
+      window.location.replace('/login');
     },
   };
 }
