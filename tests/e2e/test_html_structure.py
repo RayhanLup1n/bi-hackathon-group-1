@@ -256,3 +256,122 @@ class TestPrediksiPageStructure:
     def test_has_prediction_display(self):
         content = _read_page("prediksi.html")
         assert "prediksi" in content.lower() or "prediction" in content.lower()
+
+
+class TestLoginPageStructure:
+    """Tests specific to the Login page (login.html)."""
+
+    def test_has_login_form(self):
+        """Login page must have authentication form."""
+        content = _read_page("login.html")
+        assert "handleLogin" in content
+        assert "loginForm" in content
+        assert 'type="password"' in content
+
+    def test_has_error_alert(self):
+        """Login page must show error feedback to user."""
+        content = _read_page("login.html")
+        assert "errorAlert" in content
+        assert "errorText" in content
+
+    def test_has_demo_hint(self):
+        """Login page must have demo credential hint (hidden by default)."""
+        content = _read_page("login.html")
+        assert "demoHint" in content
+        assert "display:none" in content  # hidden by default
+
+    def test_has_jwt_token_check(self):
+        """Login page must check for existing token on load."""
+        content = _read_page("login.html")
+        assert "rca_token" in content
+        assert "localStorage.getItem" in content
+
+    def test_has_pw_toggle(self):
+        """Login page must have password visibility toggle."""
+        content = _read_page("login.html")
+        assert "togglePw" in content
+        assert "password" in content.lower()
+
+
+class TestGuidePageStructure:
+    """Tests specific to the Guide page (guide.html)."""
+
+    def test_has_navigation(self):
+        """Guide page must have nav header with user badge and links."""
+        content = _read_page("guide.html")
+        assert "userBadge" in content
+        assert "Dashboard" in content
+        assert "Panduan" in content
+
+    def test_has_toc(self):
+        """Guide page must have table of contents for navigation."""
+        content = _read_page("guide.html")
+        assert "Daftar Isi" in content
+        assert "toc" in content
+
+    def test_has_all_sections(self):
+        """Guide page must cover all 6 documented sections."""
+        content = _read_page("guide.html")
+        for sid in ["s1", "s2", "s3", "s4", "s5", "s6"]:
+            assert f'id="{sid}"' in content
+
+    def test_has_het_status_explanation(self):
+        """Guide must explain HET status thresholds."""
+        content = _read_page("guide.html")
+        assert "AMAN" in content
+        assert "WASPADA" in content
+        assert "KRITIS" in content
+        assert "MELAMPAUI" in content
+
+    def test_has_faq_section(self):
+        """Guide page must have FAQ for self-service help."""
+        content = _read_page("guide.html")
+        assert "FAQ" in content
+        assert "Pertanyaan Umum" in content
+
+    def test_has_logout_function(self):
+        """Guide page must support logout for authenticated users."""
+        content = _read_page("guide.html")
+        assert "guideLogout" in content
+        assert "logout" in content.lower()
+
+
+class TestAdminPageStructure:
+    """Tests specific to the Admin page (admin.html)."""
+
+    def test_has_user_management_card(self):
+        """Admin page must have user management section."""
+        content = _read_page("admin.html")
+        assert "Daftar Pengguna" in content
+        assert "userTableBody" in content
+
+    def test_has_crud_modals(self):
+        """Admin page must have add, edit, delete user modals."""
+        content = _read_page("admin.html")
+        assert "addModal" in content
+        assert "editModal" in content
+        assert "deleteModal" in content
+
+    def test_has_auth_guard(self):
+        """Admin page must redirect non-admin users."""
+        content = _read_page("admin.html")
+        assert "is_admin" in content or "role !== 'admin'" in content
+        assert "login" in content  # redirect path
+
+    def test_has_role_checkboxes(self):
+        """Admin page must have role permission toggles."""
+        content = _read_page("admin.html")
+        assert "addIsAdmin" in content
+        assert "addIsAnalyst" in content
+        assert "editIsActive" in content
+
+    def test_has_delete_confirmation(self):
+        """Admin page must confirm before deleting users."""
+        content = _read_page("admin.html")
+        assert "deleteConfirmName" in content
+        assert "Yakin ingin menghapus" in content or "Hapus Pengguna" in content
+
+    def test_has_empty_state(self):
+        """Admin page must handle empty user list."""
+        content = _read_page("admin.html")
+        assert "Belum ada pengguna" in content
