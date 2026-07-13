@@ -15,6 +15,7 @@ POST /api/auth/users           → tambah user baru (admin only)
 PATCH /api/auth/users/{id}     → edit password / flags (admin only)
 DELETE /api/auth/users/{id}    → hapus user (admin only)
 """
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -33,6 +34,8 @@ from src.infrastructure.postgres.auth_db import (
     update_user,
     verify_password,
 )
+
+logger = logging.getLogger(__name__)
 
 # Dummy hash for timing-safe login (prevents username enumeration)
 _DUMMY_HASH = bcrypt.hashpw(b"dummy-timing-safe", bcrypt.gensalt()).decode()
@@ -171,9 +174,14 @@ def login(form: OAuth2PasswordRequestForm = Depends()):
             "token_type": "bearer",
             "user": _user_response(user),
         }
-    except Exception as e:
-        import traceback
-        raise HTTPException(status_code=500, detail=str(e) + "\n" + traceback.format_exc())
+    except HTTPException:
+        raise  # re-raise HTTP exceptions as-is
+    except Exception:
+        logger.exception("Login failed for username=%s", form.username)
+        raise HTTPException(
+            status_code=500,
+            detail="Gagal memproses login. Silakan coba beberapa saat lagi.",
+        )
 
 
 @auth_router.get("/me", summary="Data user yang sedang login")

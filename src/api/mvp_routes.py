@@ -137,6 +137,40 @@ def api_priorities(
         )
 
 
+@mvp_router.get("/priorities/export", summary="Export seluruh prioritas (CSV/Excel)")
+def api_export_priorities(
+    fmt: str = Query(
+        ...,
+        alias="format",
+        pattern=r"^(csv|xlsx)$",
+        description="Format export: csv atau xlsx",
+    ),
+    sim_date: Optional[date] = Query(default=None),
+    user: dict = Depends(_current_user),
+) -> Response:
+    """Download seluruh prioritas dalam format CSV atau Excel."""
+    from src.application.mvp_orchestrator import export_priorities_file
+
+    try:
+        content, media_type, filename = export_priorities_file(
+            fmt=fmt,
+            sim_date=sim_date,
+        )
+        return Response(
+            content=content,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+            },
+        )
+    except Exception as exc:
+        logger.error("Export priorities failed: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Gagal mengekspor data prioritas.",
+        )
+
+
 @mvp_router.get(
     "/priorities/{recommendation_id}",
     summary="Detail satu prioritas",
@@ -286,40 +320,6 @@ def api_search(
         raise HTTPException(
             status_code=500,
             detail="Gagal melakukan pencarian.",
-        )
-
-
-@mvp_router.get("/priorities/export", summary="Export seluruh prioritas (CSV/Excel)")
-def api_export_priorities(
-    fmt: str = Query(
-        ...,
-        alias="format",
-        pattern=r"^(csv|xlsx)$",
-        description="Format export: csv atau xlsx",
-    ),
-    sim_date: Optional[date] = Query(default=None),
-    user: dict = Depends(_current_user),
-) -> Response:
-    """Download seluruh prioritas dalam format CSV atau Excel."""
-    from src.application.mvp_orchestrator import export_priorities_file
-
-    try:
-        content, media_type, filename = export_priorities_file(
-            fmt=fmt,
-            sim_date=sim_date,
-        )
-        return Response(
-            content=content,
-            media_type=media_type,
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}"',
-            },
-        )
-    except Exception as exc:
-        logger.error("Export priorities failed: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Gagal mengekspor data prioritas.",
         )
 
 

@@ -48,3 +48,8 @@ select = ["E", "F", "I", "W"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests (pure functions, no I/O)",
+    "integration: Integration tests (TestClient, requires mocked DB)",
+    "e2e: End-to-end tests (file structure, HTML validation)",
+]
