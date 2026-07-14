@@ -231,6 +231,28 @@ class TestDashboardStructure:
         assert "doSearch" in content
         assert "Cari komoditas" in content
 
+    def test_has_search_loading_state(self):
+        """Dashboard search should have loading indicator support."""
+        content = _read_page("index.html")
+        assert "searchLoading" in content
+        assert "searchNoResults" in content
+
+    def test_has_filter_loading_state(self):
+        """Dashboard filter should have loading indicator support."""
+        content = _read_page("index.html")
+        assert "prioritiesLoading" in content
+
+    def test_has_toast_notification(self):
+        """Dashboard should have toast notification component."""
+        content = _read_page("index.html")
+        assert "toast" in content.lower()
+        assert "showToast" in content
+
+    def test_has_skeleton_shimmer(self):
+        """Dashboard should use shimmer skeleton for loading."""
+        content = _read_page("index.html")
+        assert "skeleton" in content
+
     def test_has_export_buttons(self):
         """Dashboard should have CSV + Excel export buttons."""
         content = _read_page("index.html")
@@ -336,11 +358,15 @@ class TestGuidePageStructure:
             assert f'id="{sid}"' in content
 
     def test_has_het_status_explanation(self):
-        """Guide must explain HET status thresholds."""
+        """Guide must explain both risk levels and HET status thresholds."""
         content = _read_page("guide.html")
+        # New risk levels
+        assert "RENDAH" in content
+        assert "TINGGI" in content
+        assert "KRITIS" in content
+        # HET status still referenced for HET Monitor
         assert "AMAN" in content
         assert "WASPADA" in content
-        assert "KRITIS" in content
         assert "MELAMPAUI" in content
 
     def test_has_faq_section(self):
@@ -348,6 +374,38 @@ class TestGuidePageStructure:
         content = _read_page("guide.html")
         assert "FAQ" in content
         assert "Pertanyaan Umum" in content
+
+    def test_section2_describes_current_dashboard(self):
+        """Guide section 2 must describe current dashboard features, not legacy ones."""
+        content = _read_page("guide.html")
+        # Current features should be documented
+        assert "Stat Bar" in content or "Ringkasan" in content
+        assert "Freshness" in content
+        assert "Prioritas" in content
+        assert "Priority Score" in content
+        # Legacy features should NOT be in section 2
+        # (Filter Tanggal, Grafik Tren Harga were removed)
+
+    def test_section4_has_risk_levels(self):
+        """Guide section 4 must document the composite risk level system."""
+        content = _read_page("guide.html")
+        assert "Level Risiko" in content
+        assert "RENDAH" in content
+        assert "SEDANG" in content
+        assert "TINGGI" in content
+
+    def test_section4_has_rca_explanation(self):
+        """Guide section 4 must explain RCA sequential check process."""
+        content = _read_page("guide.html")
+        assert "RCA" in content or "Root Cause" in content
+        assert "sequential" in content.lower()
+        assert "D1" in content
+        assert "S1" in content
+
+    def test_section6_has_search_tip(self):
+        """Guide section 6 tips must mention search feature."""
+        content = _read_page("guide.html")
+        assert "Search" in content or "search bar" in content.lower()
 
     def test_has_logout_function(self):
         """Guide page must support logout for authenticated users."""
@@ -395,3 +453,45 @@ class TestAdminPageStructure:
         """Admin page must handle empty user list."""
         content = _read_page("admin.html")
         assert "Belum ada pengguna" in content
+
+
+class TestSharedStylesheet:
+    """Tests for shared CSS (style.css) containing UX components."""
+
+    def _read_css(self) -> str:
+        css_path = os.path.join(FRONTEND_DIR, "css", "style.css")
+        with open(css_path, encoding="utf-8") as f:
+            return f.read()
+
+    def test_has_skeleton_shimmer_animation(self):
+        """CSS must define shimmer animation for skeleton loading."""
+        css = self._read_css()
+        assert ".skeleton" in css
+        assert "sk-shimmer" in css
+
+    def test_has_toast_styles(self):
+        """CSS must define toast notification styles."""
+        css = self._read_css()
+        assert ".toast" in css
+        assert ".toast-success" in css
+        assert ".toast-error" in css
+
+    def test_has_filter_active_style(self):
+        """CSS must define active filter indicator style."""
+        css = self._read_css()
+        assert ".filter-active" in css
+
+    def test_has_priorities_loading_style(self):
+        """CSS must define loading overlay for priority list."""
+        css = self._read_css()
+        assert ".priorities-loading" in css
+
+    def test_has_form_select_style(self):
+        """CSS must define neobrutalism form select style."""
+        css = self._read_css()
+        assert ".form-select" in css
+
+    def test_has_animate_in(self):
+        """CSS must define animate-in utility class."""
+        css = self._read_css()
+        assert ".animate-in" in css

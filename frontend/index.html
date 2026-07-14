@@ -8,7 +8,8 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <script src="/config.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
   <style>
     /* ── Dashboard layout ── */
     .dash-top-bar {
@@ -164,14 +165,8 @@
     .review-btn.tolak:hover { background: #FECACA; }
     .review-btn.active-review { box-shadow: inset 2px 2px 0 var(--border); transform: translate(2px, 2px); }
 
-    /* ── Filter bar ── */
+    /* ── Filter bar - layout only, styling via .form-select in style.css ── */
     .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    .filter-bar select, .filter-bar input {
-      background: var(--surface); border: var(--bw) solid var(--border);
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
-      padding: 8px 12px; border-radius: 8px; outline: none;
-      box-shadow: 2px 2px 0 var(--border);
-    }
 
     /* ── Section heading ── */
     .section-head {
@@ -184,9 +179,7 @@
       opacity: 0.15;
     }
 
-    /* ── Skeleton ── */
-    .skeleton { background: #e5e7eb; border-radius: 8px; animation: sk-pulse 1.5s ease-in-out infinite; }
-    @keyframes sk-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+    /* ── Skeleton - now in style.css, keep local overrides only ── */
 
     /* ── Error / stale banner ── */
     .stale-banner {
@@ -259,7 +252,7 @@
      EXECUTIVE DASHBOARD — Single Alpine.js app
      Route: / (dashboard) or /detail/{recommendation_id}
      ═══════════════════════════════════════════════════════════════════════ -->
-<div class="app" x-data="executiveDashboard()">
+<div class="app" x-data="executiveDashboard()" x-init="init()">
 
   <!-- ── Header ── -->
   <header class="header">
@@ -285,6 +278,7 @@
 
   <!-- ═══════════ DASHBOARD VIEW ═══════════ -->
   <template x-if="page === 'dashboard'">
+    <div>
 
     <!-- ── Service warnings ── -->
     <template x-if="overview">
@@ -303,13 +297,27 @@
     <!-- ── Loading skeleton ── -->
     <template x-if="loading && !overview">
       <div>
+        <!-- Stat bar skeleton -->
         <div style="display:flex;gap:12px;margin-bottom:20px;">
-          <div class="skeleton" style="flex:1;height:70px;"></div>
-          <div class="skeleton" style="flex:1;height:70px;"></div>
-          <div class="skeleton" style="flex:1;height:70px;"></div>
+          <div class="skeleton" style="flex:1;height:70px;border-radius:var(--radius);"></div>
+          <div class="skeleton" style="flex:1;height:70px;border-radius:var(--radius);"></div>
+          <div class="skeleton" style="flex:1;height:70px;border-radius:var(--radius);"></div>
         </div>
-        <div class="skeleton" style="height:120px;margin-bottom:14px;"></div>
-        <div class="skeleton" style="height:120px;margin-bottom:14px;"></div>
+        <!-- Freshness bar skeleton -->
+        <div class="skeleton" style="height:38px;margin-bottom:16px;border-radius:var(--radius);"></div>
+        <!-- Search bar skeleton -->
+        <div class="skeleton" style="height:36px;max-width:420px;margin-bottom:14px;border-radius:var(--radius);"></div>
+        <!-- Section label skeleton -->
+        <div class="skeleton" style="height:14px;width:140px;margin-bottom:12px;border-radius:4px;"></div>
+        <!-- Priority cards skeleton -->
+        <div class="skeleton" style="height:130px;margin-bottom:12px;border-radius:var(--radius);"></div>
+        <div class="skeleton" style="height:130px;margin-bottom:12px;border-radius:var(--radius);"></div>
+        <div class="skeleton" style="height:130px;margin-bottom:12px;border-radius:var(--radius);"></div>
+        <!-- Loading text -->
+        <div style="text-align:center;margin-top:20px;">
+          <span class="spinner" style="border-color:rgba(26,26,26,0.15);border-top-color:var(--accent2);width:20px;height:20px;border-width:2.5px;"></span>
+          <p style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px;">Memuat dashboard...</p>
+        </div>
       </div>
     </template>
 
@@ -324,6 +332,7 @@
 
     <!-- ── Dashboard content ── -->
     <template x-if="overview">
+      <div class="animate-in">
 
       <!-- ── Top stat bar ── -->
       <div class="dash-top-bar">
@@ -337,7 +346,7 @@
           <div class="stat-label">Risiko Tinggi/Kritis</div>
         </div>
         <div class="dash-stat">
-          <div class="stat-num" x-text="overview.data_freshness.coverage_ratio ? (overview.data_freshness.coverage_ratio * 100).toFixed(0) + '%' : '—'"></div>
+          <div class="stat-num" x-text="overview.data_freshness.coverage_ratio != null ? (overview.data_freshness.coverage_ratio * 100).toFixed(0) + '%' : '—'"></div>
           <div class="stat-label">Cakupan Data</div>
         </div>
       </div>
@@ -364,24 +373,42 @@
 
       <!-- ── Search bar ── -->
       <div class="search-bar" style="position:relative;margin-bottom:14px;">
-        <input type="text"
-               x-model="searchQuery"
-               @input="doSearch()"
-               @keydown.escape="searchQuery=''; searchResults=[];"
-               placeholder="Cari komoditas, wilayah, risiko..."
-               class="search-input"
-               style="width:100%;max-width:420px;padding:9px 13px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius);font-family:var(--mono);font-size:11px;box-shadow:var(--shadow);outline:none;">
+        <div style="position:relative;max-width:420px;">
+          <input type="text"
+                 x-model="searchQuery"
+                 @input="doSearch()"
+                 @keydown.escape="searchQuery=''; searchResults=[]; searchNoResults=false;"
+                 placeholder="Cari komoditas, wilayah, risiko... (min. 2 huruf)"
+                 class="search-input"
+                 style="width:100%;padding:9px 36px 9px 13px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius);font-family:var(--mono);font-size:11px;box-shadow:var(--shadow);outline:none;">
+          <!-- Search loading spinner -->
+          <div x-show="searchLoading"
+               style="position:absolute;right:12px;top:50%;transform:translateY(-50%);">
+            <span class="spinner" style="border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);width:14px;height:14px;border-width:2px;"></span>
+          </div>
+        </div>
+        <!-- Search results dropdown -->
         <div class="search-dropdown" x-show="searchResults.length > 0"
              @click.outside="searchResults=[]"
+             x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 transform -translate-y-1"
+             x-transition:enter-end="opacity-100 transform translate-y-0"
              style="position:absolute;top:100%;left:0;max-width:420px;width:100%;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:100;max-height:320px;overflow-y:auto;margin-top:4px;">
           <template x-for="r in searchResults" :key="r.recommendation_id">
             <div @click="openDetail(r.recommendation_id); searchQuery=''; searchResults=[];"
-                 style="display:flex;align-items:center;gap:8px;padding:10px 13px;cursor:pointer;border-bottom:1px solid #e5e5e5;font-family:var(--sans);font-size:13px;">
+                 style="display:flex;align-items:center;gap:8px;padding:10px 13px;cursor:pointer;border-bottom:1px solid #e5e5e5;font-family:var(--sans);font-size:13px;transition:background 0.1s;"
+                 class="search-result-item">
               <span x-text="r.commodity" style="font-weight:700;"></span>
+              <span style="font-size:10px;color:var(--muted);" x-text="r.region"></span>
               <span class="priority-tag" :class="'tag-risk-' + r.risk_level" x-text="r.risk_level" style="font-size:8px;"></span>
               <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted);" x-text="'Score: ' + r.relevance_score"></span>
             </div>
           </template>
+        </div>
+        <!-- No results message -->
+        <div x-show="searchNoResults && !searchLoading && searchQuery.trim().length >= 2"
+             style="position:absolute;top:100%;left:0;max-width:420px;width:100%;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:100;margin-top:4px;padding:14px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);">
+          Tidak ada hasil untuk "<span x-text="searchQuery" style="font-weight:700;color:var(--text);"></span>"
         </div>
       </div>
 
@@ -423,48 +450,7 @@
         </div>
       </template>
 
-      <!-- ── Full priority list ── -->
-      <div class="section-head" style="margin-top:24px;">Daftar Prioritas Lengkap</div>
-      <div class="filter-bar">
-        <select x-model="filterRisk" @change="loadPriorities()">
-          <option value="">Semua Risiko</option>
-          <option value="kritis">Kritis</option>
-          <option value="tinggi">Tinggi</option>
-          <option value="sedang">Sedang</option>
-          <option value="rendah">Rendah</option>
-        </select>
-        <select x-model="filterProvince" @change="loadPriorities()">
-          <option value="">Semua Provinsi</option>
-          <template x-for="pv in overview.provinces" :key="pv.id">
-            <option :value="pv.name" x-text="pv.name"></option>
-          </template>
-        </select>
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:8px 0;"
-              x-text="allPriorities.length + ' hasil'"></span>
-      </div>
-
-      <template x-if="allPriorities.length === 0">
-        <div class="empty-card">Tidak ada hasil dengan filter aktif.</div>
-      </template>
-
-      <template x-for="p in allPriorities" :key="p.recommendation_id">
-        <div class="priority-card" :class="'risk-' + p.risk_level"
-             style="padding:12px 16px;margin-bottom:6px;"
-             @click="openDetail(p.recommendation_id)">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:700;" x-text="'#' + p.rank"></span>
-            <div style="flex:1;">
-              <span style="font-size:14px;font-weight:700;" x-text="p.commodity"></span>
-              <span style="font-size:10px;color:var(--muted);margin-left:6px;" x-text="p.region"></span>
-            </div>
-            <span class="priority-tag" :class="'tag-risk-' + p.risk_level" x-text="p.risk_level"></span>
-            <span style="font-family:var(--mono);font-size:14px;font-weight:700;" :style="'color:' + riskColor(p.risk_level)"
-                  x-text="p.display_priority_score"></span>
-          </div>
-        </div>
-      </template>
-
-      <!-- ── Review bundles ── -->
+      <!-- ── Review bundles (flagship feature - positioned prominently) ── -->
       <template x-if="overview.review_bundles.length > 0">
         <div>
           <div class="section-head" style="margin-top:24px;">Paket Tinjauan Bersama</div>
@@ -488,6 +474,74 @@
           </template>
         </div>
       </template>
+
+      <!-- ── Full priority list ── -->
+      <div class="section-head" style="margin-top:24px;">Daftar Prioritas Lengkap</div>
+      <div class="filter-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+        <select x-model="filterRisk" @change="loadPriorities()"
+                class="form-select"
+                :class="filterRisk ? 'filter-active' : ''"
+                :disabled="prioritiesLoading"
+                style="flex:1;min-width:140px;max-width:200px;">
+          <option value="">Semua Risiko</option>
+          <option value="kritis">Kritis</option>
+          <option value="tinggi">Tinggi</option>
+          <option value="sedang">Sedang</option>
+          <option value="rendah">Rendah</option>
+        </select>
+        <select x-model="filterProvince" @change="loadPriorities()"
+                class="form-select"
+                :class="filterProvince ? 'filter-active' : ''"
+                :disabled="prioritiesLoading"
+                style="flex:1;min-width:140px;max-width:200px;">
+          <option value="">Semua Provinsi</option>
+          <template x-for="pv in overview.provinces" :key="pv.id">
+            <option :value="pv.name" x-text="pv.name"></option>
+          </template>
+        </select>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:8px 0;display:flex;align-items:center;gap:6px;">
+          <template x-if="prioritiesLoading">
+            <span class="spinner" style="border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);width:12px;height:12px;border-width:2px;"></span>
+          </template>
+          <span x-text="prioritiesLoading ? 'Memuat...' : allPriorities.length + ' hasil'"></span>
+        </span>
+        <!-- Clear filters button -->
+        <button x-show="filterRisk || filterProvince"
+                @click="filterRisk=''; filterProvince=''; loadPriorities();"
+                style="font-family:var(--mono);font-size:9px;font-weight:700;padding:5px 10px;background:#FEE2E2;color:#DC2626;border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);">
+          Reset Filter
+        </button>
+      </div>
+
+      <template x-if="allPriorities.length === 0 && !prioritiesLoading">
+        <div class="empty-card">
+          <template x-if="filterRisk || filterProvince">
+            <span>Tidak ada hasil dengan filter aktif. <a href="#" @click.prevent="filterRisk=''; filterProvince=''; loadPriorities();" style="color:var(--accent2);font-weight:700;">Reset filter</a></span>
+          </template>
+          <template x-if="!filterRisk && !filterProvince">
+            <span>Tidak ada data prioritas tersedia saat ini.</span>
+          </template>
+        </div>
+      </template>
+
+      <div :class="prioritiesLoading ? 'priorities-loading' : ''">
+      <template x-for="p in allPriorities" :key="p.recommendation_id">
+        <div class="priority-card animate-in" :class="'risk-' + p.risk_level"
+             style="padding:12px 16px;margin-bottom:6px;"
+             @click="openDetail(p.recommendation_id)">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:700;" x-text="'#' + p.rank"></span>
+            <div style="flex:1;">
+              <span style="font-size:14px;font-weight:700;" x-text="p.commodity"></span>
+              <span style="font-size:10px;color:var(--muted);margin-left:6px;" x-text="p.region"></span>
+            </div>
+            <span class="priority-tag" :class="'tag-risk-' + p.risk_level" x-text="p.risk_level"></span>
+            <span style="font-family:var(--mono);font-size:14px;font-weight:700;" :style="'color:' + riskColor(p.risk_level)"
+                  x-text="p.display_priority_score"></span>
+          </div>
+        </div>
+      </template>
+      </div><!-- /priorities-loading wrapper -->
 
       <!-- ── Latest reviews ── -->
       <template x-if="overview.latest_reviews.length > 0">
@@ -544,7 +598,10 @@
         </div>
       </template>
 
+      </div>
     </template>  <!-- end dashboard content -->
+
+    </div>
   </template>  <!-- end dashboard view -->
 
   <!-- ═══════════ DETAIL VIEW ═══════════ -->
@@ -573,7 +630,7 @@
       <!-- Detail content -->
       <template x-if="detail && !detailLoading">
         <div>
-          <a href="/" class="back-link" @click.prevent="page='dashboard'; history.pushState({},'','/')">← Kembali ke Dashboard</a>
+          <a href="/" class="back-link" @click.prevent="page='dashboard'; history.pushState({},'','/'); window.scrollTo({top:0, behavior:'smooth'})">← Kembali ke Dashboard</a>
 
           <!-- Detail export -->
           <div style="display:flex;gap:6px;margin-top:8px;margin-bottom:8px;">
@@ -759,6 +816,7 @@ function executiveDashboard() {
     allPriorities: [],
     filterRisk: '',
     filterProvince: '',
+    prioritiesLoading: false,
     showTransparency: false,
     transparencyData: null,
 
@@ -820,14 +878,24 @@ function executiveDashboard() {
     },
 
     async loadPriorities() {
+      // Cancel any in-flight request
+      if (this._prioritiesAbort) this._prioritiesAbort.abort();
+      this._prioritiesAbort = new AbortController();
+
+      this.prioritiesLoading = true;
       let url = '/api/mvp/priorities?';
       if (this.filterRisk) url += 'risk=' + encodeURIComponent(this.filterRisk) + '&';
       if (this.filterProvince) url += 'province=' + encodeURIComponent(this.filterProvince) + '&';
       try {
-        this.allPriorities = await this.fetchJSON(url) || [];
+        this.allPriorities = await this.fetchJSON(url, {
+          signal: this._prioritiesAbort.signal,
+        }) || [];
       } catch (e) {
+        if (e.name === 'AbortError') return; // Cancelled by newer request
         console.error('Priorities error:', e);
         this.allPriorities = [];
+      } finally {
+        this.prioritiesLoading = false;
       }
     },
 
@@ -835,22 +903,33 @@ function executiveDashboard() {
     searchQuery: '',
     searchResults: [],
     searchDebounce: null,
+    searchLoading: false,
+    searchNoResults: false,
 
     doSearch() {
       clearTimeout(this.searchDebounce);
-      if (!this.searchQuery || this.searchQuery.trim().length < 1) {
+      // Minimum 2 characters before searching
+      if (!this.searchQuery || this.searchQuery.trim().length < 2) {
         this.searchResults = [];
+        this.searchLoading = false;
+        this.searchNoResults = false;
         return;
       }
+      this.searchLoading = true;
+      this.searchNoResults = false;
       this.searchDebounce = setTimeout(async () => {
         try {
           const data = await this.fetchJSON(
             '/api/mvp/search?q=' + encodeURIComponent(this.searchQuery.trim()),
           );
           this.searchResults = (data && data.results) ? data.results : [];
+          this.searchNoResults = this.searchResults.length === 0;
         } catch (e) {
           console.error('Search error:', e);
           this.searchResults = [];
+          this.searchNoResults = true;
+        } finally {
+          this.searchLoading = false;
         }
       }, 300);
     },
@@ -869,8 +948,10 @@ function executiveDashboard() {
         a.download = '';
         a.click();
         URL.revokeObjectURL(url);
+        this.showToast('Export ' + fmt.toUpperCase() + ' berhasil diunduh', 'success');
       } catch (e) {
         console.error('Export error:', e);
+        this.showToast('Gagal mengekspor data. Coba lagi.', 'error');
       }
     },
 
@@ -889,10 +970,15 @@ function executiveDashboard() {
         a.download = '';
         a.click();
         URL.revokeObjectURL(url);
+        this.showToast('Export ' + fmt.toUpperCase() + ' berhasil diunduh', 'success');
       } catch (e) {
         console.error('Export error:', e);
+        this.showToast('Gagal mengekspor data. Coba lagi.', 'error');
       }
     },
+
+    // ── Transparency ───────────────────────────────────────────
+    async loadTransparency() {
       if (this.transparencyData) return;
       try {
         this.transparencyData = await this.fetchJSON('/api/mvp/transparency');
@@ -911,6 +997,8 @@ function executiveDashboard() {
       this.reviewSaved = false;
       this.reviewError = null;
       this.navigateTo('#/detail/' + recId);
+      // Scroll to top so detail view is immediately visible
+      window.scrollTo({ top: 0, behavior: 'smooth' });
 
       try {
         this.detail = await this.fetchJSON('/api/mvp/priorities/' + encodeURIComponent(recId));
@@ -1072,6 +1160,13 @@ function executiveDashboard() {
       return map[type?.toLowerCase()] || '#71717a';
     },
 
+    // ── Toast notification ────────────────────────────────────
+    showToast(message, type = 'success') {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message, type },
+      }));
+    },
+
     logout() {
       localStorage.removeItem('rca_token');
       localStorage.removeItem('rca_user');
@@ -1080,5 +1175,18 @@ function executiveDashboard() {
   };
 }
 </script>
+
+<!-- ── Toast notification ── -->
+<div x-data="{ show: false, msg: '', type: 'success' }"
+     @toast.window="msg = $event.detail.message; type = $event.detail.type || 'success'; show = true; setTimeout(() => show = false, 3000)"
+     x-show="show"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:leave="transition ease-in duration-150"
+     class="toast"
+     :class="type === 'error' ? 'toast-error' : 'toast-success'"
+     x-text="msg"
+     style="display:none;">
+</div>
+
 </body>
 </html>

@@ -98,16 +98,25 @@ def get_all_commodities() -> list[str]:
     return list(KOMODITAS_MAP.keys())
 
 
-def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[CommodityData]:
+def get_commodity_data(
+    key: str,
+    tanggal: Optional[date] = None,
+    province_id: Optional[int] = None,
+) -> Optional[CommodityData]:
     """
     Get commodity data for RCA engine.
 
     Returns CommodityData with real PIHPS data from Supabase PostgreSQL:
-    - price_now: harga rata-rata hari ini (semua kota, pasar tradisional)
+    - price_now: harga rata-rata hari ini (filtered by province if given)
     - price_prev: harga rata-rata kemarin
     - kota_list: daftar kota dengan flag naik/turun
     - cuaca: real weather data dari Open-Meteo (app.cuaca_harian via Supabase)
     - stok: placeholder (tidak ada data real stok)
+
+    Args:
+        key: commodity key (e.g. "bawang_merah")
+        tanggal: target date (defaults to today)
+        province_id: optional filter by province ID (e.g. 13 for DKI Jakarta)
     """
     if not KOMODITAS_MAP:
         _load_komoditas_map()
@@ -122,29 +131,38 @@ def get_commodity_data(key: str, tanggal: Optional[date] = None) -> Optional[Com
 
     # PostgreSQL: use DISTINCT ON to get latest price per kota
     # Harga hari ini per kota -- cari tanggal terdekat jika hari ini belum ada
+    prov_clause = "AND provinsi_id = %s" if province_id else ""
+    base_params_today: list = [comcat_id, target_date]
+    base_params_prev: list = [comcat_id, prev_date]
+    if province_id:
+        base_params_today.append(province_id)
+        base_params_prev.append(province_id)
+
     with db_cursor() as cur:
-        cur.execute("""
+        cur.execute(f"""
             SELECT DISTINCT ON (kota_nama)
                 kota_nama, provinsi_id, harga, tanggal
             FROM app.harga_pangan
             WHERE comcat_id = %s
               AND pasar_tipe = 1
               AND tanggal <= %s
+              {prov_clause}
             ORDER BY kota_nama, tanggal DESC
-        """, (comcat_id, target_date))
+        """, tuple(base_params_today))
         rows_today = cur.fetchall()
 
     # Harga kemarin per kota
     with db_cursor() as cur:
-        cur.execute("""
+        cur.execute(f"""
             SELECT DISTINCT ON (kota_nama)
                 kota_nama, harga, tanggal
             FROM app.harga_pangan
             WHERE comcat_id = %s
               AND pasar_tipe = 1
               AND tanggal <= %s
+              {prov_clause}
             ORDER BY kota_nama, tanggal DESC
-        """, (comcat_id, prev_date))
+        """, tuple(base_params_prev))
         rows_prev = cur.fetchall()
 
     if not rows_today:

@@ -138,99 +138,98 @@ def get_overview(
     coverage_ratio = _get_coverage_ratio()
     ml_online = _check_ml_health()
 
-    # ── Build recommendations for all commodity × province combos ──────
+    # ── Build recommendations for all commodity x province combos ──────
     recommendations: list[Recommendation] = []
     commodity_keys = get_all_commodities()
 
     for key in commodity_keys:
-        # Get commodity data (includes all-city average)
-        data = get_commodity_data(key, tanggal=today)
-        if not data:
-            continue
-
         info = KOMODITAS_MAP.get(key, {})
         comcat_id = info.get("comcat_id", "")
         commodity_name = info.get("name", key)
 
-        # HET check
-        het_result = check_het_status(comcat_id, data.price_now, commodity_name)
-        het_pct = het_result.pct_of_het
-        het_status = het_result.status.value
+        for prov_id, prov_name in MVP_PROVINCES.items():
+            # Get commodity data filtered by province
+            data = get_commodity_data(key, tanggal=today, province_id=prov_id)
+            if not data:
+                continue
 
-        # RCA analysis
-        rca_result = run_rca(data, today=today)
+            # HET check
+            het_result = check_het_status(comcat_id, data.price_now, commodity_name)
+            het_pct = het_result.pct_of_het
+            het_status = het_result.status.value
 
-        # Weather signal
-        has_extreme_weather = data.cuaca.ekstrem
+            # RCA analysis
+            rca_result = run_rca(data, today=today)
 
-        # City spread
-        cities_total = len(data.kota_list)
-        cities_rising = sum(1 for k in data.kota_list if k.naik)
+            # Weather signal
+            has_extreme_weather = data.cuaca.ekstrem
 
-        # Price delta
-        if data.price_prev and data.price_prev > 0:
-            price_delta_pct = (
-                (data.price_now - data.price_prev) / data.price_prev * 100
+            # City spread
+            cities_total = len(data.kota_list)
+            cities_rising = sum(1 for k in data.kota_list if k.naik)
+
+            # Price delta
+            if data.price_prev and data.price_prev > 0:
+                price_delta_pct = (
+                    (data.price_now - data.price_prev) / data.price_prev * 100
+                )
+            else:
+                price_delta_pct = 0.0
+
+            # ML forecast - try for the main city in this province
+            forecast_data: dict[str, Any] | None = None
+            if ml_online and cities_total > 0:
+                main_city = data.kota_list[0].nama if data.kota_list else "Jakarta"
+                forecast_data = _try_get_ml_forecast(commodity_name, main_city, today)
+
+            # Extract ML signals
+            forecast_breach = False
+            forecast_p50 = None
+            forecast_p90 = None
+            model_version = ""
+            model_wape = None
+            model_worse = False
+
+            if forecast_data:
+                try:
+                    result = forecast_data.get("result", forecast_data)
+                    forecast_p50 = result.get("p50_7d")
+                    forecast_p90 = result.get("p90_7d")
+                    forecast_breach = result.get("breach_risk", False)
+                    model_version = result.get("model_version", "")
+                    model_wape = result.get("wape")
+                except (AttributeError, KeyError, TypeError):
+                    pass
+
+            # Build recommendation per province
+            rec = build_recommendation(
+                commodity_key=key,
+                commodity_name=commodity_name,
+                province=prov_name,
+                province_id=prov_id,
+                het_pct=het_pct,
+                het_status=het_status,
+                price_now=data.price_now,
+                price_prev=data.price_prev,
+                price_delta_pct=price_delta_pct,
+                is_anomaly=rca_result.is_anomaly,
+                cities_total=cities_total,
+                cities_rising=cities_rising,
+                has_extreme_weather=has_extreme_weather,
+                weather_detail=data.cuaca.desc,
+                forecast_breach=forecast_breach,
+                forecast_p50=forecast_p50,
+                forecast_p90=forecast_p90,
+                model_version=model_version,
+                model_wape=model_wape,
+                model_worse_than_baseline=model_worse,
+                data_age_days=data_age_days,
+                coverage_ratio=coverage_ratio,
+                rca_diagnosis=rca_result.diagnosis.value,
+                rca_severity=rca_result.severity_level,
+                today=today,
             )
-        else:
-            price_delta_pct = 0.0
-
-        # ML forecast — try for the main city/aggregate
-        forecast_data: dict[str, Any] | None = None
-        if ml_online and cities_total > 0:
-            # Try forecast for the province-level aggregate
-            main_city = data.kota_list[0].nama if data.kota_list else "Jakarta"
-            forecast_data = _try_get_ml_forecast(commodity_name, main_city, today)
-
-        # Extract ML signals
-        forecast_breach = False
-        forecast_p50 = None
-        forecast_p90 = None
-        model_version = ""
-        model_wape = None
-        model_worse = False
-
-        if forecast_data:
-            # ponytail: ML response schema may vary — parse defensively
-            try:
-                result = forecast_data.get("result", forecast_data)
-                forecast_p50 = result.get("p50_7d")
-                forecast_p90 = result.get("p90_7d")
-                forecast_breach = result.get("breach_risk", False)
-                model_version = result.get("model_version", "")
-                model_wape = result.get("wape")
-            except (AttributeError, KeyError, TypeError):
-                pass
-
-        # Build recommendation
-        rec = build_recommendation(
-            commodity_key=key,
-            commodity_name=commodity_name,
-            province="Nasional",  # aggregated view
-            province_id=0,
-            het_pct=het_pct,
-            het_status=het_status,
-            price_now=data.price_now,
-            price_prev=data.price_prev,
-            price_delta_pct=price_delta_pct,
-            is_anomaly=rca_result.is_anomaly,
-            cities_total=cities_total,
-            cities_rising=cities_rising,
-            has_extreme_weather=has_extreme_weather,
-            weather_detail=data.cuaca.desc,
-            forecast_breach=forecast_breach,
-            forecast_p50=forecast_p50,
-            forecast_p90=forecast_p90,
-            model_version=model_version,
-            model_wape=model_wape,
-            model_worse_than_baseline=model_worse,
-            data_age_days=data_age_days,
-            coverage_ratio=coverage_ratio,
-            rca_diagnosis=rca_result.diagnosis.value,
-            rca_severity=rca_result.severity_level,
-            today=today,
-        )
-        recommendations.append(rec)
+            recommendations.append(rec)
 
     # ── Sort by display priority score (descending) ──────────────────────
     recommendations.sort(key=lambda r: r.display_priority_score, reverse=True)
@@ -259,6 +258,9 @@ def get_overview(
         logger.warning("Latest reviews unavailable: %s", exc)
         latest_reviews = []
 
+    # Unique commodity count (not commodity x province)
+    unique_commodities = len({r.commodity for r in recommendations})
+
     return {
         "region": "Nasional",
         "provinces": [
@@ -279,7 +281,8 @@ def get_overview(
             "ml_service": "online" if ml_online else "offline",
         },
         "summary": {
-            "total_commodities": len(recommendations),
+            "total_commodities": unique_commodities,
+            "total_entries": len(recommendations),
             "risk_counts": risk_counts,
             "has_critical": risk_counts["kritis"] > 0,
             "has_high": risk_counts["tinggi"] > 0,
@@ -297,6 +300,7 @@ def get_priorities(
 ) -> list[dict[str, Any]]:
     """Get ranked list of all recommendations with optional filters.
 
+    Produces one recommendation per commodity per province (not just national).
     Used by /api/mvp/priorities endpoint.
     """
     today = sim_date or date.today()
@@ -307,56 +311,68 @@ def get_priorities(
     results: list[dict[str, Any]] = []
     commodity_keys = get_all_commodities()
 
-    for key in commodity_keys:
-        data = get_commodity_data(key, tanggal=today)
-        if not data:
-            continue
+    # Resolve province filter to ID for early query-level filtering
+    target_provinces: dict[int, str] = {}
+    if province_filter:
+        for pid, pname in MVP_PROVINCES.items():
+            if province_filter.lower() == pname.lower():
+                target_provinces = {pid: pname}
+                break
+        # If no match found, return empty (no province matches filter)
+        if not target_provinces:
+            return []
+    else:
+        target_provinces = MVP_PROVINCES
 
+    for key in commodity_keys:
         info = KOMODITAS_MAP.get(key, {})
         comcat_id = info.get("comcat_id", "")
         commodity_name = info.get("name", key)
 
-        het_result = check_het_status(comcat_id, data.price_now, commodity_name)
-        rca_result = run_rca(data, today=today)
+        for prov_id, prov_name in target_provinces.items():
+            data = get_commodity_data(key, tanggal=today, province_id=prov_id)
+            if not data:
+                continue
 
-        price_delta_pct = 0.0
-        if data.price_prev and data.price_prev > 0:
-            price_delta_pct = (
-                (data.price_now - data.price_prev) / data.price_prev * 100
+            het_result = check_het_status(comcat_id, data.price_now, commodity_name)
+            rca_result = run_rca(data, today=today)
+
+            price_delta_pct = 0.0
+            if data.price_prev and data.price_prev > 0:
+                price_delta_pct = (
+                    (data.price_now - data.price_prev) / data.price_prev * 100
+                )
+
+            cities_total = len(data.kota_list)
+            cities_rising = sum(1 for k in data.kota_list if k.naik)
+
+            rec = build_recommendation(
+                commodity_key=key,
+                commodity_name=commodity_name,
+                province=prov_name,
+                province_id=prov_id,
+                het_pct=het_result.pct_of_het,
+                het_status=het_result.status.value,
+                price_now=data.price_now,
+                price_prev=data.price_prev,
+                price_delta_pct=price_delta_pct,
+                is_anomaly=rca_result.is_anomaly,
+                cities_total=cities_total,
+                cities_rising=cities_rising,
+                has_extreme_weather=data.cuaca.ekstrem,
+                weather_detail=data.cuaca.desc,
+                data_age_days=data_age_days,
+                coverage_ratio=coverage_ratio,
+                rca_diagnosis=rca_result.diagnosis.value,
+                rca_severity=rca_result.severity_level,
+                today=today,
             )
 
-        cities_total = len(data.kota_list)
-        cities_rising = sum(1 for k in data.kota_list if k.naik)
+            # Apply risk filter
+            if risk_filter and rec.risk_level != risk_filter.lower():
+                continue
 
-        rec = build_recommendation(
-            commodity_key=key,
-            commodity_name=commodity_name,
-            province="Nasional",
-            province_id=0,
-            het_pct=het_result.pct_of_het,
-            het_status=het_result.status.value,
-            price_now=data.price_now,
-            price_prev=data.price_prev,
-            price_delta_pct=price_delta_pct,
-            is_anomaly=rca_result.is_anomaly,
-            cities_total=cities_total,
-            cities_rising=cities_rising,
-            has_extreme_weather=data.cuaca.ekstrem,
-            weather_detail=data.cuaca.desc,
-            data_age_days=data_age_days,
-            coverage_ratio=coverage_ratio,
-            rca_diagnosis=rca_result.diagnosis.value,
-            rca_severity=rca_result.severity_level,
-            today=today,
-        )
-
-        # Apply filters
-        if risk_filter and rec.risk_level != risk_filter.lower():
-            continue
-        if province_filter and province_filter.lower() not in rec.region.lower():
-            continue
-
-        results.append(rec.model_dump(mode="json"))
+            results.append(rec.model_dump(mode="json"))
 
     # Sort by display priority score descending
     results.sort(key=lambda r: r["display_priority_score"], reverse=True)
