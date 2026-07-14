@@ -35,6 +35,7 @@ from src.application.mvp_orchestrator import (
     get_priorities,
     get_priority_detail,
     get_service_status,
+    get_sparklines,
     get_transparency,
 )
 
@@ -379,5 +380,30 @@ def api_export_single(
         logger.exception("Unexpected error in export single")
         raise ServiceUnavailableError(
             "Gagal mengekspor detail prioritas.",
+            internal_message=str(exc),
+        )
+
+
+@mvp_router.get("/sparklines", summary="Sparkline price data for dashboard")
+def api_sparklines(
+    sim_date: Optional[date] = Query(default=None),
+    n_days: int = Query(default=14, ge=7, le=30),
+    user: dict = Depends(_current_user),
+) -> dict:
+    """Get compact 14-day price history for all commodity x province combos.
+
+    Returns labels (shared date axis) and per-recommendation sparkline
+    data suitable for lightweight inline charts on the dashboard.
+
+    Single call replaces N+1 price-history queries for each priority card.
+    """
+    try:
+        return get_sparklines(sim_date=sim_date, n_days=n_days)
+    except AppError:
+        raise
+    except Exception as exc:
+        logger.exception("Unexpected error in sparklines")
+        raise ServiceUnavailableError(
+            "Gagal memuat data sparkline.",
             internal_message=str(exc),
         )

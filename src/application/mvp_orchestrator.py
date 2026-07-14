@@ -680,3 +680,56 @@ def export_priorities_file(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 filename,
             )
+
+
+# ── Sparkline data ─────────────────────────────────────────────────────────
+
+def get_sparklines(
+    sim_date: date | None = None,
+    n_days: int = 14,
+) -> dict[str, Any]:
+    """Get compact sparkline data for all commodity x province combos.
+
+    Returns price history per recommendation_id suitable for
+    lightweight inline sparkline charts on the dashboard.
+    Single query per commodity avoids N+1 problem.
+
+    Args:
+        sim_date: Reference date (default today).
+        n_days: Number of days to include (default 14).
+
+    Returns:
+        Dict with sparklines (dict[recommendation_id, list[price]]) and metadata.
+    """
+    today = sim_date or date.today()
+    commodity_keys = get_all_commodities()
+    sparklines: dict[str, list[float | None]] = {}
+    labels: list[str] = []
+
+    for key in commodity_keys:
+        info = KOMODITAS_MAP.get(key, {})
+        comcat_id = info.get("comcat_id", "")
+        if not comcat_id:
+            continue
+
+        for prov_id, prov_name in MVP_PROVINCES.items():
+            rec_id = f"rec_{today.isoformat()}_{key}_{prov_name.replace(' ', '_').lower()}"
+            history = get_price_history(comcat_id, n_days=n_days, target_date=today)
+
+            if not labels and history:
+                labels = [str(row["tanggal"]) for row in history]
+
+            prices: list[float | None] = []
+            if history:
+                prices = [
+                    float(row["avg_harga"]) if row["avg_harga"] else None
+                    for row in history
+                ]
+            sparklines[rec_id] = prices
+
+    return {
+        "labels": labels,
+        "sparklines": sparklines,
+        "n_days": n_days,
+        "reference_date": today.isoformat(),
+    }

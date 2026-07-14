@@ -526,6 +526,14 @@
             <span style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto;"
                   x-text="p.knowledge_status === 'fact' ? '📋 Fakta' : p.knowledge_status === 'model_output' ? '🤖 Model' : '🔍 Inference'"></span>
           </div>
+          <!-- Sparkline -->
+          <div x-show="sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2" style="margin-top:8px;">
+            <svg width="100%" height="24" viewBox="0 0 100 24" preserveAspectRatio="none" style="display:block;">
+              <polyline :points="sparklinePoints(p.recommendation_id)"
+                        fill="none" :stroke="riskColor(p.risk_level)" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+            </svg>
+          </div>
           <div class="priority-next-step" x-text="'→ ' + p.next_step"></div>
         </div>
       </template>
@@ -611,9 +619,19 @@
              @click="openDetail(p.recommendation_id)">
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:700;" x-text="'#' + p.rank"></span>
-            <div style="flex:1;">
+            <div style="flex:1;min-width:0;">
               <span style="font-size:14px;font-weight:700;" x-text="p.commodity"></span>
               <span style="font-size:10px;color:var(--muted);margin-left:6px;" x-text="p.region"></span>
+            </div>
+            <!-- Mini sparkline in compact list -->
+            <div x-show="sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2"
+                 style="width:60px;flex-shrink:0;display:none;"
+                 :style="{display: sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2 ? 'block' : 'none'}">
+              <svg width="60" height="18" viewBox="0 0 100 24" preserveAspectRatio="none" style="display:block;">
+                <polyline :points="sparklinePoints(p.recommendation_id)"
+                          fill="none" :stroke="riskColor(p.risk_level)" stroke-width="2"
+                          stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+              </svg>
             </div>
             <span class="priority-tag" :class="'tag-risk-' + p.risk_level" x-text="p.risk_level"></span>
             <span style="font-family:var(--mono);font-size:14px;font-weight:700;" :style="'color:' + riskColor(p.risk_level)"
@@ -899,6 +917,8 @@ function executiveDashboard() {
     prioritiesLoading: false,
     showTransparency: false,
     transparencyData: null,
+    sparklines: {},
+    sparklineLabels: [],
 
     // ── Detail state ──────────────────────────────────────────
     detail: null,
@@ -948,6 +968,8 @@ function executiveDashboard() {
         this.overview = await this.fetchJSON('/api/mvp/overview');
         if (this.overview) {
           await this.loadPriorities();
+          // Fetch sparklines in background (non-blocking)
+          this.fetchSparklines();
         }
       } catch (e) {
         this.error = 'Gagal menghubungi server. Periksa koneksi dan coba lagi.';
@@ -955,6 +977,43 @@ function executiveDashboard() {
       } finally {
         this.loading = false;
       }
+    },
+
+    async fetchSparklines() {
+      try {
+        const data = await this.fetchJSON('/api/mvp/sparklines?n_days=14');
+        if (data) {
+          this.sparklineLabels = data.labels || [];
+          this.sparklines = data.sparklines || {};
+        }
+      } catch (e) {
+        // Sparklines are optional — dashboard still works without them
+        console.warn('Sparklines unavailable:', e);
+      }
+    },
+
+    sparklinePoints(recId) {
+      const prices = this.sparklines[recId];
+      if (!prices || prices.length < 2) return '';
+      const valid = prices.filter(p => p != null);
+      if (valid.length < 2) return '';
+      const min = Math.min(...valid);
+      const max = Math.max(...valid);
+      if (max === min) {
+        // Flat line — just draw in the middle
+        const y = 12; // half of 24px height
+        return valid.map((_, i) => {
+          const x = (i / (valid.length - 1)) * 100;
+          return (i === 0 ? `M${x},${y}` : `L${x},${y}`);
+        }).join(' ');
+      }
+      const range = max - min;
+      return valid.map((v, i) => {
+        const x = (i / (valid.length - 1)) * 100;
+        // Invert Y: higher price = lower position in SVG viewport
+        const y = ((max - v) / range) * 20 + 2; // 2px padding top/bottom, 24px total height
+        return (i === 0 ? `M${x},${y}` : `L${x},${y}`);
+      }).join(' ');
     },
 
     async loadPriorities() {
