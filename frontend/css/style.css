@@ -93,14 +93,14 @@ body::before {
   color: var(--text);
 }
 .header-sub {
-  font-family: var(--mono); font-size: 10px; color: var(--muted);
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
   margin-top: 2px; letter-spacing: 0.5px;
 }
 .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* -- Navigation links -- */
 .nav-link {
-  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  font-family: var(--sans); font-size: 13px; font-weight: 600;
   padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
   border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
   transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
@@ -114,7 +114,7 @@ body::before {
 
 /* -- User badge -- */
 .user-badge {
-  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  font-family: var(--sans); font-size: 12px; font-weight: 600;
   padding: 7px 13px; background: var(--surface2);
   border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
   box-shadow: 2px 2px 0 var(--border);
@@ -141,14 +141,14 @@ body::before {
 }
 .card + .card { margin-top: 14px; }
 .card-label {
-  font-family: var(--mono);
-  font-size: 10px;
+  font-family: var(--sans);
+  font-size: 11px;
   color: var(--text);
   text-transform: uppercase;
   letter-spacing: 1.5px;
   margin-bottom: 12px;
   display: flex; align-items: center; gap: 6px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .card-label::before {
   content: '';
@@ -186,7 +186,7 @@ body::before {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 .status-text {
-  font-family: var(--mono); font-size: 11px;
+  font-family: var(--sans); font-size: 12px;
   color: var(--muted); font-weight: 600;
 }
 
@@ -261,9 +261,9 @@ body::before {
   border: var(--bw) solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
   z-index: 9999;
   animation: slide-up 0.3s ease;
 }
@@ -281,8 +281,8 @@ body::before {
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  font-family: var(--mono);
-  font-size: 13px;
+  font-family: var(--sans);
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -307,7 +307,7 @@ body::before {
 .footer {
   text-align: center; margin-top: 32px; padding-top: 20px;
   border-top: var(--bw) solid var(--border);
-  font-family: var(--mono); font-size: 10px;
+  font-family: var(--sans); font-size: 12px;
   color: var(--muted); font-weight: 600;
 }
 .footer a { color: var(--accent2); text-decoration: none; font-weight: 700; }

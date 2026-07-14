@@ -28,7 +28,7 @@
     .dash-stat.critical::after { background: var(--danger); }
     .dash-stat.warning::after { background: var(--warn); }
     .dash-stat .stat-num { font-family: var(--mono); font-size: 28px; font-weight: 800; }
-    .dash-stat .stat-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
+    .dash-stat .stat-label { font-family: var(--sans); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
 
     /* ── Freshness indicator ── */
     .freshness-bar {
@@ -36,7 +36,7 @@
       padding: 10px 16px; margin-bottom: 16px;
       background: var(--surface); border: var(--bw) solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
-      font-family: var(--mono); font-size: 10px; font-weight: 600;
+      font-family: var(--sans); font-size: 12px; font-weight: 500;
     }
     .freshness-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; }
     .freshness-dot.fresh { background: #34D399; }
@@ -62,7 +62,7 @@
 
     .priority-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
     .priority-rank {
-      font-family: var(--mono); font-size: 11px; font-weight: 800; color: var(--muted);
+      font-family: var(--mono); font-size: 12px; font-weight: 800; color: var(--muted);
       letter-spacing: 1px; margin-bottom: 2px;
     }
     .priority-name { font-size: 17px; font-weight: 900; letter-spacing: -0.3px; line-height: 1.2; }
@@ -70,7 +70,7 @@
 
     .priority-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
     .priority-tag {
-      font-family: var(--mono); font-size: 9px; font-weight: 800; text-transform: uppercase;
+      font-family: var(--mono); font-size: 10px; font-weight: 800; text-transform: uppercase;
       padding: 3px 8px; border-radius: 6px; border: 1.5px solid var(--border);
       letter-spacing: 0.5px;
     }
@@ -87,10 +87,10 @@
       margin-left: auto; flex-shrink: 0;
     }
     .priority-next-step {
-      font-family: var(--sans); font-size: 11px; color: var(--text2);
+      font-family: var(--sans); font-size: 13px; color: var(--text2);
       margin-top: 8px; padding: 8px 10px; background: var(--surface2);
       border-radius: 8px; border: 1.5px solid var(--border);
-      font-weight: 500; line-height: 1.4;
+      font-weight: 500; line-height: 1.5;
     }
 
     /* ── Evidence section (detail page) ── */
@@ -113,10 +113,10 @@
     .evidence-item {
       padding: 8px 12px; margin-bottom: 4px;
       background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: 8px; font-size: 12px; font-family: var(--sans);
+      border-radius: 8px; font-size: 13px; font-family: var(--sans);
     }
     .evidence-tag {
-      font-family: var(--mono); font-size: 8px; font-weight: 700;
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
       text-transform: uppercase; padding: 1px 6px; border-radius: 4px;
       border: 1px solid var(--border); margin-right: 6px;
     }
@@ -150,7 +150,7 @@
 
     /* ── Review buttons ── */
     .review-btn {
-      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      font-family: var(--sans); font-size: 12px; font-weight: 600;
       padding: 8px 14px; border: var(--bw) solid var(--border);
       border-radius: 8px; cursor: pointer;
       box-shadow: 2px 2px 0 var(--border);
@@ -216,11 +216,11 @@
     .detail-scores { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
     .detail-score-item { text-align: center; }
     .detail-score-val { font-family: var(--mono); font-size: 20px; font-weight: 800; }
-    .detail-score-lbl { font-family: var(--mono); font-size: 8px; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; }
+    .detail-score-lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; }
 
     /* ── Back link ── */
     .back-link {
-      font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent2);
+      font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--accent2);
       text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
       margin-bottom: 12px;
     }
@@ -229,7 +229,7 @@
     /* ── Review status indicator ── */
     .review-status {
       display: inline-flex; align-items: center; gap: 6px;
-      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
       padding: 5px 10px; border-radius: 6px; border: 1.5px solid var(--border);
     }
     .review-status.belum { background: #F4F4F5; color: var(--muted); }
@@ -242,7 +242,7 @@
       text-align: center; padding: 40px 20px;
       background: var(--surface); border: var(--bw) solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
-      font-family: var(--mono); font-size: 13px; color: var(--muted);
+      font-family: var(--sans); font-size: 14px; color: var(--muted);
     }
   </style>
 </head>
@@ -372,16 +372,18 @@
       </div>
 
       <!-- ── Search bar ── -->
-      <div class="search-bar" style="position:relative;margin-bottom:14px;">
-        <div style="position:relative;max-width:420px;">
+      <div class="search-bar" style="position:relative;margin-bottom:16px;">
+        <div style="position:relative;max-width:480px;">
           <input type="text"
                  x-model="searchQuery"
                  @input="doSearch()"
                  @keydown.escape="searchQuery=''; searchResults=[]; searchNoResults=false;"
-                 placeholder="Cari komoditas, wilayah, risiko... (min. 2 huruf)"
+                 placeholder="Cari komoditas, provinsi, atau level risiko..."
                  class="search-input"
-                 style="width:100%;padding:9px 36px 9px 13px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius);font-family:var(--mono);font-size:11px;box-shadow:var(--shadow);outline:none;">
-          <!-- Search loading spinner -->
+                 style="width:100%;padding:11px 40px 11px 38px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius);font-family:var(--sans);font-size:14px;box-shadow:var(--shadow);outline:none;">
+          <!-- Search icon (left) -->
+          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);pointer-events:none;">🔍</span>
+          <!-- Search loading spinner (right) -->
           <div x-show="searchLoading"
                style="position:absolute;right:12px;top:50%;transform:translateY(-50%);">
             <span class="spinner" style="border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);width:14px;height:14px;border-width:2px;"></span>
@@ -950,7 +952,6 @@ function executiveDashboard() {
         URL.revokeObjectURL(url);
         this.showToast('Export ' + fmt.toUpperCase() + ' berhasil diunduh', 'success');
       } catch (e) {
-        console.error('Export error:', e);
         this.showToast('Gagal mengekspor data. Coba lagi.', 'error');
       }
     },
@@ -971,8 +972,7 @@ function executiveDashboard() {
         a.click();
         URL.revokeObjectURL(url);
         this.showToast('Export ' + fmt.toUpperCase() + ' berhasil diunduh', 'success');
-      } catch (e) {
-        console.error('Export error:', e);
+      } catch {
         this.showToast('Gagal mengekspor data. Coba lagi.', 'error');
       }
     },
@@ -1178,7 +1178,7 @@ function executiveDashboard() {
 
 <!-- ── Toast notification ── -->
 <div x-data="{ show: false, msg: '', type: 'success' }"
-     @toast.window="msg = $event.detail.message; type = $event.detail.type || 'success'; show = true; setTimeout(() => show = false, 3000)"
+     @toast.window="msg = $event.detail.message; type = $event.detail.type || 'success'; show = true; setTimeout(() => show = false, 5000)"
      x-show="show"
      x-transition:enter="transition ease-out duration-200"
      x-transition:leave="transition ease-in duration-150"
