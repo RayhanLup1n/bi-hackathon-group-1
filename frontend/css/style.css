@@ -303,6 +303,20 @@ body::before {
 /* -- Animate-in utility -- */
 .animate-in { animation: slide-up 0.4s ease both; }
 
+/* -- Respect reduced motion preference -- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+  .animate-in { animation: none; }
+  .skeleton { animation: none; background: #e5e7eb; }
+  .spinner { animation: none; opacity: 0.5; }
+  .status-dot { animation: none; }
+}
+
 /* -- Footer -- */
 .footer {
   text-align: center; margin-top: 32px; padding-top: 20px;

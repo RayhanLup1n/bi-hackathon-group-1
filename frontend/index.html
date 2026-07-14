@@ -935,6 +935,23 @@ function executiveDashboard() {
       this.token = localStorage.getItem('rca_token');
       if (!this.token) { window.location.replace('/login'); return; }
 
+      // ── Keyboard shortcuts ──
+      document.addEventListener('keydown', (e) => {
+        // '/' — focus search (unless already in an input)
+        if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          const searchInput = this.$el.querySelector('.search-input');
+          if (searchInput) searchInput.focus();
+        }
+        // 'Escape' — back to dashboard from detail view
+        if (e.key === 'Escape' && this.page === 'detail') {
+          e.preventDefault();
+          this.page = 'dashboard';
+          history.pushState({}, '', '/');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+
       try {
         const me = await this.fetchJSON('/api/auth/me');
         if (!me) return;
