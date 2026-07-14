@@ -205,6 +205,59 @@
       border-radius: 8px; resize: vertical;
     }
 
+    /* ── Mobile hamburger ── */
+    .hamburger-btn {
+      display: none;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); padding: 6px 10px;
+      font-size: 20px; cursor: pointer; box-shadow: 2px 2px 0 var(--border);
+      line-height: 1;
+    }
+    .mobile-nav {
+      display: none;
+      flex-direction: column; gap: 6px;
+      padding: 12px; background: var(--surface);
+      border: var(--bw) solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .mobile-nav.show { display: flex; }
+
+    /* ── Responsive breakpoints ── */
+    @media (max-width: 768px) {
+      .app { padding: 12px 12px 32px; }
+
+      /* Hamburger nav */
+      .header-right { display: none; }
+      .hamburger-btn { display: block; }
+      .header { flex-wrap: wrap; }
+
+      /* Priority card compact */
+      .priority-card { padding: 12px 14px; }
+      .priority-name { font-size: 15px; }
+      .priority-score { font-size: 18px; }
+      .priority-meta { gap: 4px; }
+
+      /* Detail header compact */
+      .detail-commodity { font-size: 20px; }
+      .detail-scores { gap: 12px; }
+      .detail-score-val { font-size: 16px; }
+
+      /* Filter bar stacked */
+      .filter-bar { flex-direction: column; }
+      .filter-bar .form-select { max-width: 100% !important; }
+
+      /* Search full-width */
+      .search-bar > div { max-width: 100% !important; }
+    }
+
+    @media (max-width: 480px) {
+      .dash-top-bar { flex-direction: column; }
+      .dash-top-bar .dash-stat { min-width: 100%; }
+      .header-title { font-size: 15px; }
+      .priority-name { font-size: 14px; }
+      .header { padding: 10px 14px; }
+    }
+
     /* ── Detail page header ── */
     .detail-header {
       background: var(--surface); border: var(--bw) solid var(--border);
@@ -255,7 +308,7 @@
 <div class="app" x-data="executiveDashboard()" x-init="init()">
 
   <!-- ── Header ── -->
-  <header class="header">
+  <header class="header" x-data="{ navOpen: false }">
     <div class="header-left">
       <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
@@ -273,6 +326,19 @@
         <a href="/admin" class="nav-link nav-link-default">Admin</a>
       </template>
       <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
+    </div>
+    <!-- Hamburger (mobile only) -->
+    <button class="hamburger-btn" @click="navOpen = !navOpen" aria-label="Toggle navigation">
+      <span x-text="navOpen ? '✕' : '☰'"></span>
+    </button>
+    <!-- Mobile nav dropdown -->
+    <div class="mobile-nav" :class="navOpen ? 'show' : ''" style="width:100%;margin-top:10px;">
+      <a href="/" class="nav-link" :class="page === 'dashboard' ? 'nav-link-active' : 'nav-link-default'" @click="navOpen = false">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-default" @click="navOpen = false">Panduan</a>
+      <template x-if="user?.is_admin || user?.role === 'admin'">
+        <a href="/admin" class="nav-link nav-link-default" @click="navOpen = false">Admin</a>
+      </template>
+      <button @click="logout(); navOpen = false" class="nav-link nav-link-danger">Keluar</button>
     </div>
   </header>
 
@@ -351,24 +417,36 @@
         </div>
       </div>
 
-      <!-- ── Freshness bar ── -->
-      <div class="freshness-bar">
-        <span class="freshness-dot" :class="overview.data_freshness.status"></span>
-        <span>Data: <strong x-text="overview.data_freshness.latest_date"></strong></span>
-        <span style="color:var(--muted);">·</span>
-        <span x-text="overview.data_freshness.age_days + ' hari lalu'"></span>
-        <span style="color:var(--muted);">·</span>
-        <span>ML: <strong :style="overview.service_health.ml_service === 'online' ? 'color:#059669;' : 'color:#DC2626;'"
-              x-text="overview.service_health.ml_service"></strong></span>
-        <span style="color:var(--muted);">·</span>
-        <span x-text="'Rendah: ' + (overview.summary.risk_counts.rendah || 0)"></span>
-        <span style="color:var(--muted);">·</span>
-        <span x-text="'Sedang: ' + (overview.summary.risk_counts.sedang || 0)"></span>
-        <span style="color:var(--muted);">·</span>
-        <span style="font-weight:800;color:#DC2626;" x-text="'Kritis: ' + (overview.summary.risk_counts.kritis || 0)"></span>
-        <a href="/transparency" style="margin-left:auto;font-size:10px;color:var(--accent2);" @click.prevent="showTransparency = !showTransparency">
-          <span x-text="showTransparency ? 'Sembunyikan' : 'Transparansi'"></span> →
-        </a>
+      <!-- ── Freshness bar (redesigned: 2 rows for readability) ── -->
+      <div class="freshness-bar" style="display:block;">
+        <!-- Row 1: Data metadata -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="freshness-dot" :class="overview.data_freshness.status"></span>
+          <span style="font-weight:600;">Data: <strong x-text="overview.data_freshness.latest_date"></strong></span>
+          <span style="color:var(--muted);font-size:10px;" x-text="'(' + overview.data_freshness.age_days + ' hari lalu)'"></span>
+          <span>ML:
+            <strong :style="overview.service_health.ml_service === 'online' ? 'color:#059669;' : 'color:#DC2626;'"
+                    x-text="overview.service_health.ml_service"></strong>
+          </span>
+          <a href="#" style="margin-left:auto;font-size:12px;color:var(--accent2);font-weight:700;" @click.prevent="showTransparency = !showTransparency">
+            <span x-text="showTransparency ? 'Sembunyikan Detail' : 'Transparansi Data'"></span> →
+          </a>
+        </div>
+        <!-- Row 2: Risk distribution bar -->
+        <div style="display:flex;align-items:center;gap:0;">
+          <div style="flex:1;height:8px;display:flex;border-radius:4px;overflow:hidden;border:1px solid var(--border);">
+            <div style="background:#34D399;" :style="'width:' + ((overview.summary.risk_counts.rendah || 0) / overview.summary.total_entries * 100) + '%'" x-show="(overview.summary.risk_counts.rendah || 0) > 0"></div>
+            <div style="background:#6366F1;" :style="'width:' + ((overview.summary.risk_counts.sedang || 0) / overview.summary.total_entries * 100) + '%'" x-show="(overview.summary.risk_counts.sedang || 0) > 0"></div>
+            <div style="background:#F59E0B;" :style="'width:' + ((overview.summary.risk_counts.tinggi || 0) / overview.summary.total_entries * 100) + '%'" x-show="(overview.summary.risk_counts.tinggi || 0) > 0"></div>
+            <div style="background:#DC2626;" :style="'width:' + ((overview.summary.risk_counts.kritis || 0) / overview.summary.total_entries * 100) + '%'" x-show="(overview.summary.risk_counts.kritis || 0) > 0"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:6px;font-size:11px;">
+          <span>● <span x-text="(overview.summary.risk_counts.rendah || 0)"></span> Rendah</span>
+          <span>◆ <span x-text="(overview.summary.risk_counts.sedang || 0)"></span> Sedang</span>
+          <span>▲ <span x-text="(overview.summary.risk_counts.tinggi || 0)"></span> Tinggi</span>
+          <span style="color:#DC2626;">■ <span x-text="(overview.summary.risk_counts.kritis || 0)"></span> Kritis</span>
+        </div>
       </div>
 
       <!-- ── Search bar ── -->
@@ -442,7 +520,7 @@
                  x-text="p.display_priority_score"></div>
           </div>
           <div class="priority-meta">
-            <span class="priority-tag" :class="'tag-risk-' + p.risk_level" x-text="p.risk_level.toUpperCase()"></span>
+            <span class="priority-tag" :class="'tag-risk-' + p.risk_level"><span x-text="riskIcon(p.risk_level)"></span> <span x-text="p.risk_level.toUpperCase()"></span></span>
             <span class="priority-tag" :class="'tag-confidence-' + p.confidence_level" x-text="'Confidence: ' + p.confidence_level"></span>
             <span class="priority-tag" style="background:var(--surface2);" x-text="p.time_horizon_days + ' hari'"></span>
             <span style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto;"
@@ -1138,6 +1216,12 @@ function executiveDashboard() {
     riskColor(level) {
       const map = { kritis: '#DC2626', tinggi: '#D97706', sedang: '#4338CA', rendah: '#059669' };
       return map[level] || '#71717a';
+    },
+
+    riskIcon(level) {
+      // Color-blind accessible: shape + color, not just color alone
+      const map = { kritis: '■', tinggi: '▲', sedang: '◆', rendah: '●' };
+      return map[level] || '●';
     },
 
     statusClass(status) {
