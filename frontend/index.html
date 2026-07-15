@@ -11,42 +11,89 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
   <style>
+    /* ── Two-column dashboard grid (mockup: 8+4 grid) ── */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    @media (min-width: 1024px) {
+      .dash-grid {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+    .dash-main { min-width: 0; }
+    .dash-sidebar { min-width: 0; }
+
     /* ── Dashboard layout ── */
     .dash-top-bar {
-      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px; margin-bottom: 24px;
     }
     .dash-stat {
-      flex: 1; min-width: 140px;
       background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); padding: 14px 18px;
+      border-radius: var(--radius-sm); padding: 16px 20px;
       box-shadow: var(--shadow); position: relative; overflow: hidden;
     }
     .dash-stat::after {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
       background: var(--accent);
     }
-    .dash-stat.critical::after { background: var(--danger); }
-    .dash-stat.warning::after { background: var(--warn); }
-    .dash-stat .stat-num { font-family: var(--mono); font-size: 28px; font-weight: 800; }
-    .dash-stat .stat-label { font-family: var(--sans); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
+    .dash-stat.critical { background: #DC2626; color: #fff; }
+    .dash-stat.critical::after { background: #991B1B; }
+    .dash-stat.critical .stat-label { color: rgba(255,255,255,0.85); }
+    .dash-stat.warning { background: #F59E0B; }
+    .dash-stat.warning::after { background: #B45309; }
+    .dash-stat.warning .stat-label { color: rgba(0,0,0,0.65); }
+    .dash-stat.safe { background: var(--accent); }
+    .dash-stat.safe::after { background: var(--accent2); }
+    .dash-stat.safe .stat-label { color: rgba(0,0,0,0.65); }
+    .dash-stat .stat-num { font-family: var(--mono); font-size: 32px; font-weight: 800; line-height: 1.1; }
+    .dash-stat .stat-label {
+      font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); margin-top: 6px; font-weight: 600;
+    }
 
     /* ── Freshness indicator ── */
     .freshness-bar {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      padding: 10px 16px; margin-bottom: 16px;
+      padding: 10px 16px; margin-bottom: 20px;
       background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow);
+      border-radius: var(--radius-sm); box-shadow: var(--shadow);
       font-family: var(--sans); font-size: 12px; font-weight: 500;
     }
     .freshness-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; }
-    .freshness-dot.fresh { background: #34D399; }
+    .freshness-dot.fresh { background: #34D399; animation: pulse-dot 2s ease-in-out infinite; }
     .freshness-dot.stale { background: #FBBF24; }
     .freshness-dot.very-stale { background: #F87171; }
 
-    /* ── Priority card ── */
+    /* ── Top 3 priority grid (mockup: 3-column horizontal cards) ── */
+    .top3-grid {
+      display: grid; grid-template-columns: 1fr;
+      gap: 16px; margin-bottom: 24px;
+    }
+    @media (min-width: 640px) {
+      .top3-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    .top3-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); overflow: hidden;
+      box-shadow: var(--shadow); cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s;
+      display: flex; flex-direction: column;
+    }
+    .top3-card:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+    .top3-body { padding: 16px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .top3-name { font-size: 16px; font-weight: 800; line-height: 1.2; }
+    .top3-region { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .top3-bottom { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 12px; }
+    .top3-score-label { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .top3-score-val { font-family: var(--mono); font-size: 24px; font-weight: 800; line-height: 1; }
+
+    /* ── Priority card (full list) ── */
     .priority-card {
       background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); padding: 18px 20px;
+      border-radius: var(--radius-sm); padding: 18px 20px;
       box-shadow: var(--shadow); margin-bottom: 12px;
       cursor: pointer; transition: transform 0.12s, box-shadow 0.12s;
       position: relative; overflow: hidden;
@@ -138,15 +185,25 @@
       flex-shrink: 0;
     }
 
-    /* ── Bundle card ── */
+    /* ── Bundle card (sidebar) ── */
     .bundle-card {
-      background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); padding: 16px;
-      box-shadow: var(--shadow); margin-bottom: 10px;
+      background: var(--accent); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); padding: 20px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
     }
-    .bundle-title { font-size: 15px; font-weight: 900; margin-bottom: 4px; }
-    .bundle-reason { font-size: 11px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+    .bundle-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+    .bundle-reason { font-size: 12px; color: rgba(0,0,0,0.75); margin-bottom: 14px; line-height: 1.5; }
     .bundle-items { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ── Sidebar card ── */
+    .sidebar-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); padding: 20px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .sidebar-card-title {
+      font-size: 16px; font-weight: 800; margin-bottom: 16px;
+    }
 
     /* ── Review buttons ── */
     .review-btn {
@@ -167,6 +224,10 @@
 
     /* ── Filter bar - layout only, styling via .form-select in style.css ── */
     .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-active { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    /* ── Loading state for priorities list ── */
+    .priorities-loading { opacity: 0.4; pointer-events: none; transition: opacity 0.2s; }
 
     /* ── Section heading ── */
     .section-head {
@@ -217,10 +278,15 @@
       display: none;
       flex-direction: column; gap: 6px;
       padding: 12px; background: var(--surface);
-      border: var(--bw) solid var(--border); border-radius: var(--radius);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
       box-shadow: var(--shadow);
     }
     .mobile-nav.show { display: flex; }
+
+    /* ── Utility: hide on mobile ── */
+    @media (max-width: 768px) {
+      .hidden-mobile { display: none !important; }
+    }
 
     /* ── Responsive breakpoints ── */
     @media (max-width: 768px) {
@@ -230,6 +296,9 @@
       .header-right { display: none; }
       .hamburger-btn { display: block; }
       .header { flex-wrap: wrap; }
+
+      /* Top 3 stacked */
+      .top3-grid { grid-template-columns: 1fr; }
 
       /* Priority card compact */
       .priority-card { padding: 12px 14px; }
@@ -248,11 +317,13 @@
 
       /* Search full-width */
       .search-bar > div { max-width: 100% !important; }
+
+      /* Sidebar stacks below main */
+      .dash-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 480px) {
-      .dash-top-bar { flex-direction: column; }
-      .dash-top-bar .dash-stat { min-width: 100%; }
+      .dash-top-bar { grid-template-columns: repeat(2, 1fr); }
       .header-title { font-size: 15px; }
       .priority-name { font-size: 14px; }
       .header { padding: 10px 14px; }
@@ -318,11 +389,11 @@
     </div>
     <div class="header-right">
       <span class="user-badge">
-        <strong x-text="user?.username || '—'"></strong> &middot; <span x-text="user?.role || ''"></span>
+        <strong x-text="user?.username || '-'"></strong> &middot; <span x-text="user?.role || ''"></span>
       </span>
-      <a href="/" class="nav-link" :class="page === 'dashboard' ? 'nav-link-active' : 'nav-link-default'">Dashboard</a>
+      <a href="/" class="nav-link nav-link-active">Dashboard</a>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
+        <a href="/prediksi" class="nav-link nav-link-default">Prediksi ML</a>
       </template>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
       <template x-if="user?.is_admin || user?.role === 'admin'">
@@ -336,9 +407,9 @@
     </button>
     <!-- Mobile nav dropdown -->
     <div class="mobile-nav" :class="navOpen ? 'show' : ''" style="width:100%;margin-top:10px;">
-      <a href="/" class="nav-link" :class="page === 'dashboard' ? 'nav-link-active' : 'nav-link-default'" @click="navOpen = false">Dashboard</a>
+      <a href="/" class="nav-link nav-link-active" @click="navOpen = false">Dashboard</a>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/prediksi" class="nav-link nav-link-default" @click="navOpen = false">Prediksi</a>
+        <a href="/prediksi" class="nav-link nav-link-default" @click="navOpen = false">Prediksi ML</a>
       </template>
       <a href="/guide" class="nav-link nav-link-default" @click="navOpen = false">Panduan</a>
       <template x-if="user?.is_admin || user?.role === 'admin'">
@@ -406,71 +477,67 @@
     <template x-if="overview">
       <div class="animate-in">
 
-      <!-- ── Top stat bar ── -->
+      <!-- ── Top stat bar (4 cards matching mockup) ── -->
       <div class="dash-top-bar">
         <div class="dash-stat">
           <div class="stat-num" x-text="overview.summary.total_commodities"></div>
-          <div class="stat-label">Komoditas Dipantau</div>
+          <div class="stat-label">Total Komoditas</div>
         </div>
-        <div class="dash-stat" :class="overview.summary.has_critical ? 'critical' : (overview.summary.has_high ? 'warning' : '')">
-          <div class="stat-num" :style="overview.summary.has_critical ? 'color:#DC2626;' : ''"
-               x-text="(overview.summary.risk_counts.kritis || 0) + (overview.summary.risk_counts.tinggi || 0)"></div>
-          <div class="stat-label">Risiko Tinggi/Kritis</div>
+        <div class="dash-stat" :class="(overview.summary.risk_counts.kritis || 0) > 0 ? 'critical' : ''">
+          <div class="stat-num" x-text="overview.summary.risk_counts.kritis || 0"></div>
+          <div class="stat-label">Kritis</div>
         </div>
-        <div class="dash-stat">
-          <div class="stat-num" x-text="overview.data_freshness.coverage_ratio != null ? (overview.data_freshness.coverage_ratio * 100).toFixed(0) + '%' : '—'"></div>
-          <div class="stat-label">Cakupan Data</div>
+        <div class="dash-stat" :class="(overview.summary.risk_counts.tinggi || 0) > 0 ? 'warning' : ''">
+          <div class="stat-num" x-text="overview.summary.risk_counts.tinggi || 0"></div>
+          <div class="stat-label">Tinggi</div>
+        </div>
+        <div class="dash-stat safe">
+          <div class="stat-num" x-text="(overview.summary.risk_counts.rendah || 0) + (overview.summary.risk_counts.sedang || 0)"></div>
+          <div class="stat-label">Rendah/Sedang</div>
         </div>
       </div>
 
-      <!-- ── Freshness bar (redesigned: 2 rows for readability) ── -->
-      <div class="freshness-bar" style="display:block;">
-        <!-- Row 1: Data metadata -->
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+      <!-- ── Freshness bar (2-row layout with coverage progress bar) ── -->
+      <div class="freshness-bar" style="display:flex;justify-content:space-between;flex-wrap:wrap;">
+        <!-- Left: Data metadata -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <span class="freshness-dot" :class="overview.data_freshness.status"></span>
           <span style="font-weight:600;">Data: <strong x-text="overview.data_freshness.latest_date"></strong></span>
-          <span style="color:var(--muted);font-size:10px;" x-text="'(' + overview.data_freshness.age_days + ' hari lalu)'"></span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);"
+                x-text="overview.data_freshness.status === 'fresh' ? 'Segar' : (overview.data_freshness.age_days + ' hari lalu')"></span>
           <span>ML:
             <strong :style="overview.service_health.ml_service === 'online' ? 'color:#059669;' : 'color:#DC2626;'"
                     x-text="overview.service_health.ml_service"></strong>
           </span>
-          <a href="#" style="margin-left:auto;font-size:12px;color:var(--accent2);font-weight:700;" @click.prevent="showTransparency = !showTransparency">
-            <span x-text="showTransparency ? 'Sembunyikan Detail' : 'Transparansi Data'"></span> →
-          </a>
         </div>
-        <!-- Row 2: Risk distribution bar -->
-        <div style="display:flex;align-items:center;gap:0;">
-          <div style="flex:1;height:8px;display:flex;border-radius:4px;overflow:hidden;border:1px solid var(--border);">
-            <div style="background:#34D399;" :style="'width:' + ((overview.summary.risk_counts.rendah || 0) / overview.summary.total_entries * 100) + '%'" x-show="(overview.summary.risk_counts.rendah || 0) > 0"></div>
-            <div style="background:#6366F1;" :style="'width:' + ((overview.summary.risk_counts.sedang || 0) / overview.summary.total_entries * 100) + '%'" x-show="(overview.summary.risk_counts.sedang || 0) > 0"></div>
-            <div style="background:#F59E0B;" :style="'width:' + ((overview.summary.risk_counts.tinggi || 0) / overview.summary.total_entries * 100) + '%'" x-show="(overview.summary.risk_counts.tinggi || 0) > 0"></div>
-            <div style="background:#DC2626;" :style="'width:' + ((overview.summary.risk_counts.kritis || 0) / overview.summary.total_entries * 100) + '%'" x-show="(overview.summary.risk_counts.kritis || 0) > 0"></div>
+        <!-- Right: Coverage bar (from mockup) -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-family:var(--mono);font-size:10px;font-weight:600;">Coverage:</span>
+          <div style="width:100px;height:12px;background:#fff;border:var(--bw) solid var(--border);border-radius:8px;overflow:hidden;">
+            <div style="height:100%;background:var(--accent);transition:width 0.3s;"
+                 :style="'width:' + (overview.data_freshness.coverage_ratio != null ? (overview.data_freshness.coverage_ratio * 100) : 0) + '%'"></div>
           </div>
-        </div>
-        <div style="display:flex;gap:14px;margin-top:6px;font-size:11px;align-items:center;">
-          <span style="display:inline-flex;align-items:center;gap:2px;"><span style="font-size:10px;line-height:1;">●</span> <span x-text="(overview.summary.risk_counts.rendah || 0)"></span> Rendah</span>
-          <span style="display:inline-flex;align-items:center;gap:2px;"><span style="font-size:10px;line-height:1;">◆</span> <span x-text="(overview.summary.risk_counts.sedang || 0)"></span> Sedang</span>
-          <span style="display:inline-flex;align-items:center;gap:2px;"><span style="font-size:10px;line-height:1;">▲</span> <span x-text="(overview.summary.risk_counts.tinggi || 0)"></span> Tinggi</span>
-          <span style="display:inline-flex;align-items:center;gap:2px;color:#DC2626;"><span style="font-size:10px;line-height:1;">■</span> <span x-text="(overview.summary.risk_counts.kritis || 0)"></span> Kritis</span>
+          <span style="font-family:var(--mono);font-size:11px;font-weight:700;"
+                x-text="overview.data_freshness.coverage_ratio != null ? (overview.data_freshness.coverage_ratio * 100).toFixed(0) + '%' : '-'"></span>
         </div>
       </div>
 
-      <!-- ── Search bar ── -->
-      <div class="search-bar" style="position:relative;margin-bottom:16px;">
-        <div style="position:relative;max-width:480px;">
+      <!-- ── Search bar (full-width, matching mockup) ── -->
+      <div class="search-bar" style="position:relative;margin-bottom:24px;">
+        <div style="position:relative;">
           <input type="text"
                  x-model="searchQuery"
                  @input="doSearch()"
                  @keydown.escape="searchQuery=''; searchResults=[]; searchNoResults=false;"
-                 placeholder="Cari komoditas, provinsi, atau level risiko..."
+                 placeholder="Cari komoditas, wilayah, atau level risiko..."
                  class="search-input"
-                 style="width:100%;padding:11px 40px 11px 38px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius);font-family:var(--sans);font-size:14px;box-shadow:var(--shadow);outline:none;">
+                 style="width:100%;padding:14px 44px 14px 44px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);font-family:var(--sans);font-size:15px;box-shadow:var(--shadow);outline:none;">
           <!-- Search icon (left) -->
-          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);pointer-events:none;">🔍</span>
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--muted);pointer-events:none;">&#x1F50D;</span>
           <!-- Search loading spinner (right) -->
           <div x-show="searchLoading"
-               style="position:absolute;right:12px;top:50%;transform:translateY(-50%);">
-            <span class="spinner" style="border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);width:14px;height:14px;border-width:2px;"></span>
+               style="position:absolute;right:14px;top:50%;transform:translateY(-50%);">
+            <span class="spinner" style="border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);width:16px;height:16px;border-width:2px;"></span>
           </div>
         </div>
         <!-- Search results dropdown -->
@@ -479,7 +546,7 @@
              x-transition:enter="transition ease-out duration-150"
              x-transition:enter-start="opacity-0 transform -translate-y-1"
              x-transition:enter-end="opacity-100 transform translate-y-0"
-             style="position:absolute;top:100%;left:0;max-width:420px;width:100%;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:100;max-height:320px;overflow-y:auto;margin-top:4px;">
+             style="position:absolute;top:100%;left:0;width:100%;max-width:480px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:100;max-height:320px;overflow-y:auto;margin-top:4px;">
           <template x-for="r in searchResults" :key="r.recommendation_id">
             <div @click="openDetail(r.recommendation_id); searchQuery=''; searchResults=[];"
                  style="display:flex;align-items:center;gap:8px;padding:10px 13px;cursor:pointer;border-bottom:1px solid #e5e5e5;font-family:var(--sans);font-size:13px;transition:background 0.1s;"
@@ -493,103 +560,68 @@
         </div>
         <!-- No results message -->
         <div x-show="searchNoResults && !searchLoading && searchQuery.trim().length >= 2"
-             style="position:absolute;top:100%;left:0;max-width:420px;width:100%;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:100;margin-top:4px;padding:14px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);">
+             style="position:absolute;top:100%;left:0;max-width:480px;width:100%;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:100;margin-top:4px;padding:14px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);">
           Tidak ada hasil untuk "<span x-text="searchQuery" style="font-weight:700;color:var(--text);"></span>"
         </div>
       </div>
 
-      <!-- ── Export buttons ── -->
-      <div class="export-buttons" style="display:flex;gap:6px;margin-bottom:14px;">
-        <button @click="exportPriorities('csv')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 12px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);">📥 CSV</button>
-        <button @click="exportPriorities('xlsx')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 12px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);">📊 Excel</button>
-      </div>
+      <!-- ══════ Two-column grid: Main + Sidebar ══════ -->
+      <div class="dash-grid">
 
-      <!-- ── Top 3 Priorities ── -->
-      <div class="section-head" style="margin-top:20px;">Prioritas Utama</div>
+        <!-- ── LEFT: Main content ── -->
+        <div class="dash-main">
+
+      <!-- ── Top 3 Priorities (horizontal card grid from mockup) ── -->
+      <div class="section-head">Top 3 Prioritas Utama</div>
 
       <template x-if="overview.top_priorities.length === 0">
         <div class="empty-card">Tidak ada prioritas risiko tinggi saat ini. Semua komoditas dalam kondisi normal.</div>
       </template>
 
-      <template x-for="(p, idx) in overview.top_priorities" :key="p.recommendation_id">
-        <div class="priority-card animate-in"
-             :class="'risk-' + p.risk_level"
-             :style="'animation-delay:' + (idx * 0.08) + 's'"
-             @click="openDetail(p.recommendation_id)">
-          <div class="priority-header">
-            <div>
-              <div class="priority-rank" x-text="'#' + (idx + 1) + ' · ' + p.price_condition"></div>
-              <div class="priority-name" x-text="p.commodity"></div>
-              <div class="priority-region" x-text="p.region"></div>
-            </div>
-            <div class="priority-tag" :class="'tag-risk-' + p.risk_level"
-                 style="font-size:12px;white-space:nowrap;align-self:flex-start;">
-              <span x-text="riskIcon(p.risk_level)"></span> <span x-text="p.risk_level.toUpperCase()"></span>
-            </div>
-          </div>
-          <div class="priority-meta">
-            <span class="priority-tag" :class="'tag-risk-' + p.risk_level"><span x-text="riskIcon(p.risk_level)"></span> <span x-text="p.risk_level.toUpperCase()"></span></span>
-            <span class="priority-tag" :class="'tag-confidence-' + p.confidence_level" x-text="'Keyakinan: ' + labelId(p.confidence_level)"></span>
-            <span class="priority-tag" style="background:var(--surface2);" x-text="p.time_horizon_days + ' hari'"></span>
-            <span style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto;"
-                  x-text="p.knowledge_status === 'fact' ? '📋 Fakta' : p.knowledge_status === 'model_output' ? '🤖 Model' : '🔍 Inference'"></span>
-          </div>
-          <!-- Sparkline -->
-          <div x-show="sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2" style="margin-top:8px;">
-            <svg width="100%" height="24" viewBox="0 0 100 24" preserveAspectRatio="none" style="display:block;">
-              <polyline :points="sparklinePoints(p.recommendation_id)"
-                        fill="none" :stroke="riskColor(p.risk_level)" stroke-width="1.5"
-                        stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
-            </svg>
-          </div>
-          <div class="priority-next-step" x-text="'→ ' + p.next_step"></div>
-        </div>
-      </template>
-
-      <!-- ── Review bundles (flagship feature - positioned prominently) ── -->
-      <template x-if="overview.review_bundles.length > 0">
-        <div>
-          <div class="section-head" style="margin-top:24px;">Paket Tinjauan Bersama</div>
-          <template x-for="b in overview.review_bundles" :key="b.name">
-            <div class="bundle-card">
-              <div class="bundle-title" x-text="b.name"></div>
-              <div class="bundle-reason" x-text="b.reason"></div>
-              <div class="bundle-items">
-                <template x-for="c in b.commodities" :key="c.name">
-                  <span class="priority-tag" :class="'tag-risk-' + c.risk_level"
-                        @click="openDetail(c.recommendation_id)"
-                        style="cursor:pointer;"
-                        :title="'Lihat detail ' + c.name"
-                        x-text="c.name + ' (' + c.display_priority_score + ')'"></span>
-                </template>
+      <div class="top3-grid">
+        <template x-for="(p, idx) in overview.top_priorities.slice(0, 3)" :key="p.recommendation_id">
+          <div class="top3-card animate-in"
+               :style="'animation-delay:' + (idx * 0.08) + 's'"
+               @click="openDetail(p.recommendation_id)">
+            <div class="top3-body">
+              <div>
+                <span class="priority-tag" :class="'tag-risk-' + p.risk_level"
+                      x-text="p.risk_level.toUpperCase()" style="font-size:9px;"></span>
+                <div class="top3-name" style="margin-top:8px;" x-text="p.commodity"></div>
+                <div class="top3-region" x-text="p.region"></div>
               </div>
-              <template x-if="b.missing_information.filter(m => m.includes('ML server offline')).length > 0">
-                <div style="margin-top:8px;padding:6px 10px;background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:6px;font-size:11px;color:#92400E;">
-                  <strong>ML Server Offline:</strong>
-                  <span x-text="b.missing_information.filter(m => m.includes('ML server offline')).map(m => m.split(' - ')[0]).join(', ')"></span>
-                  <span style="color:var(--muted);"> - akan tersedia saat ML server aktif</span>
+              <div class="top3-bottom">
+                <!-- Mini sparkline -->
+                <div x-show="sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2"
+                     style="width:70px;">
+                  <svg width="70" height="24" viewBox="0 0 100 24" preserveAspectRatio="none" style="display:block;">
+                    <polyline :points="sparklinePoints(p.recommendation_id)"
+                              fill="none" :stroke="riskColor(p.risk_level)" stroke-width="2"
+                              stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+                  </svg>
                 </div>
-              </template>
-              <template x-if="b.missing_information.filter(m => m.includes('data tidak tersedia')).length > 0">
-                <div style="margin-top:4px;padding:6px 10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;font-size:11px;color:var(--muted);">
-                  <strong>Data eksternal belum tersedia:</strong>
-                  <span x-text="b.missing_information.filter(m => m.includes('data tidak tersedia')).map(m => m.split(' (')[0]).join(', ')"></span>
+                <div style="text-align:right;">
+                  <div class="top3-score-label">Skor Prioritas</div>
+                  <div class="top3-score-val" :style="'color:' + riskColor(p.risk_level)"
+                       x-text="p.display_priority_score"></div>
                 </div>
-              </template>
+              </div>
             </div>
-          </template>
-        </div>
-      </template>
+          </div>
+        </template>
+      </div>
 
-      <!-- ── Full priority list ── -->
-      <div class="section-head" style="margin-top:24px;">Daftar Prioritas Lengkap</div>
+      <!-- ── Full priority list (table-like rows from mockup) ── -->
+      <div class="section-head" style="margin-top:8px;">Daftar Prioritas Lengkap</div>
+
+      <!-- Filter bar -->
       <div class="filter-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
         <select x-model="filterRisk" @change="loadPriorities()"
                 class="form-select"
                 :class="filterRisk ? 'filter-active' : ''"
                 :disabled="prioritiesLoading"
                 style="flex:1;min-width:140px;max-width:200px;">
-          <option value="">Semua Risiko</option>
+          <option value="">Filter Risiko</option>
           <option value="kritis">Kritis</option>
           <option value="tinggi">Tinggi</option>
           <option value="sedang">Sedang</option>
@@ -600,7 +632,7 @@
                 :class="filterProvince ? 'filter-active' : ''"
                 :disabled="prioritiesLoading"
                 style="flex:1;min-width:140px;max-width:200px;">
-          <option value="">Semua Provinsi</option>
+          <option value="">Wilayah</option>
           <template x-for="pv in overview.provinces" :key="pv.id">
             <option :value="pv.name" x-text="pv.name"></option>
           </template>
@@ -619,75 +651,179 @@
         </button>
       </div>
 
-      <template x-if="allPriorities.length === 0 && !prioritiesLoading">
-        <div class="empty-card">
-          <template x-if="filterRisk || filterProvince">
-            <span>Tidak ada hasil dengan filter aktif. <a href="#" @click.prevent="filterRisk=''; filterProvince=''; loadPriorities();" style="color:var(--accent2);font-weight:700;">Reset filter</a></span>
-          </template>
-          <template x-if="!filterRisk && !filterProvince">
-            <span>Tidak ada data prioritas tersedia saat ini.</span>
+      <!-- Priority list card container -->
+      <div class="sidebar-card" style="padding:0;overflow:hidden;">
+        <template x-if="allPriorities.length === 0 && !prioritiesLoading">
+          <div class="empty-card" style="box-shadow:none;border:none;">
+            <template x-if="filterRisk || filterProvince">
+              <span>Tidak ada hasil dengan filter aktif. <a href="#" @click.prevent="filterRisk=''; filterProvince=''; loadPriorities();" style="color:var(--accent2);font-weight:700;">Reset filter</a></span>
+            </template>
+            <template x-if="!filterRisk && !filterProvince">
+              <span>Tidak ada data prioritas tersedia saat ini.</span>
+            </template>
+          </div>
+        </template>
+
+        <div :class="prioritiesLoading ? 'priorities-loading' : ''">
+        <template x-for="p in paginatedPriorities" :key="p.recommendation_id">
+          <div class="animate-in" :class="'risk-' + p.risk_level"
+               style="padding:14px 16px;border-bottom:1px solid #e5e5e5;cursor:pointer;transition:background 0.1s;"
+               @click="openDetail(p.recommendation_id)"
+               @mouseenter="$el.style.background='var(--surface2)'"
+               @mouseleave="$el.style.background='transparent'">
+            <!-- Row 1: Main info -->
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+                <!-- Rank number -->
+                <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--muted);min-width:24px;" x-text="'#' + p.rank"></span>
+                <!-- Risk dot (color indicator from mockup) -->
+                <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;box-shadow:1px 1px 0 var(--border);"
+                     :style="'background:' + riskColor(p.risk_level)"></div>
+                <div style="min-width:0;">
+                  <div style="font-size:14px;font-weight:700;" x-text="p.commodity"></div>
+                  <div style="font-family:var(--mono);font-size:10px;color:var(--muted);" x-text="p.region"></div>
+                </div>
+              </div>
+              <!-- Mini sparkline (hidden on mobile) -->
+              <div x-show="sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2"
+                   style="width:60px;flex-shrink:0;display:none;"
+                   :style="{display: sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2 ? 'block' : 'none'}"
+                   class="hidden-mobile">
+                <svg width="60" height="18" viewBox="0 0 100 24" preserveAspectRatio="none" style="display:block;">
+                  <polyline :points="sparklinePoints(p.recommendation_id)"
+                            fill="none" :stroke="riskColor(p.risk_level)" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                </svg>
+              </div>
+              <!-- Score + Detail button -->
+              <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                <span style="font-family:var(--mono);font-size:14px;font-weight:700;" :style="'color:' + riskColor(p.risk_level)"
+                      x-text="p.display_priority_score"></span>
+                <span style="font-family:var(--mono);font-size:10px;font-weight:700;padding:4px 12px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:20px;box-shadow:1px 1px 0 var(--border);">Detail</span>
+              </div>
+            </div>
+            <!-- Row 2: Metadata tags (price condition, confidence, horizon, knowledge status) -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding-left:52px;">
+              <span class="priority-tag" :class="'tag-risk-' + p.risk_level" x-text="p.price_condition" style="font-size:9px;"></span>
+              <span class="priority-tag" :class="'tag-confidence-' + p.confidence_level"
+                    x-text="'Keyakinan: ' + labelId(p.confidence_level)" style="font-size:9px;"></span>
+              <span class="priority-tag" style="background:var(--surface2);font-size:9px;"
+                    x-text="p.time_horizon_days + ' hari'"></span>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:auto;"
+                    x-text="p.knowledge_status === 'fact' ? 'Fakta' : p.knowledge_status === 'model_output' ? 'Model' : 'Inference'"></span>
+            </div>
+          </div>
+        </template>
+        </div><!-- /priorities-loading wrapper -->
+      </div>
+
+      <!-- ── Pagination controls ── -->
+      <div x-show="priorityTotalPages > 1" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-family:var(--mono);font-size:11px;">
+        <button @click="goToPriorityPage(priorityPage - 1)" :disabled="priorityPage <= 1"
+                style="padding:5px 10px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);font-weight:700;font-size:11px;"
+                :style="priorityPage <= 1 ? 'opacity:0.3;cursor:not-allowed;' : ''">Prev</button>
+        <template x-for="pg in Array.from({length: priorityTotalPages}, (_, i) => i + 1)" :key="pg">
+          <button @click="goToPriorityPage(pg)"
+                  style="padding:5px 10px;border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;font-weight:700;font-size:11px;"
+                  :style="pg === priorityPage ? 'background:var(--accent);color:#fff;box-shadow:var(--shadow);' : 'background:var(--surface);box-shadow:1px 1px 0 var(--border);'"
+                  x-text="pg"></button>
+        </template>
+        <button @click="goToPriorityPage(priorityPage + 1)" :disabled="priorityPage >= priorityTotalPages"
+                style="padding:5px 10px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);font-weight:700;font-size:11px;"
+                :style="priorityPage >= priorityTotalPages ? 'opacity:0.3;cursor:not-allowed;' : ''">Next</button>
+        <span style="color:var(--muted);margin-left:8px;"
+              x-text="'Hal. ' + priorityPage + ' / ' + priorityTotalPages + ' (' + allPriorities.length + ' total)'"></span>
+      </div>
+
+      <!-- ── Export buttons ── -->
+      <div class="export-buttons" style="display:flex;gap:6px;margin-top:12px;">
+        <button @click="exportPriorities('csv')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 14px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:8px;cursor:pointer;box-shadow:2px 2px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;" class="btn">CSV</button>
+        <button @click="exportPriorities('xlsx')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 14px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:8px;cursor:pointer;box-shadow:2px 2px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;" class="btn">Excel</button>
+      </div>
+
+        </div><!-- /dash-main -->
+
+        <!-- ── RIGHT: Sidebar ── -->
+        <aside class="dash-sidebar">
+
+      <!-- ── Review bundles (accent background like mockup) ── -->
+      <template x-if="overview.review_bundles.length > 0">
+        <div>
+          <template x-for="b in overview.review_bundles" :key="b.name">
+            <div class="bundle-card">
+              <div class="bundle-title" x-text="b.name"></div>
+              <div class="bundle-reason" x-text="b.reason"></div>
+              <div class="bundle-items">
+                <template x-for="c in b.commodities" :key="c.name">
+                  <span class="priority-tag" :class="'tag-risk-' + c.risk_level"
+                        @click="openDetail(c.recommendation_id)"
+                        style="cursor:pointer;"
+                        :title="'Lihat detail ' + c.name"
+                        x-text="c.name + ' (' + c.display_priority_score + ')'"></span>
+                </template>
+              </div>
+              <template x-if="b.missing_information.filter(m => m.includes('ML server offline')).length > 0">
+                <div style="margin-top:8px;padding:6px 10px;background:rgba(255,255,255,0.6);border:1.5px solid var(--border);border-radius:6px;font-size:11px;color:#92400E;">
+                  <strong>ML Offline:</strong>
+                  <span x-text="b.missing_information.filter(m => m.includes('ML server offline')).map(m => m.split(' - ')[0]).join(', ')"></span>
+                </div>
+              </template>
+            </div>
           </template>
         </div>
       </template>
 
-      <div :class="prioritiesLoading ? 'priorities-loading' : ''">
-      <template x-for="p in allPriorities" :key="p.recommendation_id">
-        <div class="priority-card animate-in" :class="'risk-' + p.risk_level"
-             style="padding:12px 16px;margin-bottom:6px;"
-             @click="openDetail(p.recommendation_id)">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:700;" x-text="'#' + p.rank"></span>
-            <div style="flex:1;min-width:0;">
-              <span style="font-size:14px;font-weight:700;" x-text="p.commodity"></span>
-              <span style="font-size:10px;color:var(--muted);margin-left:6px;" x-text="p.region"></span>
-            </div>
-            <!-- Mini sparkline in compact list -->
-            <div x-show="sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2"
-                 style="width:60px;flex-shrink:0;display:none;"
-                 :style="{display: sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2 ? 'block' : 'none'}">
-              <svg width="60" height="18" viewBox="0 0 100 24" preserveAspectRatio="none" style="display:block;">
-                <polyline :points="sparklinePoints(p.recommendation_id)"
-                          fill="none" :stroke="riskColor(p.risk_level)" stroke-width="2"
-                          stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
-              </svg>
-            </div>
-            <span class="priority-tag" :class="'tag-risk-' + p.risk_level" x-text="p.risk_level"></span>
-            <span style="font-family:var(--mono);font-size:14px;font-weight:700;" :style="'color:' + riskColor(p.risk_level)"
-                  x-text="p.display_priority_score"></span>
+      <!-- ── Latest reviews (sidebar card) ── -->
+      <template x-if="overview.latest_reviews.length > 0">
+        <div class="sidebar-card">
+          <div class="sidebar-card-title">Tinjauan Terbaru</div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <template x-for="r in overview.latest_reviews" :key="r.id">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <!-- Default avatar circle (no S3) -->
+                <div style="width:36px;height:36px;border-radius:50%;border:var(--bw) solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent2);"
+                     x-text="(r.reviewer_username || r.recommendation_id || '?').substring(0,2).toUpperCase()"></div>
+                <div style="min-width:0;">
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="review-status" :class="statusClass(r.status)" x-text="r.status" style="font-size:9px;padding:2px 6px;"></span>
+                  </div>
+                  <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;"
+                       x-text="r.created_at?.substring(0,10)"></div>
+                  <div style="font-size:11px;color:var(--text2);margin-top:2px;" x-show="r.note"
+                       x-text="'\"' + (r.note || '').substring(0, 60) + (r.note?.length > 60 ? '...' : '') + '\"'"></div>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </template>
-      </div><!-- /priorities-loading wrapper -->
 
-      <!-- ── Latest reviews ── -->
-      <template x-if="overview.latest_reviews.length > 0">
-        <div>
-          <div class="section-head" style="margin-top:24px;">Review Terbaru</div>
-          <template x-for="r in overview.latest_reviews" :key="r.id">
-            <div class="evidence-item" style="display:flex;align-items:center;justify-content:space-between;">
-              <div>
-                <span class="review-status" :class="statusClass(r.status)" x-text="r.status"></span>
-                <span style="font-family:var(--mono);font-size:10px;margin-left:8px;color:var(--text2);" x-text="r.recommendation_id"></span>
-              </div>
-              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);" x-text="r.created_at?.substring(0,10)"></span>
-            </div>
-          </template>
+      <!-- ── Transparency toggle (sidebar card, matching mockup) ── -->
+      <div class="sidebar-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div class="sidebar-card-title" style="margin-bottom:0;">Transparansi Data</div>
+          <button @click="showTransparency = !showTransparency"
+                  style="width:40px;height:22px;border-radius:11px;border:var(--bw) solid var(--border);cursor:pointer;position:relative;transition:background 0.2s;"
+                  :style="showTransparency ? 'background:var(--accent);' : 'background:#e5e7eb;'">
+            <span style="width:16px;height:16px;border-radius:50%;background:#fff;border:1px solid var(--border);position:absolute;top:1px;transition:left 0.2s;"
+                  :style="showTransparency ? 'left:20px;' : 'left:2px;'"></span>
+          </button>
         </div>
-      </template>
+        <p style="font-size:11px;color:var(--muted);line-height:1.5;">Tampilkan detail sumber data dan konfigurasi prioritas.</p>
+      </div>
 
       <!-- ── Transparency panel (expandable) ── -->
       <template x-if="showTransparency">
-        <div class="animate-in" style="margin-top:20px;" x-data="{}" x-init="loadTransparency()">
-          <div class="section-head">Transparansi Data & Model</div>
+        <div class="animate-in" x-init="loadTransparency()">
           <template x-if="transparencyData">
-            <div class="card">
+            <div class="sidebar-card">
               <div class="card-label">Sumber Data</div>
               <template x-for="ds in transparencyData.data_sources" :key="ds.name">
                 <div class="evidence-item" style="margin-bottom:4px;">
-                  <strong x-text="ds.name"></strong> — <span x-text="ds.type"></span>
+                  <strong x-text="ds.name"></strong> - <span x-text="ds.type"></span>
                   <div style="font-size:10px;color:var(--muted);margin-top:2px;">
-                    Update: <span x-text="ds.update_cadence"></span> ·
-                    Terbaru: <span x-text="ds.latest_data"></span> ·
+                    Update: <span x-text="ds.update_cadence"></span> |
+                    Terbaru: <span x-text="ds.latest_data"></span> |
                     Cakupan: <span x-text="ds.coverage"></span>
                   </div>
                 </div>
@@ -704,7 +840,7 @@
 
               <div class="card-label" style="margin-top:12px;">Keterbatasan</div>
               <template x-for="lim in transparencyData.known_limitations" :key="lim">
-                <div class="evidence-item" style="font-size:10px;" x-text="'• ' + lim"></div>
+                <div class="evidence-item" style="font-size:10px;" x-text="lim"></div>
               </template>
 
               <div style="margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--warn);padding:6px 10px;background:#FEF3C7;border-radius:6px;border:1.5px solid var(--border);"
@@ -713,6 +849,10 @@
           </template>
         </div>
       </template>
+
+        </aside><!-- /dash-sidebar -->
+
+      </div><!-- /dash-grid -->
 
       </div>
     </template>  <!-- end dashboard content -->
@@ -934,6 +1074,8 @@ function executiveDashboard() {
     filterRisk: '',
     filterProvince: '',
     prioritiesLoading: false,
+    priorityPage: 1,
+    priorityPerPage: 10,
     showTransparency: false,
     transparencyData: null,
     sparklines: {},
@@ -1058,6 +1200,7 @@ function executiveDashboard() {
       this._prioritiesAbort = new AbortController();
 
       this.prioritiesLoading = true;
+      this.priorityPage = 1; // Reset pagination on filter change
       let url = '/api/mvp/priorities?';
       if (this.filterRisk) url += 'risk=' + encodeURIComponent(this.filterRisk) + '&';
       if (this.filterProvince) url += 'province=' + encodeURIComponent(this.filterProvince) + '&';
@@ -1343,6 +1486,19 @@ function executiveDashboard() {
       if (s.includes('tunda')) return 'tunda';
       if (s.includes('tolak')) return 'tolak';
       return 'belum';
+    },
+
+    // Pagination helpers for priority list
+    get paginatedPriorities() {
+      const start = (this.priorityPage - 1) * this.priorityPerPage;
+      return this.allPriorities.slice(start, start + this.priorityPerPage);
+    },
+    get priorityTotalPages() {
+      return Math.max(1, Math.ceil(this.allPriorities.length / this.priorityPerPage));
+    },
+    goToPriorityPage(page) {
+      if (page < 1 || page > this.priorityTotalPages) return;
+      this.priorityPage = page;
     },
 
     responseBg(type) {
