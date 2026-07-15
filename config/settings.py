@@ -39,15 +39,17 @@ HET_WASPADA_PCT = 0.80               # >= 80% of HET -> WASPADA
 HET_KRITIS_PCT = 0.95                # >= 95% of HET -> KRITIS (approaching limit)
 HET_MELAMPAUI_PCT = 1.00             # > 100% of HET -> MELAMPAUI (exceeded)
 
-# Dummy HET reference prices (Rp/kg) — replace with real Bapanas data
-# Sources: estimasi berdasarkan observasi pasar + berita Bapanas
+# HET reference prices (Rp/kg) — based on Peraturan Bapanas No. 12/2024
+# Where official range exists, upper bound is used as ceiling price.
+# Cabai Merah Besar & Cabai Rawit Hijau not in 12/2024 → kept from Bapanas Acuan Atas 2023.
+# Source: docs/knowledge-base/12 TH 2024.pdf
 HET_REFERENCE: dict[str, int] = {
-    "com_11": 40_000,   # Bawang Merah — Rp 40.000/kg
-    "com_12": 45_000,   # Bawang Putih — Rp 45.000/kg
-    "com_13": 55_000,   # Cabai Merah Besar — Rp 55.000/kg
-    "com_14": 50_000,   # Cabai Merah Keriting — Rp 50.000/kg
-    "com_15": 60_000,   # Cabai Rawit Hijau — Rp 60.000/kg
-    "com_16": 70_000,   # Cabai Rawit Merah — Rp 70.000/kg
+    "com_11": 41_500,   # Bawang Merah — 36.5K-41.5K → upper bound Rp 41.500/kg
+    "com_12": 38_000,   # Bawang Putih — 38.000/kg (40K for Papua & 3TP regions)
+    "com_13": 55_000,   # Cabai Merah Besar — not in 12/2024, kept from Bapanas 2023
+    "com_14": 55_000,   # Cabai Merah Keriting — 37K-55K → upper bound Rp 55.000/kg
+    "com_15": 60_000,   # Cabai Rawit Hijau — not in 12/2024, kept from Bapanas 2023
+    "com_16": 57_000,   # Cabai Rawit Merah — 40K-57K → upper bound Rp 57.000/kg
 }
 
 # ── Data Sources (isi saat connect ke real API) ───────────────────────────

@@ -38,7 +38,7 @@ def _rec(
         "observed_facts": [],
         "model_outputs": [],
         "possible_factors": [],
-        "missing_information": missing_information or ["Volume stok", "Kapasitas logistik"],
+        "missing_information": missing_information or ["Kapasitas logistik (data tidak tersedia)"],
         "response_options": [],
         "sources": [{"name": "PIHPS", "cutoff": "2026-07-13"}],
         "priority_signals": {
@@ -60,7 +60,7 @@ def sample_recs() -> list[dict]:
     bawang_merah = _rec("rec_bawang_merah", "Bawang Merah", "sedang", "medium", 48.0)
     bawang_putih = _rec("rec_bawang_putih", "Bawang Putih", "rendah", "high", 30.0)
     low_conf = _rec("rec_low_conf", "Cabai Rawit Merah", "sedang", "low", 40.0,
-                    missing_information=["Metrik performa model (WAPE)", "Volume stok"])
+                    missing_information=["Metrik performa model (WAPE) - ML server offline", "Kapasitas logistik (data tidak tersedia)"])
     return [cabai_merah, cabai_keriting, cabai_rawit, bawang_merah, bawang_putih, low_conf]
 
 
@@ -253,14 +253,14 @@ class TestBundleEdgeCases:
 
     def test_duplicate_missing_info_deduplicated(self):
         recs = [
-            _rec("r1", "A", "kritis", "high", 90.0, missing_information=["Volume stok"]),
-            _rec("r2", "B", "kritis", "high", 88.0, missing_information=["Volume stok", "Metrik WAPE"]),
+            _rec("r1", "A", "kritis", "high", 90.0, missing_information=["Kapasitas logistik (data tidak tersedia)"]),
+            _rec("r2", "B", "kritis", "high", 88.0, missing_information=["Kapasitas logistik (data tidak tersedia)", "Metrik WAPE"]),
         ]
         bundles = generate_bundles(recs)
         kritis = [b for b in bundles if b["bundle_type"] == "risk_cluster"][0]
         missing = kritis["missing_information"]
         assert len(missing) == 2
-        assert missing == ["Volume stok", "Metrik WAPE"]
+        assert missing == ["Kapasitas logistik (data tidak tersedia)", "Metrik WAPE"]
 
     def test_bundles_sorted_by_priority_score_desc(self):
         recs = [

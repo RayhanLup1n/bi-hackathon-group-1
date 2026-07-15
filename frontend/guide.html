@@ -660,9 +660,11 @@
     <div class="card" style="margin-bottom:10px;">
       <div class="sub-label">Tentang Prediksi ML</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        Halaman Prediksi menggunakan model Machine Learning (LightGBM Quantile) untuk
-        memprediksi harga pangan 7-14 hari ke depan. Prediksi dilengkapi dengan
-        analisis FTA (Fault Tree Analysis) dan rekomendasi dari LLM Agent.
+        Halaman Prediksi menggunakan arsitektur ML 4 lapis:
+        <strong>Lapis 1</strong> (LightGBM Quantile) memprediksi harga 7-14 hari ke depan,
+        <strong>Lapis 2</strong> (Detection) mendeteksi changepoint dan pelanggaran HET,
+        <strong>Lapis 2.5</strong> (FTA) mengklasifikasi ancaman penyebab (hari raya, cuaca, stok, distribusi),
+        <strong>Lapis 3</strong> (LLM Agent) mensintesis seluruh sinyal menjadi rekomendasi intervensi berbasis Bowtie.
       </p>
     </div>
 
@@ -692,10 +694,12 @@
         <div class="step-item">
           <div class="step-num">3</div>
           <div class="step-content">
-            <div class="step-title">Baca Analisis FTA</div>
+            <div class="step-title">Baca Analisis Detection &amp; FTA</div>
             <div class="step-desc">
-              Panel FTA menampilkan faktor-faktor yang mempengaruhi prediksi:
-              hari raya, cuaca ekstrem, persebaran kota, dan kondisi stok.
+              Lapis 2 (Detection) mendeteksi lonjakan harga struktural (changepoint),
+              pelanggaran HET, dan ketimpangan harga antar kota.
+              Lapis 2.5 (FTA) mengklasifikasi ancaman: T1 Hari Raya, T2 Inflasi,
+              T3 Cuaca, T4 Defisit Stok, T5 Distribusi - dengan tingkat siaga kritis/siaga/waspada/aman.
             </div>
           </div>
         </div>
@@ -704,8 +708,9 @@
           <div class="step-content">
             <div class="step-title">Lihat Rekomendasi LLM</div>
             <div class="step-desc">
-              LLM Agent memberikan rekomendasi aksi berdasarkan hasil analisis.
-              Rekomendasi mencakup langkah pencegahan dan mitigasi yang bisa diambil.
+              Lapis 3 (LLM Agent) mensintesis seluruh sinyal dari forecast, detection, dan FTA
+              menjadi rekomendasi intervensi berbasis metodologi Bowtie.
+              Rekomendasi mencakup langkah pencegahan (preventive barriers) dan mitigasi (recovery barriers).
             </div>
           </div>
         </div>
@@ -718,10 +723,41 @@
         <div class="signal-row">
           <div class="signal-icon">📉</div>
           <div class="signal-info">
-            <div class="signal-name">Confidence Interval</div>
+            <div class="signal-name">Interval Keyakinan (Confidence Interval)</div>
             <div class="signal-desc">
               Area berwarna di sekitar garis prediksi menunjukkan rentang kemungkinan harga.
               Semakin lebar area, semakin tinggi ketidakpastian prediksi.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">📊</div>
+          <div class="signal-info">
+            <div class="signal-name">Faktor Pendorong (SHAP)</div>
+            <div class="signal-desc">
+              Visualisasi SHAP menunjukkan fitur mana yang paling mempengaruhi prediksi harga,
+              misalnya harga lag-7, hari raya, atau cuaca.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🔍</div>
+          <div class="signal-info">
+            <div class="signal-name">Sinyal Detection</div>
+            <div class="signal-desc">
+              Changepoint (Z-score), CUSUM drift, jarak HET, dan disparitas harga antar kota.
+              Sinyal ini mengkonfirmasi apakah lonjakan harga bersifat struktural atau sementara.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">⚠️</div>
+          <div class="signal-info">
+            <div class="signal-name">Ancaman FTA (T1-T5)</div>
+            <div class="signal-desc">
+              Klasifikasi ancaman: T1 Hari Raya, T2 Inflasi, T3 Cuaca Ekstrem,
+              T4 Defisit Stok, T5 Gangguan Distribusi - masing-masing dengan
+              tingkat siaga (kritis/siaga/waspada/aman).
             </div>
           </div>
         </div>
@@ -741,7 +777,8 @@
             <div class="signal-name">LLM Agent (Groq)</div>
             <div class="signal-desc">
               Rekomendasi dihasilkan oleh LLM (Llama 3.3 70B via Groq API).
-              Agent menganalisis hasil FTA dan memberikan saran aksi yang kontekstual.
+              Agent mensintesis seluruh sinyal (forecast + detection + FTA) menggunakan
+              metodologi Bowtie untuk menghasilkan rekomendasi intervensi yang kontekstual.
             </div>
           </div>
         </div>

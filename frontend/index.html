@@ -321,6 +321,9 @@
         <strong x-text="user?.username || '—'"></strong> &middot; <span x-text="user?.role || ''"></span>
       </span>
       <a href="/" class="nav-link" :class="page === 'dashboard' ? 'nav-link-active' : 'nav-link-default'">Dashboard</a>
+      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
+        <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
+      </template>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
       <template x-if="user?.is_admin || user?.role === 'admin'">
         <a href="/admin" class="nav-link nav-link-default">Admin</a>
@@ -334,6 +337,9 @@
     <!-- Mobile nav dropdown -->
     <div class="mobile-nav" :class="navOpen ? 'show' : ''" style="width:100%;margin-top:10px;">
       <a href="/" class="nav-link" :class="page === 'dashboard' ? 'nav-link-active' : 'nav-link-default'" @click="navOpen = false">Dashboard</a>
+      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
+        <a href="/prediksi" class="nav-link nav-link-default" @click="navOpen = false">Prediksi</a>
+      </template>
       <a href="/guide" class="nav-link nav-link-default" @click="navOpen = false">Panduan</a>
       <template x-if="user?.is_admin || user?.role === 'admin'">
         <a href="/admin" class="nav-link nav-link-default" @click="navOpen = false">Admin</a>
@@ -441,11 +447,11 @@
             <div style="background:#DC2626;" :style="'width:' + ((overview.summary.risk_counts.kritis || 0) / overview.summary.total_entries * 100) + '%'" x-show="(overview.summary.risk_counts.kritis || 0) > 0"></div>
           </div>
         </div>
-        <div style="display:flex;gap:14px;margin-top:6px;font-size:11px;">
-          <span>● <span x-text="(overview.summary.risk_counts.rendah || 0)"></span> Rendah</span>
-          <span>◆ <span x-text="(overview.summary.risk_counts.sedang || 0)"></span> Sedang</span>
-          <span>▲ <span x-text="(overview.summary.risk_counts.tinggi || 0)"></span> Tinggi</span>
-          <span style="color:#DC2626;">■ <span x-text="(overview.summary.risk_counts.kritis || 0)"></span> Kritis</span>
+        <div style="display:flex;gap:14px;margin-top:6px;font-size:11px;align-items:center;">
+          <span style="display:inline-flex;align-items:center;gap:2px;"><span style="font-size:10px;line-height:1;">●</span> <span x-text="(overview.summary.risk_counts.rendah || 0)"></span> Rendah</span>
+          <span style="display:inline-flex;align-items:center;gap:2px;"><span style="font-size:10px;line-height:1;">◆</span> <span x-text="(overview.summary.risk_counts.sedang || 0)"></span> Sedang</span>
+          <span style="display:inline-flex;align-items:center;gap:2px;"><span style="font-size:10px;line-height:1;">▲</span> <span x-text="(overview.summary.risk_counts.tinggi || 0)"></span> Tinggi</span>
+          <span style="display:inline-flex;align-items:center;gap:2px;color:#DC2626;"><span style="font-size:10px;line-height:1;">■</span> <span x-text="(overview.summary.risk_counts.kritis || 0)"></span> Kritis</span>
         </div>
       </div>
 
@@ -516,12 +522,14 @@
               <div class="priority-name" x-text="p.commodity"></div>
               <div class="priority-region" x-text="p.region"></div>
             </div>
-            <div class="priority-score" :style="'color:' + riskColor(p.risk_level)"
-                 x-text="p.display_priority_score"></div>
+            <div class="priority-tag" :class="'tag-risk-' + p.risk_level"
+                 style="font-size:12px;white-space:nowrap;align-self:flex-start;">
+              <span x-text="riskIcon(p.risk_level)"></span> <span x-text="p.risk_level.toUpperCase()"></span>
+            </div>
           </div>
           <div class="priority-meta">
             <span class="priority-tag" :class="'tag-risk-' + p.risk_level"><span x-text="riskIcon(p.risk_level)"></span> <span x-text="p.risk_level.toUpperCase()"></span></span>
-            <span class="priority-tag" :class="'tag-confidence-' + p.confidence_level" x-text="'Confidence: ' + p.confidence_level"></span>
+            <span class="priority-tag" :class="'tag-confidence-' + p.confidence_level" x-text="'Keyakinan: ' + labelId(p.confidence_level)"></span>
             <span class="priority-tag" style="background:var(--surface2);" x-text="p.time_horizon_days + ' hari'"></span>
             <span style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto;"
                   x-text="p.knowledge_status === 'fact' ? '📋 Fakta' : p.knowledge_status === 'model_output' ? '🤖 Model' : '🔍 Inference'"></span>
@@ -555,9 +563,19 @@
                         x-text="c.name + ' (' + c.display_priority_score + ')'"></span>
                 </template>
               </div>
-              <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:8px;">
-                ⚠ <span x-text="b.missing_information.join(' · ')"></span>
-              </div>
+              <template x-if="b.missing_information.filter(m => m.includes('ML server offline')).length > 0">
+                <div style="margin-top:8px;padding:6px 10px;background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:6px;font-size:11px;color:#92400E;">
+                  <strong>ML Server Offline:</strong>
+                  <span x-text="b.missing_information.filter(m => m.includes('ML server offline')).map(m => m.split(' - ')[0]).join(', ')"></span>
+                  <span style="color:var(--muted);"> - akan tersedia saat ML server aktif</span>
+                </div>
+              </template>
+              <template x-if="b.missing_information.filter(m => m.includes('data tidak tersedia')).length > 0">
+                <div style="margin-top:4px;padding:6px 10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;font-size:11px;color:var(--muted);">
+                  <strong>Data eksternal belum tersedia:</strong>
+                  <span x-text="b.missing_information.filter(m => m.includes('data tidak tersedia')).map(m => m.split(' (')[0]).join(', ')"></span>
+                </div>
+              </template>
             </div>
           </template>
         </div>
@@ -679,7 +697,7 @@
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--mono);font-size:10px;">
                 <template x-for="(w, name) in transparencyData.priority_config.weights" :key="name">
                   <div class="evidence-item" style="font-size:10px;">
-                    <span x-text="name"></span>: <strong x-text="(w * 100).toFixed(0) + '%'"></strong>
+                    <span x-text="labelId(name)"></span>: <strong x-text="(w * 100).toFixed(0) + '%'"></strong>
                   </div>
                 </template>
               </div>
@@ -743,15 +761,15 @@
             <div class="detail-scores">
               <div class="detail-score-item">
                 <div class="detail-score-val" :style="'color:' + riskColor(detail.risk_level)" x-text="detail.display_priority_score"></div>
-                <div class="detail-score-lbl">Priority Score</div>
+                <div class="detail-score-lbl">Skor Prioritas</div>
               </div>
               <div class="detail-score-item">
                 <div class="detail-score-val" style="font-size:14px;" x-text="'Rp ' + (detail.raw_priority_score || 0).toFixed(0)"></div>
-                <div class="detail-score-lbl">Raw Score</div>
+                <div class="detail-score-lbl">Skor Dasar</div>
               </div>
               <div class="detail-score-item">
                 <div class="detail-score-val" style="font-size:14px;" x-text="(detail.confidence_factor * 100).toFixed(0) + '%'"></div>
-                <div class="detail-score-lbl">Confidence Factor</div>
+                <div class="detail-score-lbl">Faktor Keyakinan</div>
               </div>
               <div class="detail-score-item">
                 <span class="priority-tag" :class="'tag-risk-' + detail.risk_level" x-text="detail.risk_level.toUpperCase()"></span>
@@ -810,8 +828,9 @@
             <h3>Informasi yang Belum Tersedia</h3>
             <template x-for="m in detail.missing_information" :key="m">
               <div class="evidence-item">
-                <span class="evidence-tag etag-missing">MISSING</span>
-                <span x-text="m"></span>
+                <span class="evidence-tag" :class="m.includes('ML server') ? 'etag-model' : 'etag-missing'"
+                      x-text="m.includes('ML server') ? 'ML OFFLINE' : 'TIDAK ADA'"></span>
+                <span x-text="m.split(' - ')[0].split(' (')[0]"></span>
               </div>
             </template>
           </div>
@@ -857,7 +876,7 @@
 
           <!-- 9. Human Review -->
           <div class="card" style="margin-bottom:14px;">
-            <div class="card-label">Human Review</div>
+            <div class="card-label">Tinjauan Analis</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
               <button class="review-btn bahas" :class="reviewStatus === 'Untuk Dibahas' ? 'active-review' : ''"
                       @click="reviewStatus = 'Untuk Dibahas'">📋 Untuk Dibahas</button>
@@ -1298,6 +1317,22 @@ function executiveDashboard() {
       // Color-blind accessible: shape + color, not just color alone
       const map = { kritis: '■', tinggi: '▲', sedang: '◆', rendah: '●' };
       return map[level] || '●';
+    },
+
+    // Translation helper: snake_case technical terms to Bahasa Indonesia
+    labelId(key) {
+      const map = {
+        price_position: 'Posisi Harga',
+        forecast_p90_breach: 'Pelanggaran Forecast P90',
+        momentum_anomaly: 'Anomali Momentum',
+        regional_spread: 'Persebaran Regional',
+        weather_calendar: 'Cuaca & Kalender',
+        confidence: 'Keyakinan',
+        low: 'Rendah',
+        medium: 'Sedang',
+        high: 'Tinggi',
+      };
+      return map[key] || key;
     },
 
     statusClass(status) {

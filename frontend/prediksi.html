@@ -612,7 +612,7 @@
           <div style="font-size:32px;margin-bottom:8px;">🤖</div>
           <div style="font-family:var(--mono);font-size:12px;font-weight:700;">Pilih komoditas dan kota</div>
           <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px;">
-            untuk menjalankan analisis ML 3-layer (Forecast + Detection + Decision)
+            untuk menjalankan analisis ML 4-lapis (Forecast, Detection, FTA, Decision)
           </div>
         </div>
       </template>
@@ -966,7 +966,10 @@
             </div>
           </template>
           <template x-if="!currentPrice">
-            <div class="stat-value" style="color:var(--muted)">—</div>
+            <div>
+              <div class="stat-value" style="color:var(--muted);font-size:18px;">—</div>
+              <div class="stat-sub" x-show="!selectedKey" style="color:var(--muted);">Pilih komoditas</div>
+            </div>
           </template>
         </div>
         <div class="stat-card">
@@ -1018,37 +1021,53 @@
           <span class="pred-count" x-text="dbPredictions.length + ' prediksi'"></span>
         </div>
         <template x-if="dbPredictions.length > 0">
-          <div style="overflow-x:auto;">
-            <table class="pred-table">
-              <thead>
-                <tr>
-                  <th>Target Date</th>
-                  <th>Komoditas</th>
-                  <th>Kota</th>
-                  <th>Prediksi</th>
-                  <th>Confidence</th>
-                  <th>Model</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="(p, i) in dbPredictions" :key="i">
+          <div>
+            <div style="overflow-x:auto;">
+              <table class="pred-table">
+                <thead>
                   <tr>
-                    <td x-text="p.target_date"></td>
-                    <td x-text="p.komoditas_id"></td>
-                    <td x-text="p.kota_id"></td>
-                    <td>
-                      <span :class="p.predicted_price > (currentPrice || 0) ? 'trend-up' : 'trend-down'"
-                            x-text="'Rp ' + (p.predicted_price || 0).toLocaleString('id-ID')"></span>
-                    </td>
-                    <td>
-                      <span style="font-family:var(--mono);font-size:10px;color:var(--muted);"
-                            x-text="(p.confidence_lower||0).toLocaleString('id-ID') + ' — ' + (p.confidence_upper||0).toLocaleString('id-ID')"></span>
-                    </td>
-                    <td style="color:var(--muted);" x-text="p.model_version || '—'"></td>
+                    <th>Tanggal Target</th>
+                    <th>Komoditas</th>
+                    <th>Kota</th>
+                    <th>Prediksi</th>
+                    <th>Interval Keyakinan</th>
+                    <th>Model</th>
                   </tr>
-                </template>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  <template x-for="(p, i) in dbPredictions.slice((dbPage - 1) * dbPageSize, dbPage * dbPageSize)" :key="i">
+                    <tr>
+                      <td x-text="p.target_date"></td>
+                      <td x-text="p.komoditas_id"></td>
+                      <td x-text="p.kota_id"></td>
+                      <td>
+                        <span :class="p.predicted_price > (currentPrice || 0) ? 'trend-up' : 'trend-down'"
+                              x-text="'Rp ' + (p.predicted_price || 0).toLocaleString('id-ID')"></span>
+                      </td>
+                      <td>
+                        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);"
+                              x-text="(p.confidence_lower||0).toLocaleString('id-ID') + ' - ' + (p.confidence_upper||0).toLocaleString('id-ID')"></span>
+                      </td>
+                      <td style="color:var(--muted);" x-text="p.model_version || '—'"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+            <!-- Pagination controls -->
+            <div x-show="dbPredictions.length > dbPageSize"
+                 style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;font-size:12px;font-weight:600;">
+              <span style="color:var(--muted);"
+                    x-text="'Halaman ' + dbPage + ' dari ' + Math.ceil(dbPredictions.length / dbPageSize)"></span>
+              <div style="display:flex;gap:6px;">
+                <button class="btn" style="padding:5px 12px;font-size:11px;"
+                        :disabled="dbPage <= 1"
+                        @click="dbPage--">Sebelumnya</button>
+                <button class="btn" style="padding:5px 12px;font-size:11px;"
+                        :disabled="dbPage >= Math.ceil(dbPredictions.length / dbPageSize)"
+                        @click="dbPage++">Selanjutnya</button>
+              </div>
+            </div>
           </div>
         </template>
         <template x-if="dbPredictions.length === 0 && !dbLoading">
@@ -1122,6 +1141,8 @@ function prediksiPage() {
     nextPrediction: null,
     modelInfo: null,
     dbLoading: false,
+    dbPage: 1,          // current page for pagination
+    dbPageSize: 10,     // rows per page
     chartReady: false,
     priceChart: null,  // Chart.js instance
 
@@ -1268,6 +1289,8 @@ function prediksiPage() {
       this.dbPredictions = [];
       this.nextPrediction = null;
       this.modelInfo = null;
+      this.currentPrice = null;
+      this.dbPage = 1;
 
       try {
         const params = new URLSearchParams();

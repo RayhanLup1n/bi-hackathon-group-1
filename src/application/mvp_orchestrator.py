@@ -239,10 +239,22 @@ def get_overview(
     for rec in recommendations:
         risk_counts[rec.risk_level] = risk_counts.get(rec.risk_level, 0) + 1
 
-    # ── Top 3 priorities ────────────────────────────────────────────────
-    top_3 = [
-        r.model_dump(mode="json") for r in recommendations[:3]
-    ]
+    # ── Top 3 priorities (diversified by commodity) ────────────────────
+    top_3: list[dict[str, Any]] = []
+    seen_commodities: set[str] = set()
+    # First pass: pick highest-scoring entry per unique commodity
+    for r in recommendations:
+        if r.commodity not in seen_commodities and len(top_3) < 3:
+            top_3.append(r.model_dump(mode="json"))
+            seen_commodities.add(r.commodity)
+    # If fewer than 3 unique commodities, fill remaining slots by score
+    if len(top_3) < 3:
+        for r in recommendations:
+            if len(top_3) >= 3:
+                break
+            r_dict = r.model_dump(mode="json")
+            if r_dict not in top_3:
+                top_3.append(r_dict)
 
     # ── Review bundles ──────────────────────────────────────────────────
     from src.application.mvp_bundles import generate_bundles
@@ -525,8 +537,8 @@ def get_transparency() -> dict[str, Any]:
             },
         },
         "known_limitations": [
-            "Data stok tidak tersedia secara real-time",
-            "HET reference menggunakan estimasi, bukan data resmi Bapanas",
+            "Data stok bersumber dari agregat nasional (bukan per-provinsi atau real-time)",
+            "HET reference mengacu pada Peraturan Bapanas No. 12/2024",
             "Forecast ML menggunakan model statistik, bukan simulasi pasar",
             "Korelasi cuaca bukan bukti kausal",
             "Response options adalah rekomendasi tinjauan, bukan instruksi kebijakan",

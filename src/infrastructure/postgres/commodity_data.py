@@ -19,6 +19,7 @@ from typing import Optional
 from config.settings import DEFAULT_PRICE_THRESHOLD_PCT
 from src.infrastructure.postgres.database import db_cursor
 from src.infrastructure.postgres.weather_data import get_weather_for_rca
+from src.infrastructure.stock_data import get_stock_from_comcat
 from src.domain.schemas.models import CommodityData, CuacaInfo, KotaInfo, StokInfo
 
 # MVP komoditas filter -- only surface these in the dashboard/API
@@ -221,12 +222,8 @@ def get_commodity_data(
             ),
         )
 
-    # Stok placeholder -- tidak ada data real stok untuk MVP
-    stok = StokInfo(
-        status="Normal",
-        kelas="ok",
-        pct=1.0,
-    )
+    # Stok -- load real national stock data from CSV, fallback to placeholder
+    stok = get_stock_from_comcat(comcat_id)
 
     return CommodityData(
         key=key,

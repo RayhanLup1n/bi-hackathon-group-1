@@ -254,7 +254,7 @@ class TestPriorityEngine:
         assert len(rec.observed_facts) > 0
         assert len(rec.response_options) > 0
         assert len(rec.sources) > 0
-        assert "Volume stok" in rec.missing_information
+        assert "Kapasitas logistik (data tidak tersedia)" in rec.missing_information
 
     def test_build_with_het_breach(self):
         rec = build_recommendation(
@@ -383,7 +383,7 @@ class TestGracefulDegradation:
         )
         assert rec.knowledge_status == KnowledgeStatus.FACT
         assert len(rec.model_outputs) == 0
-        assert "Forecast ML tidak tersedia" in rec.missing_information
+        assert "Forecast ML - ML server offline" in rec.missing_information
 
     def test_recommendation_handles_zero_prices(self):
         """Edge case: price data is 0 (missing)."""

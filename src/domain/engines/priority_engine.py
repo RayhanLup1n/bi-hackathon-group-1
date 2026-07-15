@@ -281,11 +281,11 @@ def build_recommendation(
     # ── Missing information ───────────────────────────────────────────────
     missing_information: list[str] = []
     if model_wape is None:
-        missing_information.append("Metrik performa model (WAPE)")
-    missing_information.append("Volume stok")
-    missing_information.append("Kapasitas logistik")
+        missing_information.append("Metrik performa model (WAPE) - ML server offline")
     if not forecast_breach and forecast_p50 is None:
-        missing_information.append("Forecast ML tidak tersedia")
+        missing_information.append("Forecast ML - ML server offline")
+    # Permanent data gaps (no data source available)
+    missing_information.append("Kapasitas logistik (data tidak tersedia)")
 
     # ── Sources ───────────────────────────────────────────────────────────
     sources: list[SourceReference] = [
