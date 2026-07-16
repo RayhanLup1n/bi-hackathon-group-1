@@ -3,384 +3,430 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FTA &amp; Bowtie Analysis — R.A.D.A.R Pangan</title>
+  <title>FTA & Bowtie Analysis — R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,100..700,0..1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <script src="/config.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <style>
-    /* -- Reset + Design tokens (inline fallback) -- */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #EEF7F1; --bg2: #F0FBF4;
-      --surface: #FFFFFF; --surface2: #F0FBF4;
-      --border: #1a1a1a; --border2: #1a1a1a;
-      --accent: #2ECC88; --accent2: #1D7A56;
-      --warn: #FBBF24; --danger: #F87171; --success: #34D399;
-      --highlight: #A7F3D0; --info: #67E8F9;
-      --text: #1a1a1a; --text2: #3f3f46; --muted: #71717a;
-      --mono: 'JetBrains Mono', monospace;
-      --sans: 'Inter', system-ui, sans-serif;
-      --radius: 16px; --radius-sm: 12px;
-      --shadow: 4px 4px 0px #1a1a1a; --shadow-lg: 6px 6px 0px #1a1a1a;
-      --bw: 2.5px;
-    }
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
-    }
-    body::before {
-      content: ''; position: fixed; inset: 0;
-      background-image:
-        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
-        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
-      pointer-events: none; z-index: 0;
-    }
+    /* ── RCA page-specific styles ── */
 
-    /* -- App container (inline fallback) -- */
-    .app {
-      position: relative; z-index: 1;
-      max-width: 860px; margin: 0 auto;
-      padding: 24px 20px 48px;
+    /* Page hero */
+    .rca-hero { margin-bottom: 28px; }
+    .rca-hero-title {
+      font-size: 40px; font-weight: 900; letter-spacing: -0.02em;
+      line-height: 1.1; color: var(--text); margin-bottom: 8px;
     }
+    .rca-hero-desc { font-size: 16px; color: var(--muted); font-weight: 500; line-height: 1.6; }
 
-    /* -- Header (inline fallback) -- */
-    .header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 28px; padding: 14px 20px;
+    /* ── Filter card ── */
+    .rca-filter-card {
       background: var(--surface); border: var(--bw) solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 20px; margin-bottom: 28px;
     }
-    .header-left { display: flex; align-items: center; gap: 14px; }
-    .logo-icon {
-      width: 52px; height: 52px;
-      border: var(--bw) solid var(--border); border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
-      overflow: hidden; padding: 0;
+    .rca-filter-row {
+      display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
     }
-    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
-    .header-title {
-      font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
-    }
-    .header-sub {
-      font-family: var(--mono); font-size: 10px; color: var(--muted);
-      margin-top: 2px; letter-spacing: 0.5px;
-    }
-    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .nav-link {
-      font-family: var(--mono); font-size: 11px; font-weight: 700;
-      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
-      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
-    }
-    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
-    .nav-link-default { background: var(--surface); color: var(--accent2); }
-    .nav-link-default:hover { background: #E0F5EA; }
-    .nav-link-active { background: var(--accent); color: #fff; }
-    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
-    .nav-link-danger:hover { background: #FECACA; }
-    .user-badge {
-      font-family: var(--mono); font-size: 11px; font-weight: 700;
-      padding: 7px 13px; background: var(--surface2);
-      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
-      box-shadow: 2px 2px 0 var(--border);
-    }
-    .user-badge strong { color: var(--accent2); }
-
-    /* -- Responsive header stacking -- */
-    @media (max-width: 640px) {
-      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
-      .header-right { width: 100%; justify-content: flex-start; }
-    }
-
-    /* -- FTA page-specific styles -- */
-
-    /* ── Card (override shared - larger padding + margin) ── */
-    .card {
-      background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow);
-      padding: 22px; margin-bottom: 20px;
-      position: relative; overflow: hidden;
-    }
-    .card::after {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 5px;
-      background: var(--accent); border-radius: var(--radius) var(--radius) 0 0;
-    }
-    .card-label {
+    .rca-filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 180px; flex: 1; }
+    .rca-filter-label {
       font-family: var(--mono); font-size: 10px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1.2px;
-      color: var(--text); margin-bottom: 12px;
-      display: flex; align-items: center; gap: 6px;
+      text-transform: uppercase; letter-spacing: 1.2px; color: var(--text);
     }
-    .card-label::before {
-      content: ''; display: inline-block;
-      width: 4px; height: 12px; background: var(--accent);
-      border-radius: 2px; border: 1px solid var(--border);
+    .rca-filter-select, .rca-filter-date {
+      padding: 10px 14px; background: var(--surface);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      box-shadow: 3px 3px 0 var(--border); outline: none; cursor: pointer;
     }
-
-    /* ── Filter bar ── */
-    .filter-bar {
-      display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 14px;
-      align-items: end;
+    .rca-filter-select:focus, .rca-filter-date:focus {
+      outline: 3px solid var(--accent); outline-offset: 2px;
     }
-    @media (max-width: 700px) { .filter-bar { grid-template-columns: 1fr; } }
-
-    .filter-group label {
-      display: block; font-family: var(--mono); font-size: 10px;
-      font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px;
-      margin-bottom: 6px;
-    }
-    .filter-input {
-      width: 100%; padding: 10px 12px;
-      background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm); font-family: var(--mono); font-size: 11px;
-      font-weight: 600; box-shadow: 3px 3px 0 var(--border);
-      outline: none; cursor: pointer;
-    }
-    .filter-input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
-
-    .btn-run {
-      padding: 10px 22px; background: var(--accent); color: #fff;
+    .rca-btn-run {
+      padding: 12px 28px; background: var(--accent); color: #fff;
       border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
       font-family: var(--sans); font-size: 13px; font-weight: 800;
       cursor: pointer; box-shadow: var(--shadow);
-      transition: transform 0.1s, box-shadow 0.1s;
-      white-space: nowrap;
+      transition: transform 0.1s, box-shadow 0.1s; white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 8px;
     }
-    .btn-run:hover { background: var(--accent2); }
-    .btn-run:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--border); }
-    .btn-run:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; transform: translate(2px, 2px); }
+    .rca-btn-run:hover { background: var(--accent2); }
+    .rca-btn-run:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--border); }
+    .rca-btn-run:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* ── Status card ── */
-    .status-row {
-      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;
+    /* ── Status cards ── */
+    .rca-status-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px;
     }
-    @media (max-width: 600px) { .status-row { grid-template-columns: 1fr; } }
-
-    .stat-card {
+    @media (max-width: 700px) { .rca-status-row { grid-template-columns: 1fr; } }
+    .rca-stat-card {
       background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); padding: 18px;
-      box-shadow: var(--shadow); text-align: center;
+      border-radius: var(--radius); padding: 20px; text-align: center;
+      box-shadow: var(--shadow); transition: transform 0.15s, box-shadow 0.15s;
     }
-    .stat-label {
+    .rca-stat-card:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+    .rca-stat-card.anomaly { border-left: 6px solid var(--danger); }
+    .rca-stat-card.normal { border-left: 6px solid var(--success); }
+    .rca-stat-label {
       font-family: var(--mono); font-size: 10px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
-      margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px;
     }
-    .stat-value { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
-    .stat-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+    .rca-stat-value { font-size: 32px; font-weight: 900; letter-spacing: -1px; }
+    .rca-stat-sub {
+      font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 6px; font-weight: 500;
+    }
 
-    .stat-anomaly { border-left: 6px solid var(--danger); }
-    .stat-normal { border-left: 6px solid var(--success); }
+    /* ── Section header ── */
+    .rca-section-head {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .rca-section-title {
+      font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: var(--text);
+    }
+    .rca-section-badge {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      background: var(--accent); color: #fff;
+      padding: 4px 12px; border: 2px solid var(--border); border-radius: 6px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+
+    /* ── FTA Threat grid (6 cards) ── */
+    .rca-threat-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px;
+    }
+    @media (max-width: 900px) { .rca-threat-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .rca-threat-grid { grid-template-columns: 1fr; } }
+
+    .rca-threat-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow); transition: transform 0.15s, box-shadow 0.15s;
+      cursor: default;
+    }
+    .rca-threat-card:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+    .rca-threat-card:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--border); }
+    .rca-threat-card.dim { opacity: 0.65; }
+    .rca-threat-card-top {
+      display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px;
+    }
+    .rca-threat-icon { font-size: 36px; line-height: 1; }
+    .rca-threat-chip {
+      font-family: var(--mono); font-size: 9px; font-weight: 800;
+      padding: 3px 10px; border: 2px solid var(--border); border-radius: 4px;
+      text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;
+    }
+    .rca-threat-chip.active { background: var(--accent); color: #fff; }
+    .rca-threat-chip.inactive { background: var(--surface2); color: var(--muted); }
+    .rca-threat-name { font-size: 16px; font-weight: 800; color: var(--text); }
+    .rca-threat-desc { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
 
     /* ── Detail Root Cause ── */
-    .detail-card {
+    .rca-detail-card {
       background: var(--surface); border: var(--bw) solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
       padding: 22px; margin-bottom: 20px;
     }
-    .detail-title {
-      font-family: var(--mono); font-size: 10px; font-weight: 800;
+    .rca-detail-title {
+      font-family: var(--mono); font-size: 11px; font-weight: 800;
       text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 14px;
     }
-    .detail-cause {
+    .rca-cause-box {
       padding: 16px; background: #FEF3C7; border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm); box-shadow: 2px 2px 0 var(--border);
-      margin-bottom: 14px;
+      border-radius: var(--radius-sm); box-shadow: 2px 2px 0 var(--border); margin-bottom: 14px;
     }
-    .detail-cause-label {
+    .rca-cause-label {
       font-family: var(--mono); font-size: 10px; font-weight: 800;
-      color: #92400e; text-transform: uppercase; letter-spacing: 1px;
-      margin-bottom: 6px;
+      color: #92400e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
     }
-    .detail-cause-text { font-size: 14px; font-weight: 700; color: #78350f; line-height: 1.6; }
-
-    .detail-recommendation {
+    .rca-cause-text { font-size: 14px; font-weight: 700; color: #78350f; line-height: 1.6; }
+    .rca-rec-box {
       padding: 16px; background: #DBEAFE; border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm); box-shadow: 2px 2px 0 var(--border);
     }
-    .detail-rec-label {
+    .rca-rec-label {
       font-family: var(--mono); font-size: 10px; font-weight: 800;
-      color: #1e40af; text-transform: uppercase; letter-spacing: 1px;
-      margin-bottom: 6px;
+      color: #1e40af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
     }
-    .detail-rec-text { font-size: 13px; font-weight: 600; color: #1e3a5f; line-height: 1.6; }
+    .rca-rec-text { font-size: 13px; font-weight: 600; color: #1e3a5f; line-height: 1.6; }
 
-    /* ── Context cards row ── */
-    .context-row {
+    /* ── Context cards ── */
+    .rca-context-row {
       display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
     }
-    @media (max-width: 600px) { .context-row { grid-template-columns: 1fr; } }
-
-    .context-card {
+    @media (max-width: 600px) { .rca-context-row { grid-template-columns: 1fr; } }
+    .rca-context-card {
       background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow);
+      border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow);
     }
-    .context-label {
+    .rca-context-label {
       font-family: var(--mono); font-size: 10px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 10px;
+      text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 12px;
     }
-    .weather-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px 0; border-bottom: 1px solid #e5e5e5;
-      font-size: 13px;
+    .rca-context-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 0;
+      border-bottom: 1px solid #e5e5e5; font-size: 13px;
     }
-    .weather-item:last-child { border-bottom: none; }
-    .weather-icon { font-size: 18px; flex-shrink: 0; }
-    .weather-val { font-family: var(--mono); font-size: 12px; font-weight: 700; }
-    .weather-label { font-size: 12px; color: var(--muted); }
-
-    .holiday-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px 0; border-bottom: 1px solid #e5e5e5; font-size: 13px;
-    }
-    .holiday-item:last-child { border-bottom: none; }
-    .holiday-date { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 600; }
-    .holiday-name { font-weight: 700; }
-
-    .extreme-badge {
+    .rca-context-item:last-child { border-bottom: none; }
+    .rca-context-icon { font-size: 18px; flex-shrink: 0; }
+    .rca-context-val { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+    .rca-context-label2 { font-size: 12px; color: var(--muted); }
+    .rca-extreme-tag {
       display: inline-flex; align-items: center; gap: 4px;
       padding: 3px 10px; border-radius: 6px;
       font-family: var(--mono); font-size: 10px; font-weight: 700;
       border: 1.5px solid var(--border);
     }
-    .extreme-yes { background: #FEE2E2; color: #DC2626; }
-    .extreme-no { background: #D1FAE5; color: #065f46; }
+    .rca-extreme-tag.yes { background: #FEE2E2; color: #DC2626; }
+    .rca-extreme-tag.no { background: #D1FAE5; color: #065f46; }
 
-    /* ── Timeline ── */
-    .timeline-table {
-      width: 100%; border-collapse: collapse; font-size: 12px;
+    /* ── Bowtie section ── */
+    .rca-bowtie-grid {
+      display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center;
+      margin-bottom: 28px;
     }
-    .timeline-table thead { background: var(--surface2); }
-    .timeline-table th {
+    @media (max-width: 768px) {
+      .rca-bowtie-grid { grid-template-columns: 1fr; }
+      .rca-bowtie-col.hazard { margin: 0 auto; }
+    }
+
+    .rca-bowtie-col {
+      padding: 16px; border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); box-shadow: 2px 2px 0 var(--border);
+    }
+    .rca-bowtie-col.prevention { background: #ECFDF5; }
+    .rca-bowtie-col.hazard {
+      background: #FEF3C7;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center; min-width: 150px; min-height: 150px;
+      border-radius: 50%; width: 150px; height: 150px;
+      border-width: 4px;
+    }
+    .rca-bowtie-col.mitigation { background: #FEE2E2; }
+
+    .rca-bowtie-col-title {
       font-family: var(--mono); font-size: 10px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1px;
-      padding: 10px 14px; text-align: left;
-      border-bottom: var(--bw) solid var(--border);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
     }
-    .timeline-table td {
-      padding: 10px 14px; border-bottom: 1px solid #e5e5e5;
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
-    }
-    .timeline-table tbody tr:hover { background: #F5F3FF; }
+    .rca-bowtie-col.prevention .rca-bowtie-col-title { color: #059669; }
+    .rca-bowtie-col.hazard .rca-bowtie-col-title { color: #92400e; }
+    .rca-bowtie-col.mitigation .rca-bowtie-col-title { color: #dc2626; }
 
-    .empty-state {
-      text-align: center; padding: 40px 20px;
-      font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 600;
+    .rca-bowtie-item {
+      display: flex; align-items: center; gap: 8px; padding: 6px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      font-size: 11px; color: var(--text2);
+    }
+    .rca-bowtie-item:last-child { border-bottom: none; }
+    .rca-bowtie-item.active { font-weight: 700; }
+    .rca-bowtie-item.dim { opacity: 0.5; font-weight: 400; }
+    .rca-bowtie-dot {
+      width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--border); flex-shrink: 0;
+    }
+    .rca-bowtie-dot.on { background: var(--accent); }
+    .rca-bowtie-dot.off { background: var(--surface); }
+    .rca-bowtie-dot.warn { background: var(--danger); }
+    .rca-hazard-emoji { font-size: 28px; }
+    .rca-hazard-text { font-family: var(--mono); font-size: 10px; font-weight: 800; color: #92400e; margin-top: 6px; line-height: 1.3; }
+
+    /* ── Summary card ── */
+    .rca-summary-card {
+      display: flex; gap: 16px; align-items: flex-start;
+      background: #FEF3C7; border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow);
+      margin-bottom: 28px;
+    }
+    .rca-summary-icon {
+      width: 48px; height: 48px; flex-shrink: 0;
+      background: var(--text); color: #fff; border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
+    }
+    .rca-summary-body h3 { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+    .rca-summary-body p { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+    /* ── FTA card bowtie-style layout ── */
+    .rca-fta-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); margin-bottom: 20px;
+    }
+    .rca-fta-ftitle {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .rca-fta-fbadge {
+      font-family: var(--mono); font-size: 10px; font-weight: 700; border: 1.5px solid var(--border);
+      padding: 3px 12px; border-radius: 6px;
     }
 
-    .spinner { width: 18px; height: 18px; border: 3px solid rgba(46,204,136,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; vertical-align: middle; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* ── Bowtie summary text ── */
+    .rca-bowtie-summary {
+      padding: 12px 16px; background: var(--surface2); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); box-shadow: 2px 2px 0 var(--border);
+      font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 16px;
+    }
+
+    /* ── Mobile nav ── */
+    .hamburger-btn {
+      display: none; background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); cursor: pointer; font-size: 18px;
+      padding: 6px 10px; box-shadow: 2px 2px 0 var(--border); transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .hamburger-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .mobile-nav { display: none; }
+    .mobile-nav.show { display: flex; flex-direction: column; gap: 8px; }
+
+    .header-right { flex-wrap: nowrap !important; }
+
+    @media (max-width: 768px) {
+      .rca-hero-title { font-size: 28px; }
+      .header-right { order: 3; width: 100%; justify-content: flex-end; margin-top: 8px; flex-wrap: wrap !important; }
+    }
+    @media (max-width: 640px) {
+      .rca-hero-title { font-size: 26px; }
+      .header { flex-direction: row; flex-wrap: wrap; }
+      .header-right { display: none !important; }
+      .hamburger-btn { display: flex; align-items: center; justify-content: center; margin-left: auto; }
+      .mobile-nav { width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .header { padding: 10px 14px; }
+      .header-title { font-size: 15px; }
+    }
+
+    .rca-empty-state { text-align: center; padding: 60px 20px; font-size: 14px; color: var(--muted); }
+    .rca-empty-icon { font-size: 48px; margin-bottom: 12px; }
 
     [x-cloak] { display: none !important; }
   </style>
 </head>
-<body>
-<div class="app" x-data="rcaPage()" x-cloak>
+<body x-data="rcaPage()" x-cloak>
+<div class="app">
 
-  <!-- ── Header ── -->
-  <header class="header">
+  <!-- ═══════════ HEADER ═══════════ -->
+  <header class="header" x-data="{ navOpen: false }">
     <div class="header-left">
       <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">fta &amp; bowtie analysis &nbsp;·&nbsp; v0.5</div>
+        <div class="header-sub">fta & bowtie analysis &middot; v0.8</div>
       </div>
     </div>
-    <div class="header-right">
-      <span class="user-badge">
+    <div class="header-right" style="display:flex;align-items:center;gap:8px;font-size:12px;">
+      <span class="user-badge" style="font-size:11px;">
         <strong x-text="user?.username || '—'"></strong> · <span x-text="user?.role || ''"></span>
       </span>
-      <a href="/" class="nav-link nav-link-default">Dashboard</a>
-      <a href="/guide" class="nav-link nav-link-default">Panduan</a>
-      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/analysis" class="nav-link nav-link-active">FTA</a>
-      </template>
-      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
-      </template>
-      <template x-if="user?.is_admin || user?.role === 'admin'">
-        <a href="/admin" class="nav-link nav-link-default">Admin</a>
-      </template>
-      <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
+      <a href="/" class="nav-link nav-link-default" style="font-size:11px;padding:5px 10px;">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-default" style="font-size:11px;padding:5px 10px;">Panduan</a>
+      <a href="/analysis" class="nav-link nav-link-active" style="font-size:11px;padding:5px 10px;"
+         x-show="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">FTA</a>
+      <a href="/prediksi" class="nav-link nav-link-default" style="font-size:11px;padding:5px 10px;"
+         x-show="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">Prediksi</a>
+      <a href="/admin" class="nav-link nav-link-default" style="font-size:11px;padding:5px 10px;"
+         x-show="user?.is_admin || user?.role === 'admin'">Admin</a>
+      <button @click="logout()" class="nav-link nav-link-danger" style="font-size:11px;padding:5px 10px;">Keluar</button>
+    </div>
+    <button class="hamburger-btn" @click="navOpen = !navOpen" aria-label="Toggle navigation">
+      <span x-text="navOpen ? '✕' : '☰'"></span>
+    </button>
+    <div class="mobile-nav" :class="navOpen ? 'show' : ''" style="width:100%;margin-top:10px;">
+      <a href="/" class="nav-link nav-link-default" @click="navOpen = false">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-default" @click="navOpen = false">Panduan</a>
+      <a href="/analysis" class="nav-link nav-link-active" @click="navOpen = false"
+         x-show="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">FTA</a>
+      <a href="/prediksi" class="nav-link nav-link-default" @click="navOpen = false"
+         x-show="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">Prediksi</a>
+      <a href="/admin" class="nav-link nav-link-default" @click="navOpen = false"
+         x-show="user?.is_admin || user?.role === 'admin'">Admin</a>
+      <button @click="logout(); navOpen = false" class="nav-link nav-link-danger">Keluar</button>
     </div>
   </header>
 
-  <!-- ── Filter Bar ── -->
-  <div class="card">
-    <div class="filter-bar">
-      <div class="filter-group">
-        <label>Komoditas</label>
-        <select class="filter-input" x-model="selectedKey">
+  <!-- ═══════════ PAGE HERO ═══════════ -->
+  <div class="rca-hero">
+    <h1 class="rca-hero-title">FTA &amp; Bowtie Analysis</h1>
+    <p class="rca-hero-desc">Analisis akar masalah kenaikan harga pangan menggunakan kerangka kerja Fault Tree Analysis dan Bowtie diagram.</p>
+  </div>
+
+  <!-- ═══════════ FILTER BAR ═══════════ -->
+  <div class="rca-filter-card">
+    <div class="rca-filter-row">
+      <div class="rca-filter-group">
+        <label class="rca-filter-label">Komoditas</label>
+        <select class="rca-filter-select" x-model="selectedKey">
           <template x-for="c in commodities" :key="c.key">
             <option :value="c.key" x-text="c.name"></option>
           </template>
         </select>
       </div>
-      <div class="filter-group">
-        <label>Wilayah</label>
-        <select class="filter-input" x-model="selectedProvinsi">
-          <option value="">Semua Wilayah</option>
-          <template x-for="p in provinces" :key="p.id">
-            <option :value="p.id" x-text="p.name"></option>
-          </template>
-        </select>
+      <div class="rca-filter-group">
+        <label class="rca-filter-label">Periode Analisis</label>
+        <input type="date" class="rca-filter-date" x-model="simDate">
       </div>
-      <div class="filter-group">
-        <label>Tanggal Simulasi</label>
-        <input type="date" class="filter-input" x-model="simDate">
-      </div>
-      <button class="btn-run" @click="runRCA()" :disabled="loading">
-        <template x-if="loading"><span class="spinner" style="width:14px;height:14px;border-width:2px;"></span></template>
-        <template x-if="!loading"><span>Jalankan FTA</span></template>
+      <button class="rca-btn-run" @click="runRCA()" :disabled="loading">
+        <span class="material-symbols-outlined" style="font-size:18px;">analytics</span>
+        <span x-text="loading ? 'Menganalisis...' : 'Jalankan FTA'"></span>
       </button>
     </div>
   </div>
 
-  <!-- ── Status Cards ── -->
+  <!-- ═══════════ LOADING STATE ═══════════ -->
+  <template x-if="loading && !result">
+    <div class="rca-filter-card rca-empty-state">
+      <span class="spinner" style="width:28px;height:28px;border-width:3px;border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);display:block;margin:0 auto 16px;"></span>
+      <div>Mengambil data dan menjalankan analisis...</div>
+    </div>
+  </template>
+
+  <!-- ═══════════ EMPTY STATE ═══════════ -->
+  <template x-if="!result && !loading">
+    <div class="rca-filter-card rca-empty-state">
+      <div class="rca-empty-icon">🔍</div>
+      <div style="font-weight:700;margin-bottom:6px;">Pilih komoditas dan jalankan analisis</div>
+      <div>FTA engine akan memeriksa 6 faktor ancaman harga secara berurutan</div>
+    </div>
+  </template>
+
+  <!-- ═══════════ RESULTS (shown after analysis) ═══════════ -->
   <template x-if="result">
     <div>
-      <div class="status-row" style="margin-bottom:20px;">
-        <div class="stat-card" :class="result.is_anomaly ? 'stat-anomaly' : 'stat-normal'">
-          <div class="stat-label">Status</div>
-          <div class="stat-value" :style="result.is_anomaly ? 'color:#DC2626' : 'color:#059669'"
+
+      <!-- ── Status Cards ── -->
+      <div class="rca-status-row">
+        <div class="rca-stat-card" :class="result.is_anomaly ? 'anomaly' : 'normal'">
+          <div class="rca-stat-label">Status</div>
+          <div class="rca-stat-value" :style="result.is_anomaly ? 'color:#DC2626' : 'color:#059669'"
                x-text="result.is_anomaly ? 'ANOMALI' : 'NORMAL'"></div>
-          <div class="stat-sub" x-text="result.root_cause || 'Tidak ada anomali terdeteksi'"></div>
+          <div class="rca-stat-sub" x-text="result.root_cause || 'Tidak ada anomali terdeteksi'"></div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Delta Harga</div>
-          <div class="stat-value" :style="result.delta_pct > 0 ? 'color:#DC2626' : (result.delta_pct < 0 ? 'color:#059669' : '')"
+        <div class="rca-stat-card">
+          <div class="rca-stat-label">Delta Harga</div>
+          <div class="rca-stat-value" :style="result.delta_pct > 0 ? 'color:#DC2626' : (result.delta_pct < 0 ? 'color:#059669' : '')"
                x-text="(result.delta_pct > 0 ? '+' : '') + result.delta_pct.toFixed(1) + '%'"></div>
-          <div class="stat-sub" x-text="'Rp ' + (result.price_now||0).toLocaleString('id-ID') + '/kg'"></div>
+          <div class="rca-stat-sub" x-text="'Rp ' + (result.price_now||0).toLocaleString('id-ID') + '/kg'"></div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Persebaran Kota</div>
-          <div class="stat-value" x-text="result.kota_naik + '/' + result.total_kota"></div>
-          <div class="stat-sub" x-text="'kota naik (' + ((result.total_kota ? result.kota_naik/result.total_kota*100 : 0).toFixed(0)) + '%)'"></div>
+        <div class="rca-stat-card">
+          <div class="rca-stat-label">Persebaran Kota</div>
+          <div class="rca-stat-value" x-text="result.kota_naik + '/' + result.total_kota"></div>
+          <div class="rca-stat-sub" x-text="'kota naik (' + ((result.total_kota ? result.kota_naik/result.total_kota*100 : 0).toFixed(0)) + '%)'"></div>
         </div>
       </div>
 
       <!-- ── Detail Root Cause ── -->
       <template x-if="result.root_cause">
-        <div class="detail-card">
-          <div class="detail-title">Detail Root Cause</div>
-          <div class="detail-cause">
-            <div class="detail-cause-label">Penyebab</div>
-            <div class="detail-cause-text">
+        <div class="rca-detail-card">
+          <div class="rca-detail-title">Detail Root Cause</div>
+          <div class="rca-cause-box">
+            <div class="rca-cause-label">Penyebab</div>
+            <div class="rca-cause-text">
               <strong x-text="result.root_cause"></strong>
               <template x-if="result.description">
                 <div style="margin-top:6px;font-size:12px;color:#555;" x-text="result.description"></div>
               </template>
             </div>
           </div>
-          <div class="detail-recommendation">
-            <div class="detail-rec-label">Rekomendasi Kebijakan</div>
-            <div class="detail-rec-text" x-text="result.recommendation || 'Lakukan monitoring intensif dan koordinasi dengan TPID setempat.'"></div>
+          <div class="rca-rec-box">
+            <div class="rca-rec-label">Rekomendasi Kebijakan</div>
+            <div class="rca-rec-text" x-text="result.recommendation || 'Lakukan monitoring intensif dan koordinasi dengan TPID setempat.'"></div>
           </div>
           <template x-if="result.severity_level">
             <div style="margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--muted);">
@@ -394,62 +440,61 @@
       </template>
 
       <!-- ── Context: Cuaca + Hari Besar ── -->
-      <div class="context-row">
-        <div class="context-card">
-          <div class="context-label">Info Cuaca (Open-Meteo)</div>
+      <div class="rca-context-row">
+        <div class="rca-context-card">
+          <div class="rca-context-label">Info Cuaca (Open-Meteo)</div>
           <template x-if="cuacaData">
             <div>
-              <div style="margin-bottom:8px;">
-                <span class="extreme-badge" :class="cuacaData.ekstrem ? 'extreme-yes' : 'extreme-no'"
+              <div style="margin-bottom:10px;">
+                <span class="rca-extreme-tag" :class="cuacaData.ekstrem ? 'yes' : 'no'"
                       x-text="cuacaData.ekstrem ? '⚠ Cuaca Ekstrem' : '✓ Normal'"></span>
               </div>
-              <div class="weather-item">
-                <span class="weather-icon">🌧</span>
-                <span class="weather-val" x-text="cuacaData.detail?.precipitation_sum?.toFixed(1) || '—'"></span>
-                <span class="weather-label">mm curah hujan</span>
+              <div class="rca-context-item">
+                <span class="rca-context-icon">🌧</span>
+                <span class="rca-context-val" x-text="cuacaData.detail?.precipitation_sum?.toFixed(1) || '—'"></span>
+                <span class="rca-context-label2">mm curah hujan</span>
               </div>
-              <div class="weather-item">
-                <span class="weather-icon">🌡</span>
-                <span class="weather-val" x-text="cuacaData.detail?.temperature_max?.toFixed(1) || '—'"></span>
-                <span class="weather-label">°C suhu maks</span>
+              <div class="rca-context-item">
+                <span class="rca-context-icon">🌡</span>
+                <span class="rca-context-val" x-text="cuacaData.detail?.temperature_max?.toFixed(1) || '—'"></span>
+                <span class="rca-context-label2">°C suhu maks</span>
               </div>
-              <div class="weather-item">
-                <span class="weather-icon">💨</span>
-                <span class="weather-val" x-text="cuacaData.detail?.wind_speed_max?.toFixed(1) || '—'"></span>
-                <span class="weather-label">km/h angin maks</span>
+              <div class="rca-context-item">
+                <span class="rca-context-icon">💨</span>
+                <span class="rca-context-val" x-text="cuacaData.detail?.wind_speed_max?.toFixed(1) || '—'"></span>
+                <span class="rca-context-label2">km/h angin maks</span>
               </div>
-              <div class="weather-item" x-show="cuacaData.daerah">
-                <span class="weather-icon">📍</span>
-                <span class="weather-val" x-text="cuacaData.daerah || ''"></span>
-                <span class="weather-label"></span>
+              <div class="rca-context-item" x-show="cuacaData.daerah">
+                <span class="rca-context-icon">📍</span>
+                <span class="rca-context-val" x-text="cuacaData.daerah || ''"></span>
               </div>
             </div>
           </template>
           <template x-if="!cuacaData">
-            <div class="empty-state">Pilih komoditas dan jalankan Analisis</div>
+            <div class="rca-empty-state" style="padding:20px;font-size:12px;">Pilih komoditas dan jalankan Analisis</div>
           </template>
         </div>
 
-        <div class="context-card">
-          <div class="context-label">Hari Besar Terdekat</div>
+        <div class="rca-context-card">
+          <div class="rca-context-label">Hari Besar Terdekat</div>
           <template x-if="result.checks && result.checks.length > 0">
             <div>
               <template x-for="check in result.checks.filter(c => c.name.includes('Hari Raya'))" :key="check.name">
                 <div>
                   <template x-if="check.result === 'TRIGGERED'">
-                    <div class="holiday-item" style="background:#FEF3C7;padding:10px;border-radius:8px;">
+                    <div class="rca-context-item" style="background:#FEF3C7;padding:10px;border-radius:8px;border:none;">
                       <span style="font-size:20px;">🕌</span>
                       <div>
-                        <div class="holiday-name" x-text="check.detail"></div>
+                        <div style="font-weight:700;" x-text="check.detail"></div>
                         <div style="font-family:var(--mono);font-size:10px;color:#92400e;font-weight:600;">Demand window aktif</div>
                       </div>
                     </div>
                   </template>
                   <template x-if="check.result !== 'TRIGGERED'">
-                    <div class="holiday-item">
+                    <div class="rca-context-item">
                       <span style="font-size:18px;">📅</span>
                       <div>
-                        <div class="holiday-name" style="font-size:12px;" x-text="check.detail || 'Tidak dalam periode hari raya'"></div>
+                        <div style="font-size:12px;font-weight:600;" x-text="check.detail || 'Tidak dalam periode hari raya'"></div>
                       </div>
                     </div>
                   </template>
@@ -458,76 +503,76 @@
             </div>
           </template>
           <template x-if="!result.checks">
-            <div class="empty-state">Jalankan Analisis untuk melihat info hari besar</div>
+            <div class="rca-empty-state" style="padding:20px;font-size:12px;">Jalankan Analisis untuk melihat info hari besar</div>
           </template>
         </div>
       </div>
 
-      <!-- ── Bowtie Analysis ── -->
+      <!-- ═══════════ FTA THREATS SECTION ═══════════ -->
+      <div class="rca-section-head">
+        <h2 class="rca-section-title">Identifikasi Ancaman (FTA)</h2>
+        <span class="rca-section-badge" x-show="bowtieData"
+              x-text="bowtieData.active_threats?.filter(t => t.active).length + ' Aktif'"></span>
+      </div>
+
+      <!-- FTA Threat Grid (from Bowtie or RCA checks) -->
+      <div class="rca-threat-grid" x-show="bowtieData">
+        <template x-for="t in bowtieData.active_threats" :key="t.id">
+          <div class="rca-threat-card" :class="t.active ? '' : 'dim'"
+               :style="t.active ? 'border-left:6px solid var(--accent);' : 'border-left:6px solid var(--muted);'">
+            <div class="rca-threat-card-top">
+              <span class="rca-threat-icon" x-text="t.icon || '⚠️'"></span>
+              <span class="rca-threat-chip" :class="t.active ? 'active' : 'inactive'"
+                    x-text="t.active ? 'ACTIVE' : 'NORMAL'"></span>
+            </div>
+            <div class="rca-threat-name" x-text="t.id + ': ' + t.name"></div>
+            <div class="rca-threat-desc" x-text="t.desc"></div>
+          </div>
+        </template>
+      </div>
+
+      <!-- ═══════════ BOWTIE ANALYSIS ═══════════ -->
       <template x-if="bowtieData">
         <div>
-          <!-- FTA Threat Grid -->
-          <div class="detail-card">
-            <div class="detail-title" style="display:flex;align-items:center;justify-content:space-between;">
-              <span>FTA Threats</span>
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent2);background:#E0F5EA;border:1.5px solid var(--border);padding:2px 9px;border-radius:6px;"
-                    x-text="bowtieData.active_threats.filter(t => t.active).length + ' aktif · ' + bowtieData.severity_level"></span>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;">
-              <template x-for="t in bowtieData.active_threats" :key="t.id">
-                <div style="padding:10px 12px;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);"
-                     :style="t.active ? 'background:#FEF3C7;box-shadow:2px 2px 0 var(--border);' : 'background:var(--surface2);opacity:0.7;'">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-                    <span style="font-family:var(--sans);font-size:12px;font-weight:700;" x-text="t.id + ': ' + t.name"></span>
-                    <span style="font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid var(--border);"
-                          :style="t.active ? 'background:#FEF3C7;color:#92400e;' : 'background:var(--surface);color:var(--muted);'"
-                          x-text="t.active ? 'AKTIF' : 'NORMAL'"></span>
-                  </div>
-                  <div style="font-family:var(--sans);font-size:11px;color:var(--text2);line-height:1.4;" x-text="t.desc"></div>
-                </div>
-              </template>
-            </div>
+          <!-- Bowtie Section Header -->
+          <div class="rca-section-head">
+            <h2 class="rca-section-title">Visualisasi Kontrol &amp; Mitigasi (Bowtie)</h2>
           </div>
 
-          <!-- Bowtie Visualization -->
-          <div class="detail-card">
-            <div class="detail-title" style="display:flex;align-items:center;justify-content:space-between;">
-              <span>Bowtie Analysis</span>
-              <span style="font-family:var(--mono);font-size:10px;font-weight:700;background:#E0F5EA;border:1.5px solid var(--border);padding:2px 9px;border-radius:6px;"
-                    :style="bowtieData.active_threats.filter(t => t.active).length > 0 ? 'color:#B45309;' : 'color:var(--accent2);'"
-                    x-text="bowtieData.active_threats.filter(t => t.active).length > 0 ? 'Threat Aktif' : 'Clear'"></span>
-            </div>
+          <div class="rca-fta-card">
             <!-- Summary -->
-            <div style="padding:10px 14px;background:var(--surface2);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);font-family:var(--sans);font-size:12px;color:var(--text2);margin-bottom:12px;box-shadow:2px 2px 0 var(--border);line-height:1.5;"
-                 x-text="bowtieData.summary"></div>
-            <!-- Prevention — Hazard — Mitigation -->
-            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div class="rca-bowtie-summary" x-text="bowtieData.summary"></div>
+
+            <!-- Bowtie 3-column -->
+            <div class="rca-bowtie-grid">
               <!-- Prevention -->
-              <div style="flex:1;min-width:200px;padding:12px;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);background:#ECFDF5;box-shadow:2px 2px 0 var(--border);">
-                <div style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#059669;margin-bottom:8px;"
-                     x-text="'Pencegahan (' + bowtieData.prevention.filter(b => b.active).length + ' aktif)'"></div>
+              <div class="rca-bowtie-col prevention">
+                <div class="rca-bowtie-col-title">
+                  Pencegahan (<span x-text="bowtieData.prevention.filter(b => b.active).length"></span> aktif)
+                </div>
                 <template x-for="b in bowtieData.prevention" :key="b.id">
-                  <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
-                       :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
-                    <span x-text="b.active ? '🟢' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
+                  <div class="rca-bowtie-item" :class="b.active ? 'active' : 'dim'">
+                    <span class="rca-bowtie-dot" :class="b.active ? 'on' : 'off'"></span>
                     <span x-text="b.id + ': ' + b.name"></span>
                   </div>
                 </template>
               </div>
+
               <!-- Hazard Event -->
-              <div style="flex:0 0 auto;min-width:120px;padding:12px;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);background:#FEF3C7;box-shadow:2px 2px 0 var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
-                <div style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#92400e;margin-bottom:6px;">Hazard</div>
-                <div style="font-size:20px;">⚠️</div>
-                <div style="font-family:var(--sans);font-size:11px;font-weight:700;color:#92400e;margin-top:4px;" x-text="bowtieData.hazard_event"></div>
+              <div class="rca-bowtie-col hazard">
+                <div class="rca-bowtie-col-title">Hazard</div>
+                <div class="rca-hazard-emoji">⚠️</div>
+                <div class="rca-hazard-text" x-text="bowtieData.hazard_event"></div>
               </div>
+
               <!-- Mitigation -->
-              <div style="flex:1;min-width:200px;padding:12px;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);background:#FEE2E2;box-shadow:2px 2px 0 var(--border);">
-                <div style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#dc2626;margin-bottom:8px;"
-                     x-text="'Mitigasi (' + bowtieData.mitigation.filter(b => b.active).length + ' aktif)'"></div>
+              <div class="rca-bowtie-col mitigation">
+                <div class="rca-bowtie-col-title">
+                  Mitigasi (<span x-text="bowtieData.mitigation.filter(b => b.active).length"></span> aktif)
+                </div>
                 <template x-for="b in bowtieData.mitigation" :key="b.id">
-                  <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
-                       :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
-                    <span x-text="b.active ? '🔴' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
+                  <div class="rca-bowtie-item" :class="b.active ? 'active' : 'dim'">
+                    <span class="rca-bowtie-dot" :class="b.active ? 'warn' : 'off'"></span>
                     <span x-text="b.id + ': ' + b.name"></span>
                   </div>
                 </template>
@@ -537,31 +582,62 @@
         </div>
       </template>
 
-    </div>
-  </template>
+      <!-- ── Fallback FTA cards from RCA checks (when no bowtie data) ── -->
+      <template x-if="!bowtieData && result.checks && result.checks.length > 0">
+        <div>
+          <div class="rca-fta-card">
+            <div class="rca-fta-ftitle">
+              <div class="rca-detail-title" style="margin-bottom:0;">FTA Threats</div>
+              <span class="rca-fta-fbadge" style="background:#E0F5EA;color:var(--accent2);"
+                    x-text="result.checks.filter(c => c.result === 'TRIGGERED').length + ' aktif · ' + result.severity_level"></span>
+            </div>
+            <div class="rca-threat-grid" style="margin-bottom:0;">
+              <template x-for="c in result.checks" :key="c.name">
+                <div class="rca-threat-card" :class="c.result === 'TRIGGERED' ? '' : 'dim'"
+                     :style="c.result === 'TRIGGERED' ? 'border-left:6px solid var(--accent);' : 'border-left:6px solid var(--muted);'">
+                  <div class="rca-threat-card-top">
+                    <span class="rca-threat-icon" x-text="c.result === 'TRIGGERED' ? '⚠️' : '✅'"></span>
+                    <span class="rca-threat-chip" :class="c.result === 'TRIGGERED' ? 'active' : 'inactive'"
+                          x-text="c.result"></span>
+                  </div>
+                  <div class="rca-threat-name" x-text="c.name"></div>
+                  <div class="rca-threat-desc" x-text="c.detail || ''"></div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </template>
 
-  <!-- ── Empty state ── -->
-  <template x-if="!result && !loading">
-    <div class="card">
-      <div class="empty-state" style="padding:60px 20px;">
-        <div style="font-size:40px;margin-bottom:12px;">🔍</div>
-        <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Pilih komoditas dan jalankan analisis</div>
-        <div>FTA engine akan memeriksa 6 faktor ancaman harga secara berurutan</div>
-      </div>
-    </div>
-  </template>
+      <!-- ── Summary card ── -->
+      <template x-if="result.root_cause">
+        <div class="rca-summary-card">
+          <div class="rca-summary-icon">
+            <span class="material-symbols-outlined" style="font-size:28px;">summarize</span>
+          </div>
+          <div class="rca-summary-body">
+            <h3>Ringkasan Temuan RCA</h3>
+            <p>
+              Analisis menunjukkan bahwa hasil FTA engine mengidentifikasi
+              <strong x-text="result.root_cause"></strong>.
+              <template x-if="result.checks">
+                <span>
+                  <span x-text="result.checks.filter(c => c.result === 'TRIGGERED').length"></span> dari
+                  <span x-text="result.checks.length"></span> indikator terpicu
+                  (severity: <strong x-text="result.severity_level"></strong>).
+                </span>
+              </template>
+              Rekomendasi: <span x-text="result.recommendation || 'Koordinasi dengan TPID setempat.'"></span>
+            </p>
+          </div>
+        </div>
+      </template>
 
-  <!-- ── Loading state ── -->
-  <template x-if="loading && !result">
-    <div class="card">
-      <div class="empty-state" style="padding:60px 20px;">
-        <div class="spinner" style="margin:0 auto 16px;width:28px;height:28px;display:block;"></div>
-        <div>Mengambil data dan menjalankan analisis...</div>
-      </div>
     </div>
   </template>
 
 </div>
+<!-- /app -->
 
 <script>
 function rcaPage() {
@@ -591,14 +667,12 @@ function rcaPage() {
     bowtieData: null,
 
     async init() {
-      // Auth guard — analyst+ only
       if (!this.token) { window.location.replace('/login'); return; }
       try {
         const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + this.token } });
         if (!r.ok) throw new Error();
         const me = await r.json();
         this.user = me;
-        // Viewer cannot access FTA page
         if (!me.is_admin && !me.is_analyst) {
           window.location.replace('/');
           return;
@@ -608,7 +682,6 @@ function rcaPage() {
         return;
       }
 
-      // Load commodities
       try {
         const r = await fetch('/api/commodities/detail', this._authOpts());
         if (r.ok) {
@@ -632,7 +705,6 @@ function rcaPage() {
       const dateParam = this.simDate ? `?sim_date=${this.simDate}` : '';
 
       try {
-        // Fetch RCA + commodity data in parallel
         const [rcaRes, comRes] = await Promise.all([
           fetch(`/api/analysis/${this.selectedKey}${dateParam}`, this._authOpts()),
           fetch(`/api/commodity/${this.selectedKey}${dateParam}`, this._authOpts()),
@@ -644,39 +716,32 @@ function rcaPage() {
         let comData = null;
         if (comRes.ok) comData = await comRes.json();
 
-        // Build result — map API field names to frontend expectations
-        // Backend RCAResult uses: price_delta_pct, title, action, checks[]
-        // Backend CommodityData has: kota_list[] with naik flags
         const kotaList = comData?.kota_list || [];
         const kotaNaik = kotaList.filter(k => k.naik).length;
 
         this.result = {
           is_anomaly: rcaData.is_anomaly,
-          root_cause: rcaData.title || '',          // RCAResult.title = diagnosis title
-          description: rcaData.description || '',    // RCAResult.description = detail
-          recommendation: rcaData.action || '',      // RCAResult.action = policy recommendation
-          delta_pct: rcaData.price_delta_pct || 0,   // RCAResult.price_delta_pct
+          root_cause: rcaData.title || '',
+          description: rcaData.description || '',
+          recommendation: rcaData.action || '',
+          delta_pct: rcaData.price_delta_pct || 0,
           price_now: comData?.price_now || 0,
-          kota_naik: kotaNaik,                       // count from CommodityData.kota_list
-          total_kota: kotaList.length,                // total from CommodityData.kota_list
+          kota_naik: kotaNaik,
+          total_kota: kotaList.length,
           severity_level: rcaData.severity_level || 'L0',
           yes_indicators: rcaData.yes_indicators || [],
           checks: (rcaData.checks || []).map(c => ({
             ...c,
-            // Map CheckResult fields: nama→name, status→result (TRIGGERED/CLEAR/SKIP)
             name: c.nama || c.name || '',
             result: (c.status || '').toUpperCase(),
           })),
         };
 
-        // Fetch weather data — always use /api/cuaca for numeric details
-        // CommodityData.cuaca only has text description, not numeric values
-        const provId = this.selectedProvinsi || 12;  // default to Jawa Barat
+        const provId = this.selectedProvinsi || 12;
         try {
           const wRes = await fetch(`/api/cuaca/${provId}${dateParam}`, this._authOpts());
           if (wRes.ok) {
             const wData = await wRes.json();
-            // Merge: use RCA cuaca flags + API weather daily numbers
             const latestDay = (wData.harian && wData.harian.length > 0) ? wData.harian[0] : {};
             this.cuacaData = {
               ekstrem: comData?.cuaca?.ekstrem ?? wData.ekstrem ?? false,
@@ -689,14 +754,12 @@ function rcaPage() {
               },
             };
           } else if (comData?.cuaca) {
-            // Fallback: use commodity cuaca (text only, no numeric)
             this.cuacaData = comData.cuaca;
           }
         } catch {
           if (comData?.cuaca) this.cuacaData = comData.cuaca;
         }
 
-        // Fetch Bowtie analysis
         try {
           const bRes = await fetch(`/api/bowtie/${this.selectedKey}${dateParam}`, this._authOpts());
           if (bRes.ok) this.bowtieData = await bRes.json();
