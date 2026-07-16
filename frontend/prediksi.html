@@ -354,9 +354,10 @@
     .rank-fair { background: #FEF3C7; color: #B45309; }
 
     /* ── Responsive: header stacking ── */
+    .header-right { flex-wrap: nowrap !important; }
     @media (max-width: 768px) {
       .header { flex-wrap: wrap; }
-      .header-right { order: 3; width: 100%; justify-content: flex-end; margin-top: 8px; }
+      .header-right { order: 3; width: 100%; justify-content: flex-end; margin-top: 8px; flex-wrap: wrap !important; }
     }
     @media (max-width: 640px) {
       .pred-hero-title { font-size: 26px; }
@@ -378,20 +379,20 @@
       <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">prediksi harga &nbsp;·&nbsp; machine learning &nbsp;·&nbsp; v0.8</div>
+        <div class="header-sub">prediksi harga &middot; v0.8</div>
       </div>
     </div>
-    <div class="header-right">
-      <span class="user-badge">
+    <div class="header-right" style="font-size:12px;">
+      <span class="user-badge" style="font-size:11px;">
         <strong x-text="user?.username || '—'"></strong> · <span x-text="user?.role || ''"></span>
       </span>
-      <a href="/" class="nav-link nav-link-default">Dashboard</a>
-      <a href="/guide" class="nav-link nav-link-default">Panduan</a>
-      <a href="/prediksi" class="nav-link nav-link-active"
-         x-show="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">Prediksi ML</a>
-      <a href="/admin" class="nav-link nav-link-default"
+      <a href="/" class="nav-link nav-link-default" style="font-size:11px;padding:5px 10px;">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-default" style="font-size:11px;padding:5px 10px;">Panduan</a>
+      <a href="/prediksi" class="nav-link nav-link-active" style="font-size:11px;padding:5px 10px;"
+         x-show="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">Prediksi</a>
+      <a href="/admin" class="nav-link nav-link-default" style="font-size:11px;padding:5px 10px;"
          x-show="user?.is_admin || user?.role === 'admin'">Admin</a>
-      <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
+      <button @click="logout()" class="nav-link nav-link-danger" style="font-size:11px;padding:5px 10px;">Keluar</button>
     </div>
     <!-- Hamburger -->
     <button class="hamburger-btn" @click="navOpen = !navOpen" aria-label="Toggle navigation">
@@ -401,7 +402,7 @@
       <a href="/" class="nav-link nav-link-default" @click="navOpen = false">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default" @click="navOpen = false">Panduan</a>
       <a href="/prediksi" class="nav-link nav-link-active" @click="navOpen = false"
-         x-show="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">Prediksi ML</a>
+         x-show="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">Prediksi</a>
       <a href="/admin" class="nav-link nav-link-default" @click="navOpen = false"
          x-show="user?.is_admin || user?.role === 'admin'">Admin</a>
       <button @click="logout(); navOpen = false" class="nav-link nav-link-danger">Keluar</button>
