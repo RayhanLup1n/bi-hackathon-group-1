@@ -361,7 +361,7 @@
 <body x-data="prediksiPage()" x-cloak>
 <div class="app">
 
-  <!-- ═══════════ HEADER (standard pattern, like dashboard/guide) ═══════════ -->
+  <!-- ═══════════ HEADER (RBAC-aware: Viewer=2, Analyst=5, Admin=6) ═══════════ -->
   <header class="header" x-data="{ navOpen: false }">
     <div class="header-left">
       <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
@@ -376,12 +376,10 @@
       </span>
       <a href="/" class="nav-link nav-link-default">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default">Panduan</a>
-      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/prediksi" class="nav-link nav-link-active">Prediksi ML</a>
-      </template>
-      <template x-if="user?.is_admin || user?.role === 'admin'">
-        <a href="/admin" class="nav-link nav-link-default">Admin</a>
-      </template>
+      <a href="/prediksi" class="nav-link nav-link-active"
+         x-show="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">Prediksi ML</a>
+      <a href="/admin" class="nav-link nav-link-default"
+         x-show="user?.is_admin || user?.role === 'admin'">Admin</a>
       <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
     </div>
     <!-- Hamburger -->
@@ -391,12 +389,10 @@
     <div class="mobile-nav" :class="navOpen ? 'show' : ''" style="width:100%;margin-top:10px;">
       <a href="/" class="nav-link nav-link-default" @click="navOpen = false">Dashboard</a>
       <a href="/guide" class="nav-link nav-link-default" @click="navOpen = false">Panduan</a>
-      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/prediksi" class="nav-link nav-link-active" @click="navOpen = false">Prediksi ML</a>
-      </template>
-      <template x-if="user?.is_admin || user?.role === 'admin'">
-        <a href="/admin" class="nav-link nav-link-default" @click="navOpen = false">Admin</a>
-      </template>
+      <a href="/prediksi" class="nav-link nav-link-active" @click="navOpen = false"
+         x-show="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">Prediksi ML</a>
+      <a href="/admin" class="nav-link nav-link-default" @click="navOpen = false"
+         x-show="user?.is_admin || user?.role === 'admin'">Admin</a>
       <button @click="logout(); navOpen = false" class="nav-link nav-link-danger">Keluar</button>
     </div>
   </header>
@@ -488,16 +484,18 @@
     </template>
   </div>
 
-  <!-- ── Source tabs (separated, like mockup) ── -->
+  <!-- ── Source tabs (separated, rounded) ── -->
   <div style="display:flex;gap:12px;margin-bottom:24px;">
     <button @click="switchSource('ml')"
             :style="source === 'ml' ? 'background:var(--accent);color:#fff;' : 'background:var(--surface);'"
-            style="flex:1;padding:10px 20px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);text-align:center;box-shadow:3px 3px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;">
+            style="flex:1;padding:10px 20px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);text-align:center;box-shadow:2px 2px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;"
+            onmouseover="if(source!=='ml'){this.style.background='#E0F5EA'}" onmouseout="if(source!=='ml'){this.style.background='var(--surface)'}">
       🤖 ML Inference
     </button>
     <button @click="switchSource('db')"
             :style="source === 'db' ? 'background:var(--accent);color:#fff;' : 'background:var(--surface);'"
-            style="flex:1;padding:10px 20px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);text-align:center;box-shadow:3px 3px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;">
+            style="flex:1;padding:10px 20px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);text-align:center;box-shadow:2px 2px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;"
+            onmouseover="if(source!=='db'){this.style.background='#E0F5EA'}" onmouseout="if(source!=='db'){this.style.background='var(--surface)'}">
       📊 Database Predictions
     </button>
   </div>
