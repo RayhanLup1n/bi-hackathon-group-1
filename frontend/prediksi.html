@@ -303,10 +303,58 @@
     .pred-error { text-align: center; padding: 40px; color: #DC2626; font-weight: 600; }
     .pred-idle { text-align: center; padding: 48px 20px; color: var(--muted); }
 
+    /* ── Trend classes ── */
+    .ml-trend-up { color: #DC2626; font-weight: 800; }
+    .ml-trend-down { color: #059669; font-weight: 800; }
+
     [x-cloak] { display: none !important; }
 
+    /* ── Metrics grid ── */
+    .pred-metrics-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 12px; margin-top: 16px;
+    }
+    @media (max-width: 900px) {
+      .pred-metrics-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 500px) {
+      .pred-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .pred-metric-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+      box-shadow: var(--shadow); text-align: center;
+    }
+    .pred-metric-card .metric-name {
+      font-family: var(--mono); font-size: 9px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .pred-metric-card .metric-val {
+      font-family: var(--mono); font-size: 22px; font-weight: 900;
+    }
+    .pred-metric-card .metric-rank {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      border: 1.5px solid var(--border); margin-top: 4px;
+    }
+    .rank-excellent { background: #D1FAE5; color: #059669; }
+    .rank-good { background: #E0E7FF; color: #4338CA; }
+    .rank-fair { background: #FEF3C7; color: #B45309; }
+
+    /* ── Responsive: header stacking ── */
+    @media (max-width: 768px) {
+      .header { flex-wrap: wrap; }
+      .header-right { order: 3; width: 100%; justify-content: flex-end; margin-top: 8px; }
+    }
     @media (max-width: 640px) {
       .pred-hero-title { font-size: 26px; }
+      .header-right { display: none; }
+      .hamburger-btn { display: block; }
+    }
+    @media (max-width: 480px) {
+      .header { padding: 10px 14px; }
+      .header-title { font-size: 15px; }
     }
   </style>
 </head>
@@ -440,16 +488,16 @@
     </template>
   </div>
 
-  <!-- ── Source tabs (compact, below filter) ── -->
-  <div style="display:flex;gap:0;margin-bottom:24px;">
+  <!-- ── Source tabs (separated, like mockup) ── -->
+  <div style="display:flex;gap:12px;margin-bottom:24px;">
     <button @click="switchSource('ml')"
             :style="source === 'ml' ? 'background:var(--accent);color:#fff;' : 'background:var(--surface);'"
-            style="flex:1;padding:8px 16px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;border:var(--bw) solid var(--border);border-radius:var(--radius-sm) 0 0 var(--radius-sm);text-align:center;">
+            style="flex:1;padding:10px 20px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);text-align:center;box-shadow:3px 3px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;">
       🤖 ML Inference
     </button>
     <button @click="switchSource('db')"
             :style="source === 'db' ? 'background:var(--accent);color:#fff;' : 'background:var(--surface);'"
-            style="flex:1;padding:8px 16px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;border:var(--bw) solid var(--border);border-left:none;border-radius:0 var(--radius-sm) var(--radius-sm) 0;text-align:center;">
+            style="flex:1;padding:10px 20px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);text-align:center;box-shadow:3px 3px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;">
       📊 Database Predictions
     </button>
   </div>
@@ -601,6 +649,41 @@
             </div>
 
           </div><!-- /pred-layer-grid -->
+
+          <!-- ═══════ Training Metrics ═══════ -->
+          <div class="card" style="margin-bottom:20px;" x-show="mlResult.training_metrics">
+            <div class="card-label">Hasil Pelatihan Model</div>
+            <div class="pred-metrics-grid">
+              <div class="pred-metric-card">
+                <div class="metric-name">RMSE</div>
+                <div class="metric-val" style="color:var(--accent2);" x-text="mlResult.training_metrics?.rmse ? 'Rp ' + Math.round(mlResult.training_metrics.rmse).toLocaleString('id-ID') : '—'"></div>
+                <div class="metric-rank rank-good">Root Mean Sq Error</div>
+              </div>
+              <div class="pred-metric-card">
+                <div class="metric-name">MAE</div>
+                <div class="metric-val" style="color:var(--accent2);" x-text="mlResult.training_metrics?.mae ? 'Rp ' + Math.round(mlResult.training_metrics.mae).toLocaleString('id-ID') : '—'"></div>
+                <div class="metric-rank rank-good">Mean Absolute Error</div>
+              </div>
+              <div class="pred-metric-card">
+                <div class="metric-name">R² Score</div>
+                <div class="metric-val" style="color:var(--accent2);" x-text="mlResult.training_metrics?.r2 != null ? mlResult.training_metrics.r2.toFixed(3) : '—'"></div>
+                <div class="metric-rank" :class="mlResult.training_metrics?.r2 >= 0.9 ? 'rank-excellent' : mlResult.training_metrics?.r2 >= 0.75 ? 'rank-good' : 'rank-fair'">Coefficient of Determination</div>
+              </div>
+              <div class="pred-metric-card">
+                <div class="metric-name">WAPE</div>
+                <div class="metric-val" style="color:var(--accent2);" x-text="mlResult.training_metrics?.wape != null ? mlResult.training_metrics.wape.toFixed(2) + '%' : '—'"></div>
+                <div class="metric-rank" :class="mlResult.training_metrics?.wape <= 5 ? 'rank-excellent' : mlResult.training_metrics?.wape <= 10 ? 'rank-good' : 'rank-fair'">Weighted Absolute % Error</div>
+              </div>
+              <div class="pred-metric-card">
+                <div class="metric-name">F1-Score</div>
+                <div class="metric-val" style="color:var(--accent2);" x-text="mlResult.training_metrics?.f1_score != null ? mlResult.training_metrics.f1_score.toFixed(3) : '—'"></div>
+                <div class="metric-rank" :class="mlResult.training_metrics?.f1_score >= 0.85 ? 'rank-excellent' : mlResult.training_metrics?.f1_score >= 0.7 ? 'rank-good' : 'rank-fair'">Classification Metric</div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);font-style:italic;margin-top:8px;line-height:1.5;">
+              Metrics dihitung dari validasi model LightGBM Quantile pada data testing (20% holdout). R² &gt; 0.85 dan WAPE &lt; 10% menunjukkan performa model yang baik.
+            </div>
+          </div>
 
           <!-- ═══════ Chart + SHAP ═══════ -->
           <div class="pred-chart-grid">
@@ -781,8 +864,8 @@
                 <span class="spinner" style="display:block;margin:0 auto 10px;"></span> Memuat grafik...
               </div>
             </div>
-            <div class="pred-chart-card" style="display:flex;flex-direction:column;justify-content:center;text-align:center;" x-show="!selectedKey">
-              <div style="font-size:48px;margin-bottom:12px;opacity:0.4;">📊</div>
+            <div class="pred-chart-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:320px;" x-show="!selectedKey">
+              <span class="material-symbols-outlined" style="font-size:56px;opacity:0.2;margin-bottom:12px;">monitoring</span>
               <div style="font-size:14px;font-weight:600;color:var(--muted);">Pilih komoditas untuk melihat grafik</div>
             </div>
 
