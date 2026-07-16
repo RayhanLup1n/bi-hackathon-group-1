@@ -288,6 +288,39 @@
       .hidden-mobile { display: none !important; }
     }
 
+    /* ── Pagination buttons (CSS class so Alpine :style won't fight inline margins) ── */
+    .pagi-bar {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; flex-wrap: wrap;
+      margin-top: 20px; padding: 16px;
+      font-family: var(--mono); font-size: 13px;
+    }
+    .pagi-num {
+      min-width: 20px; min-height: 12px; padding: 4px 10px;
+      margin: 0 8px;  /* explicit horizontal gap between number buttons */
+      border: var(--bw) solid var(--border); border-radius: 6px;
+      cursor: pointer; font-weight: 700; font-size: 12px;
+      background: var(--surface);
+      box-shadow: 1px 1px 0 var(--border);
+      font-family: var(--mono);
+    }
+    .pagi-num.active { background: var(--accent); color: #fff; box-shadow: 2px 2px 0 var(--border); }
+    .pagi-nav {
+      min-width: 28px; min-height: 12px; padding: 4px 12px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: 6px; cursor: pointer; box-shadow: 1px 1px 0 var(--border);
+      font-weight: 700; font-size: 12px; font-family: var(--mono);
+    }
+    .pagi-disabled { opacity: 0.3; cursor: not-allowed !important; }
+    .pagi-info { color: var(--muted); margin-left: 16px; font-size: 11px; }
+    .pagi-num:not(.active):hover, .pagi-nav:not(.pagi-disabled):hover {
+      transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--border);
+    }
+    @media (max-width: 640px) {
+      .pagi-num { margin: 0 6px; }
+      .pagi-info { width: 100%; text-align: center; margin: 8px 0 0; }
+    }
+
     /* ── Responsive breakpoints ── */
     @media (max-width: 768px) {
       .app { padding: 12px 12px 32px; }
@@ -437,30 +470,11 @@
       </div>
     </template>
 
-    <!-- ── Loading skeleton ── -->
+    <!-- ── Loading state (centered spinner) ── -->
     <template x-if="loading && !overview">
-      <div>
-        <!-- Stat bar skeleton -->
-        <div style="display:flex;gap:12px;margin-bottom:20px;">
-          <div class="skeleton" style="flex:1;height:70px;border-radius:var(--radius);"></div>
-          <div class="skeleton" style="flex:1;height:70px;border-radius:var(--radius);"></div>
-          <div class="skeleton" style="flex:1;height:70px;border-radius:var(--radius);"></div>
-        </div>
-        <!-- Freshness bar skeleton -->
-        <div class="skeleton" style="height:38px;margin-bottom:16px;border-radius:var(--radius);"></div>
-        <!-- Search bar skeleton -->
-        <div class="skeleton" style="height:36px;max-width:420px;margin-bottom:14px;border-radius:var(--radius);"></div>
-        <!-- Section label skeleton -->
-        <div class="skeleton" style="height:14px;width:140px;margin-bottom:12px;border-radius:4px;"></div>
-        <!-- Priority cards skeleton -->
-        <div class="skeleton" style="height:130px;margin-bottom:12px;border-radius:var(--radius);"></div>
-        <div class="skeleton" style="height:130px;margin-bottom:12px;border-radius:var(--radius);"></div>
-        <div class="skeleton" style="height:130px;margin-bottom:12px;border-radius:var(--radius);"></div>
-        <!-- Loading text -->
-        <div style="text-align:center;margin-top:20px;">
-          <span class="spinner" style="border-color:rgba(26,26,26,0.15);border-top-color:var(--accent2);width:20px;height:20px;border-width:2.5px;"></span>
-          <p style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px;">Memuat dashboard...</p>
-        </div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;min-height:50vh;">
+        <span class="spinner" style="border-color:rgba(26,26,26,0.15);border-top-color:var(--accent2);width:40px;height:40px;border-width:4px;"></span>
+        <p style="font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:16px;font-weight:600;">Memuat dashboard...</p>
       </div>
     </template>
 
@@ -718,20 +732,17 @@
       </div>
 
       <!-- ── Pagination controls ── -->
-      <div x-show="priorityTotalPages > 1" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-family:var(--mono);font-size:11px;">
+      <div x-show="priorityTotalPages > 1" class="pagi-bar">
         <button @click="goToPriorityPage(priorityPage - 1)" :disabled="priorityPage <= 1"
-                style="padding:5px 10px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);font-weight:700;font-size:11px;"
-                :style="priorityPage <= 1 ? 'opacity:0.3;cursor:not-allowed;' : ''">Prev</button>
+                class="pagi-nav" :class="priorityPage <= 1 ? 'pagi-disabled' : ''">Prev</button>
         <template x-for="pg in Array.from({length: priorityTotalPages}, (_, i) => i + 1)" :key="pg">
           <button @click="goToPriorityPage(pg)"
-                  style="padding:5px 10px;border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;font-weight:700;font-size:11px;"
-                  :style="pg === priorityPage ? 'background:var(--accent);color:#fff;box-shadow:var(--shadow);' : 'background:var(--surface);box-shadow:1px 1px 0 var(--border);'"
+                  class="pagi-num" :class="pg === priorityPage ? 'active' : ''"
                   x-text="pg"></button>
         </template>
         <button @click="goToPriorityPage(priorityPage + 1)" :disabled="priorityPage >= priorityTotalPages"
-                style="padding:5px 10px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);font-weight:700;font-size:11px;"
-                :style="priorityPage >= priorityTotalPages ? 'opacity:0.3;cursor:not-allowed;' : ''">Next</button>
-        <span style="color:var(--muted);margin-left:8px;"
+                class="pagi-nav" :class="priorityPage >= priorityTotalPages ? 'pagi-disabled' : ''">Next</button>
+        <span class="pagi-info"
               x-text="'Hal. ' + priorityPage + ' / ' + priorityTotalPages + ' (' + allPriorities.length + ' total)'"></span>
       </div>
 
@@ -800,13 +811,14 @@
 
       <!-- ── Transparency toggle (sidebar card, matching mockup) ── -->
       <div class="sidebar-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px;">
           <div class="sidebar-card-title" style="margin-bottom:0;">Transparansi Data</div>
-          <button @click="showTransparency = !showTransparency"
-                  style="width:40px;height:22px;border-radius:11px;border:var(--bw) solid var(--border);cursor:pointer;position:relative;transition:background 0.2s;"
-                  :style="showTransparency ? 'background:var(--accent);' : 'background:#e5e7eb;'">
-            <span style="width:16px;height:16px;border-radius:50%;background:#fff;border:1px solid var(--border);position:absolute;top:1px;transition:left 0.2s;"
-                  :style="showTransparency ? 'left:20px;' : 'left:2px;'"></span>
+          <button @click="toggleTransparency()"
+                  style="min-width:36px;min-height:36px;padding:6px 14px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:8px;cursor:pointer;box-shadow:2px 2px 0 var(--border);font-family:var(--mono);font-size:11px;font-weight:700;transition:transform 0.1s,box-shadow 0.1s;"
+                  :style="showTransparency ? 'background:var(--accent);color:#fff;' : ''"
+                  onmouseover="this.style.transform='translate(-1px,-1px)';this.style.boxShadow='3px 3px 0 var(--border)'"
+                  onmouseout="this.style.transform='';this.style.boxShadow='2px 2px 0 var(--border)'">
+            <span x-text="showTransparency ? 'Tutup' : 'Buka'"></span>
           </button>
         </div>
         <p style="font-size:11px;color:var(--muted);line-height:1.5;">Tampilkan detail sumber data dan konfigurasi prioritas.</p>
@@ -814,7 +826,22 @@
 
       <!-- ── Transparency panel (expandable) ── -->
       <template x-if="showTransparency">
-        <div class="animate-in" x-init="loadTransparency()">
+        <div class="animate-in">
+          <!-- Loading state -->
+          <template x-if="transparencyLoading">
+            <div style="text-align:center;padding:20px;font-family:var(--mono);font-size:11px;color:var(--muted);">
+              <span class="spinner" style="border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);width:16px;height:16px;border-width:2px;margin-right:8px;"></span>
+              Memuat transparansi...
+            </div>
+          </template>
+          <!-- Error state -->
+          <template x-if="transparencyError && !transparencyData">
+            <div class="sidebar-card" style="text-align:center;padding:16px;font-family:var(--mono);font-size:10px;color:#DC2626;">
+              Gagal memuat data transparansi.
+              <button @click="loadTransparency()" style="display:block;margin:8px auto 0;padding:4px 10px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;font-weight:700;">Coba Lagi</button>
+            </div>
+          </template>
+          <!-- Data loaded -->
           <template x-if="transparencyData">
             <div class="sidebar-card">
               <div class="card-label">Sumber Data</div>
@@ -866,9 +893,9 @@
 
       <!-- Loading -->
       <template x-if="detailLoading">
-        <div>
-          <div class="skeleton" style="height:100px;margin-bottom:14px;"></div>
-          <div class="skeleton" style="height:200px;margin-bottom:14px;"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;min-height:50vh;">
+          <span class="spinner" style="border-color:rgba(26,26,26,0.15);border-top-color:var(--accent2);width:40px;height:40px;border-width:4px;"></span>
+          <p style="font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:16px;font-weight:600;">Memuat detail...</p>
         </div>
       </template>
 
@@ -1078,6 +1105,8 @@ function executiveDashboard() {
     priorityPerPage: 10,
     showTransparency: false,
     transparencyData: null,
+    transparencyLoading: false,
+    transparencyError: null,
     sparklines: {},
     sparklineLabels: [],
 
@@ -1294,12 +1323,23 @@ function executiveDashboard() {
     },
 
     // ── Transparency ───────────────────────────────────────────
+    async toggleTransparency() {
+      this.showTransparency = !this.showTransparency;
+      if (this.showTransparency && !this.transparencyData && !this.transparencyLoading) {
+        await this.loadTransparency();
+      }
+    },
+
     async loadTransparency() {
-      if (this.transparencyData) return;
+      this.transparencyLoading = true;
+      this.transparencyError = null;
       try {
         this.transparencyData = await this.fetchJSON('/api/mvp/transparency');
       } catch (e) {
         console.error('Transparency error:', e);
+        this.transparencyError = e;
+      } finally {
+        this.transparencyLoading = false;
       }
     },
 
