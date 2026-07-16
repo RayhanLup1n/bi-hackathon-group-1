@@ -100,12 +100,14 @@ def _try_get_ml_forecast(
     """Attempt to get ML forecast for a commodity-city pair.
 
     Returns None if ML server is unreachable (graceful degradation).
+    Timeout kept short (5s) to avoid cascading delays across many
+    commodity×province combinations.
     """
     import json
     try:
         import httpx
         ml_url = "http://localhost:8001/api/v1/analyze"
-        with httpx.Client(timeout=15.0) as client:
+        with httpx.Client(timeout=5.0) as client:
             resp = client.post(ml_url, json={
                 "komoditas_nama": komoditas_nama,
                 "kota_nama": kota_nama,
@@ -131,12 +133,14 @@ def get_overview(
       - review bundles
       - latest reviews
 
-    This is the main endpoint response for /api/mvp/overview.
+    PERFORMANCE NOTE: ML forecast calls are SKIPPED here to keep overview
+    fast (<2s). ML is called only in /api/mvp/priorities (per-item) and
+    /api/mvp/priority/{id} (detail view). This avoids 24× HTTP calls that
+    would make overview take 30s+ when ML is unreachable.
     """
     today = sim_date or date.today()
     data_age_days, data_latest = _get_data_freshness()
     coverage_ratio = _get_coverage_ratio()
-    ml_online = _check_ml_health()
 
     # ── Build recommendations for all commodity x province combos ──────
     recommendations: list[Recommendation] = []
@@ -176,30 +180,15 @@ def get_overview(
             else:
                 price_delta_pct = 0.0
 
-            # ML forecast - try for the main city in this province
-            forecast_data: dict[str, Any] | None = None
-            if ml_online and cities_total > 0:
-                main_city = data.kota_list[0].nama if data.kota_list else "Jakarta"
-                forecast_data = _try_get_ml_forecast(commodity_name, main_city, today)
-
-            # Extract ML signals
+            # ML forecast — SKIPPED in overview for performance.
+            # Overview is a fast aggregation endpoint. ML forecast is
+            # loaded on-demand in get_priorities() and get_priority_detail().
             forecast_breach = False
             forecast_p50 = None
             forecast_p90 = None
             model_version = ""
             model_wape = None
             model_worse = False
-
-            if forecast_data:
-                try:
-                    result = forecast_data.get("result", forecast_data)
-                    forecast_p50 = result.get("p50_7d")
-                    forecast_p90 = result.get("p90_7d")
-                    forecast_breach = result.get("breach_risk", False)
-                    model_version = result.get("model_version", "")
-                    model_wape = result.get("wape")
-                except (AttributeError, KeyError, TypeError):
-                    pass
 
             # Build recommendation per province
             rec = build_recommendation(

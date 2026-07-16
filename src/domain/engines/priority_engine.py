@@ -50,14 +50,14 @@ def _build_recommendation_id(
 
 
 def _map_het_to_price_condition(het_pct: float | None) -> str:
-    """Map HET percentage to PRD price condition taxonomy."""
+    """Map HET percentage to user-friendly price condition label."""
     if het_pct is None:
-        return "Tidak Tersedia"
+        return "HET: Tidak Tersedia"
     if het_pct > 100:
-        return "Melampaui Ambang"
+        return "Harga di Atas HET"
     if het_pct >= 80:
-        return "Mendekati Ambang"
-    return "Di Bawah Ambang"
+        return "Harga Mendekati HET"
+    return "Harga di Bawah HET"
 
 
 def _map_het_to_risk_level(

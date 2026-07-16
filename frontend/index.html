@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>R.A.D.A.R Pangan — Executive Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <script src="/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -721,9 +721,9 @@
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding-left:52px;">
               <span class="priority-tag" :class="'tag-risk-' + p.risk_level" x-text="p.price_condition" style="font-size:9px;"></span>
               <span class="priority-tag" :class="'tag-confidence-' + p.confidence_level"
-                    x-text="'Keyakinan: ' + labelId(p.confidence_level)" style="font-size:9px;"></span>
+                    x-text="labelId(p.confidence_level)" style="font-size:9px;"></span>
               <span class="priority-tag" style="background:var(--surface2);font-size:9px;"
-                    x-text="p.time_horizon_days + ' hari'"></span>
+                    x-text="'Proyeksi ' + p.time_horizon_days + ' Hari'"></span>
               <span style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:auto;"
                     x-text="p.knowledge_status === 'fact' ? 'Fakta' : p.knowledge_status === 'model_output' ? 'Model' : 'Inference'"></span>
             </div>
@@ -1512,9 +1512,9 @@ function executiveDashboard() {
         regional_spread: 'Persebaran Regional',
         weather_calendar: 'Cuaca & Kalender',
         confidence: 'Keyakinan',
-        low: 'Rendah',
-        medium: 'Sedang',
-        high: 'Tinggi',
+        low: 'Andal Terbatas',
+        medium: 'Cukup Andal',
+        high: 'Sangat Andal',
       };
       return map[key] || key;
     },
