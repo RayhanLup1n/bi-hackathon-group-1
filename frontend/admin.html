@@ -56,10 +56,31 @@
       font-size: 14px; font-weight: 700; color: var(--accent2);
     }
 
-    /* Hide desktop nav links on mobile */
+    /* ── Hamburger & mobile nav ── */
+    .admin-hamburger {
+      display: none; background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); cursor: pointer; font-size: 18px;
+      padding: 6px 10px; box-shadow: 2px 2px 0 var(--border); transition: transform 0.1s, box-shadow 0.1s;
+      line-height: 1;
+    }
+    .admin-hamburger:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .admin-mobile-nav {
+      display: none; flex-direction: column; gap: 4px;
+      padding: 12px 16px; background: var(--surface); border-top: var(--bw) solid var(--border);
+    }
+    .admin-mobile-nav.show { display: flex; }
+    .admin-mobile-link {
+      display: block; padding: 8px 12px; font-family: var(--sans); font-size: 14px; font-weight: 600;
+      color: var(--text); text-decoration: none; border-radius: 8px; transition: background 0.15s;
+    }
+    .admin-mobile-link:hover { background: var(--surface2); }
+    .admin-mobile-link.active { background: var(--accent); color: #fff; }
+
+    /* Hide desktop nav links on mobile, show hamburger */
     @media (max-width: 768px) {
       .admin-nav-links { display: none; }
       .admin-nav-inner { padding: 10px 16px; }
+      .admin-hamburger { display: flex; align-items: center; justify-content: center; }
     }
 
     /* ── Main content ── */
@@ -507,7 +528,7 @@
 <body x-data="adminPage()" x-init="init()">
 
 <!-- ══════════════════════════ STICKY NAVBAR ══════════════════════════ -->
-<header class="admin-navbar">
+<header class="admin-navbar" x-data="{ navOpen: false }">
   <div class="admin-nav-inner">
     <div class="admin-nav-left">
       <img class="admin-nav-logo" src="/assets/logo.png" alt="RADAR Pangan">
@@ -520,13 +541,20 @@
       <a href="/admin" class="admin-nav-link active">Admin</a>
     </nav>
     <div class="admin-nav-actions">
-      <button class="admin-icon-btn" title="Notifikasi" style="border:none;box-shadow:none;background:transparent;">
-        <span class="material-symbols-outlined">notifications</span>
-      </button>
       <!-- Avatar (no S3, use initials fallback) -->
       <div class="admin-avatar admin-avatar-placeholder" x-text="userInitials"></div>
+      <button class="admin-hamburger" @click="navOpen = !navOpen" aria-label="Toggle navigation">
+        <span x-text="navOpen ? '✕' : '☰'"></span>
+      </button>
     </div>
   </div>
+  <!-- Mobile nav dropdown -->
+  <nav class="admin-mobile-nav" :class="navOpen ? 'show' : ''">
+    <a href="/" class="admin-mobile-link">Dashboard</a>
+    <a href="/guide" class="admin-mobile-link">Panduan</a>
+    <a href="/prediksi" class="admin-mobile-link">Prediksi ML</a>
+    <a href="/admin" class="admin-mobile-link active">Admin</a>
+  </nav>
 </header>
 
 <!-- ══════════════════════════ MAIN CONTENT ══════════════════════════ -->
@@ -616,7 +644,6 @@
             <th>Username</th>
             <th>Role</th>
             <th>Status</th>
-            <th>Terakhir Login</th>
             <th style="text-align:right;">Aksi</th>
           </tr>
         </thead>
@@ -662,7 +689,6 @@
                         x-text="u.is_active ? 'Aktif' : 'Nonaktif'"></span>
                 </div>
               </td>
-              <td class="admin-date-cell" x-text="formatDateTime(u.last_login)"></td>
               <td>
                 <div class="admin-action-cell">
                   <button class="admin-icon-btn edit" @click="openEditModal(u)" title="Edit">

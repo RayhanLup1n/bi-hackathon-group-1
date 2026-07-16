@@ -317,6 +317,10 @@
       background: var(--surface); color: var(--text);
     }
     .pred-tab-btn:hover { background: #E0F5EA; }
+    .pred-tab-btn.active {
+      background: var(--accent) !important;
+      color: #fff !important;
+    }
 
     [x-cloak] { display: none !important; }
 
@@ -353,16 +357,29 @@
     .rank-good { background: #E0E7FF; color: #4338CA; }
     .rank-fair { background: #FEF3C7; color: #B45309; }
 
-    /* ── Responsive: header stacking ── */
+    /* ── Responsive: header + mobile nav ── */
     .header-right { flex-wrap: nowrap !important; }
+    .hamburger-btn {
+      display: none; background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); cursor: pointer; font-size: 18px;
+      padding: 6px 10px; box-shadow: 2px 2px 0 var(--border); transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .hamburger-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .mobile-nav { display: none; }            /* hidden by default */
+    .mobile-nav.show { display: flex; flex-direction: column; gap: 8px; }
+
     @media (max-width: 768px) {
       .header { flex-wrap: wrap; }
       .header-right { order: 3; width: 100%; justify-content: flex-end; margin-top: 8px; flex-wrap: wrap !important; }
     }
     @media (max-width: 640px) {
       .pred-hero-title { font-size: 26px; }
-      .header-right { display: none; }
-      .hamburger-btn { display: block; }
+      .header { flex-direction: row; flex-wrap: wrap; position: relative; }
+      .header-right { display: none !important; }
+      .hamburger-btn { display: flex; align-items: center; justify-content: center; margin-left: auto; }
+      .mobile-nav { width: 100%; }
+      .mobile-nav { display: none; }
+      .mobile-nav.show { display: flex; }
     }
     @media (max-width: 480px) {
       .header { padding: 10px 14px; }
@@ -499,13 +516,11 @@
   <!-- ── Source tabs (separated, pill-rounded like nav-link) ── -->
   <div style="display:flex;gap:12px;margin-bottom:24px;">
     <button @click="switchSource('ml')"
-            :style="source === 'ml' ? 'background:var(--accent);color:#fff;border-radius:var(--radius-sm);' : 'background:var(--surface);color:var(--text);border-radius:var(--radius-sm);'"
-            class="pred-tab-btn">
+            :class="source === 'ml' ? 'pred-tab-btn active' : 'pred-tab-btn'">
       🤖 ML Inference
     </button>
     <button @click="switchSource('db')"
-            :style="source === 'db' ? 'background:var(--accent);color:#fff;border-radius:var(--radius-sm);' : 'background:var(--surface);color:var(--text);border-radius:var(--radius-sm);'"
-            class="pred-tab-btn">
+            :class="source === 'db' ? 'pred-tab-btn active' : 'pred-tab-btn'">
       📊 Database Predictions
     </button>
   </div>
