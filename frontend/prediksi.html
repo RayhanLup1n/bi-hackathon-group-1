@@ -307,6 +307,17 @@
     .ml-trend-up { color: #DC2626; font-weight: 800; }
     .ml-trend-down { color: #059669; font-weight: 800; }
 
+    /* ── Source tab buttons ── */
+    .pred-tab-btn {
+      flex: 1; padding: 10px 20px; cursor: pointer;
+      font-family: var(--mono); font-size: 11px; font-weight: 800;
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      text-align: center; box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
+      background: var(--surface); color: var(--text);
+    }
+    .pred-tab-btn:hover { background: #E0F5EA; }
+
     [x-cloak] { display: none !important; }
 
     /* ── Metrics grid ── */
@@ -484,18 +495,16 @@
     </template>
   </div>
 
-  <!-- ── Source tabs (separated, rounded) ── -->
+  <!-- ── Source tabs (separated, pill-rounded like nav-link) ── -->
   <div style="display:flex;gap:12px;margin-bottom:24px;">
     <button @click="switchSource('ml')"
-            :style="source === 'ml' ? 'background:var(--accent);color:#fff;' : 'background:var(--surface);'"
-            style="flex:1;padding:10px 20px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);text-align:center;box-shadow:2px 2px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;"
-            onmouseover="if(source!=='ml'){this.style.background='#E0F5EA'}" onmouseout="if(source!=='ml'){this.style.background='var(--surface)'}">
+            :style="source === 'ml' ? 'background:var(--accent);color:#fff;border-radius:var(--radius-sm);' : 'background:var(--surface);color:var(--text);border-radius:var(--radius-sm);'"
+            class="pred-tab-btn">
       🤖 ML Inference
     </button>
     <button @click="switchSource('db')"
-            :style="source === 'db' ? 'background:var(--accent);color:#fff;' : 'background:var(--surface);'"
-            style="flex:1;padding:10px 20px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;border:var(--bw) solid var(--border);border-radius:var(--radius-sm);text-align:center;box-shadow:2px 2px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;"
-            onmouseover="if(source!=='db'){this.style.background='#E0F5EA'}" onmouseout="if(source!=='db'){this.style.background='var(--surface)'}">
+            :style="source === 'db' ? 'background:var(--accent);color:#fff;border-radius:var(--radius-sm);' : 'background:var(--surface);color:var(--text);border-radius:var(--radius-sm);'"
+            class="pred-tab-btn">
       📊 Database Predictions
     </button>
   </div>
