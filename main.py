@@ -2,12 +2,13 @@ import base64
 import logging
 import os
 import tempfile
+import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, Response as FastAPIResponse
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 # Configure logging before anything else
 logging.basicConfig(
@@ -88,17 +89,34 @@ _setup_gcp_credentials()
 from src.api.routes import router, het_router, cuaca_router, stok_router, predictions_router, data_quality_router  # noqa: E402
 from src.api.auth_routes import auth_router  # noqa: E402
 from src.api.ml_routes import ml_router  # noqa: E402
+from src.api.mvp_routes import mvp_router  # noqa: E402
+from src.api.errors import AppError  # noqa: E402
+from src.api.middleware.rate_limiter import limiter  # noqa: E402
+from slowapi.errors import RateLimitExceeded  # noqa: E402
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database connections and seed data at startup."""
-    from src.data.database import init_pool, close_pool
-    from src.data.commodity_data import init_commodity_data
-    from src.data.auth_db import init_db_auth
+    from src.infrastructure.postgres.database import init_pool, close_pool
+    from src.infrastructure.postgres.commodity_data import init_commodity_data
+    from src.infrastructure.postgres.auth_db import init_db_auth
 
     # Initialize connection pool to Supabase PostgreSQL (Gold layer -- all app data)
     init_pool()
+
+    # Verify database connectivity
+    from src.infrastructure.postgres.database import get_conn, release_conn
+    try:
+        conn = get_conn()
+        conn.cursor().execute("SELECT 1")
+        release_conn(conn)
+        logger.info("Database connection verified")
+        app.state.db_healthy = True
+    except Exception as exc:
+        logger.critical("Database health check failed: %s", exc)
+        app.state.db_healthy = False
+        # App continues — endpoints throw ServiceUnavailableError if DB is down
 
     # Load commodity mapping from Supabase PostgreSQL (app.harga_pangan)
     init_commodity_data()
@@ -114,7 +132,7 @@ async def lifespan(app: FastAPI):
     # Cleanup on shutdown
     close_pool()
     # Close BigQuery client if it was initialized
-    from src.data.bigquery_client import close_bq_client
+    from src.infrastructure.bigquery.bigquery_client import close_bq_client
     close_bq_client()
     # Remove temp GCP credentials file if it was created
     _gcp_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
@@ -142,6 +160,9 @@ app = FastAPI(
     redoc_url="/redoc" if _ENABLE_DOCS else None,
     openapi_url="/api/openapi.json" if _ENABLE_DOCS else None,
 )
+
+# Attach rate limiter to app state (slowapi reads app.state.limiter)
+app.state.limiter = limiter
 
 # CORS middleware - allow same-origin, localhost dev, and production domains
 _allowed_origins = [
@@ -190,6 +211,27 @@ async def add_security_headers(request: Request, call_next):
     )
     return response
 
+# Request timing middleware — log slow API endpoints for debugging
+@app.middleware("http")
+async def log_request_timing(request: Request, call_next):
+    """Log request method, path, status, and duration for all API endpoints."""
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    # Only log API routes (skip static files, health checks)
+    if request.url.path.startswith("/api"):
+        level = logging.WARNING if elapsed_ms > 2000 else logging.INFO
+        logger.log(
+            level,
+            "[%s] %s %s — %d — %.0fms",
+            request.method,
+            request.url.path,
+            response.status_code,
+            elapsed_ms,
+        )
+    return response
+
+
 app.include_router(router)
 app.include_router(het_router)
 app.include_router(cuaca_router)
@@ -198,6 +240,38 @@ app.include_router(predictions_router)
 app.include_router(auth_router)
 app.include_router(ml_router)
 app.include_router(data_quality_router)
+app.include_router(mvp_router)
+
+
+# ── Exception handlers ────────────────────────────────────────────────────
+
+@app.exception_handler(AppError)
+async def _app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    """Convert AppError subclasses to proper HTTP error responses."""
+    if exc.internal_message:
+        logger.error(
+            "AppError %d: %s | internal=%s",
+            exc.status_code,
+            exc.detail,
+            exc.internal_message,
+        )
+    else:
+        logger.warning("AppError %d: %s", exc.status_code, exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+
+@app.exception_handler(RateLimitExceeded)
+async def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    """Return 429 Too Many Requests when rate limit is exceeded."""
+    logger.warning("Rate limit exceeded: %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Terlalu banyak permintaan. Silakan coba lagi nanti."},
+        headers={"Retry-After": str(exc.retry_after) if getattr(exc, "retry_after", None) else "60"},
+    )
 
 
 @app.get("/health", tags=["system"])
@@ -239,6 +313,11 @@ if os.path.exists(frontend_dir):
     @app.get("/", include_in_schema=False)
     def serve_frontend():
         return _html("index.html")
+
+    @app.get("/config.js", include_in_schema=False)
+    def serve_config_js():
+        """Serve runtime config JS at root path for HTML pages."""
+        return FileResponse(os.path.join(frontend_dir, "config.js"))
 
     @app.get("/login", include_in_schema=False)
     def serve_login():

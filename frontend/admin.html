@@ -5,969 +5,1143 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manajemen Pengguna — R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,100..700,0..1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+  <script src="/config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <style>
-    /* -- Reset + Design tokens (inline fallback) -- */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #EEF7F1; --bg2: #F0FBF4;
-      --surface: #FFFFFF; --surface2: #F0FBF4;
-      --border: #1a1a1a; --border2: #1a1a1a;
-      --accent: #2ECC88; --accent2: #1D7A56;
-      --warn: #FBBF24; --danger: #F87171; --success: #34D399;
-      --highlight: #A7F3D0; --info: #67E8F9;
-      --text: #1a1a1a; --text2: #3f3f46; --muted: #71717a;
-      --mono: 'JetBrains Mono', monospace;
-      --sans: 'Inter', system-ui, sans-serif;
-      --radius: 16px; --radius-sm: 12px;
-      --shadow: 4px 4px 0px #1a1a1a; --shadow-lg: 6px 6px 0px #1a1a1a;
-      --bw: 2.5px;
-    }
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
-    }
-    body::before {
-      content: ''; position: fixed; inset: 0;
-      background-image:
-        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
-        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
-      pointer-events: none; z-index: 0;
-    }
+    /* ── Page-specific: Admin User Management ── */
 
-    /* -- App container -- */
-    .app {
-      position: relative; z-index: 1;
-      max-width: 940px; margin: 0 auto;
-      padding: 24px 20px 48px;
-    }
+    /* Sticky header override */
+    .app { padding-top: 0; }
 
-    /* -- Header (inline fallback) -- */
-    .header {
+    /* Navbar */
+    .admin-navbar {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--surface);
+      border-bottom: var(--bw) solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .admin-nav-inner {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 28px; padding: 14px 20px;
-      background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow);
+      max-width: 1200px; margin: 0 auto;
+      padding: 12px 24px; gap: 16px;
     }
-    .header-left { display: flex; align-items: center; gap: 14px; }
-    .logo-icon {
-      width: 52px; height: 52px;
-      border: var(--bw) solid var(--border); border-radius: 14px;
+    .admin-nav-left { display: flex; align-items: center; gap: 16px; }
+    .admin-nav-logo { height: 40px; width: auto; }
+    .admin-nav-title {
+      font-size: 20px; font-weight: 900; letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .admin-nav-links { display: flex; align-items: center; gap: 24px; }
+    .admin-nav-link {
+      font-size: 14px; font-weight: 500; color: var(--muted);
+      text-decoration: none; transition: color 0.15s;
+    }
+    .admin-nav-link:hover { color: var(--text); }
+    .admin-nav-link.active {
+      color: var(--accent2); font-weight: 700;
+      border-bottom: var(--bw) solid var(--accent2); padding-bottom: 2px;
+    }
+    .admin-nav-actions { display: flex; align-items: center; gap: 12px; }
+    .admin-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: var(--bw) solid var(--border);
+      overflow: hidden; flex-shrink: 0;
+    }
+    .admin-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .admin-avatar-placeholder {
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
-      overflow: hidden; padding: 0;
-    }
-    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
-    .header-title {
-      font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
-    }
-    .header-sub {
-      font-family: var(--mono); font-size: 10px; color: var(--muted);
-      margin-top: 2px; letter-spacing: 0.5px;
-    }
-    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .nav-link {
-      font-family: var(--mono); font-size: 11px; font-weight: 700;
-      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
-      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
-    }
-    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
-    .nav-link-default { background: var(--surface); color: var(--accent2); }
-    .nav-link-default:hover { background: #E0F5EA; }
-    .nav-link-active { background: var(--accent); color: #fff; }
-    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
-    .nav-link-danger:hover { background: #FECACA; }
-    .user-badge {
-      font-family: var(--mono); font-size: 11px; font-weight: 700;
-      padding: 7px 13px; background: var(--surface2);
-      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
-      box-shadow: 2px 2px 0 var(--border);
-    }
-    .user-badge strong { color: var(--accent2); }
-
-    /* -- Cards (inline fallback) -- */
-    .card {
-      background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); padding: 18px;
-      position: relative; overflow: hidden; box-shadow: var(--shadow);
-    }
-    .card::after { display: none; }
-
-    /* -- Responsive header stacking -- */
-    @media (max-width: 640px) {
-      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
-      .header-right { width: 100%; justify-content: flex-start; }
+      background: var(--surface2); font-family: var(--mono);
+      font-size: 14px; font-weight: 700; color: var(--accent2);
     }
 
-    /* -- Admin page-specific styles -- */
+    /* ── Hamburger & mobile nav ── */
+    .admin-hamburger {
+      display: none; background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); cursor: pointer; font-size: 18px;
+      padding: 6px 10px; box-shadow: 2px 2px 0 var(--border); transition: transform 0.1s, box-shadow 0.1s;
+      line-height: 1;
+    }
+    .admin-hamburger:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .admin-mobile-nav {
+      display: none; flex-direction: column; gap: 4px;
+      padding: 12px 16px; background: var(--surface); border-top: var(--bw) solid var(--border);
+    }
+    .admin-mobile-nav.show { display: flex; }
+    .admin-mobile-link {
+      display: block; padding: 8px 12px; font-family: var(--sans); font-size: 14px; font-weight: 600;
+      color: var(--text); text-decoration: none; border-radius: 8px; transition: background 0.15s;
+    }
+    .admin-mobile-link:hover { background: var(--surface2); }
+    .admin-mobile-link.active { background: var(--accent); color: #fff; }
 
-    .btn-sm {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 8px 14px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      border: var(--bw) solid var(--border);
-      box-shadow: 3px 3px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      text-decoration: none;
-    }
-    .btn-sm:active {
-      transform: translate(3px, 3px);
-      box-shadow: 0 0 0 var(--border);
-    }
-    .btn-ghost {
-      background: var(--surface);
-      color: var(--accent2);
-    }
-    .btn-ghost:hover { background: #E0F5EA; }
-    .btn-danger-outline {
-      background: #FEE2E2;
-      color: #DC2626;
-    }
-    .btn-danger-outline:hover { background: #FECACA; }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 20px 16px;
-      border-bottom: var(--bw) solid var(--border);
-      background: var(--surface2);
-    }
-    .card-title-wrap { display: flex; align-items: center; gap: 10px; }
-    .card-title { font-size: 16px; font-weight: 800; color: var(--text); }
-    .card-count {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--accent2);
-      background: #E0F5EA;
-      border: 1.5px solid var(--border);
-      padding: 2px 9px;
-      border-radius: 6px;
+    /* Hide desktop nav links on mobile, show hamburger */
+    @media (max-width: 768px) {
+      .admin-nav-links { display: none; }
+      .admin-nav-inner { padding: 10px 16px; }
+      .admin-hamburger { display: flex; align-items: center; justify-content: center; }
     }
 
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+    /* ── Main content ── */
+    .admin-main {
+      max-width: 1200px; margin: 0 auto;
+      padding: 32px 24px 48px;
     }
 
-    /* ── Table ── */
-    .table-wrap { overflow-x: auto; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
+    /* ── Page hero ── */
+    .admin-hero {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; gap: 16px;
+      margin-bottom: 32px; flex-wrap: wrap;
     }
-    thead tr {
-      background: var(--surface2);
-      border-bottom: var(--bw) solid var(--border);
+    .admin-hero-title {
+      font-size: 36px; font-weight: 900; letter-spacing: -0.02em;
+      line-height: 1.1; color: var(--text);
     }
-    th {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 800;
-      color: var(--text);
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      padding: 12px 16px;
-      text-align: left;
-      white-space: nowrap;
-    }
-    td {
-      padding: 13px 16px;
-      border-bottom: 1.5px solid #e5e5e5;
-      vertical-align: middle;
-    }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover { background: #F5F3FF; }
-
-    .id-cell {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 700;
-    }
-    .username-cell { font-weight: 700; color: var(--text); }
-    .date-cell { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 500; }
-
-    .role-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 10px;
-      border-radius: 6px;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      border: 1.5px solid var(--border);
-    }
-    .role-admin    { background: #E0F5EA; color: #1D7A56; }
-    .role-analyst  { background: #CFFAFE; color: #0891b2; }
-    .role-viewer   { background: #F1F5F9; color: #64748b; }
-
-    /* Status badges */
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 10px;
-      border-radius: 6px;
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      border: 1.5px solid var(--border);
-    }
-    .status-active   { background: #D1FAE5; color: #065f46; }
-    .status-inactive { background: #FEE2E2; color: #991b1b; }
-
-    .action-cell { display: flex; gap: 6px; }
-    .icon-btn {
-      width: 32px; height: 32px;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 8px;
-      border: var(--bw) solid var(--border);
-      cursor: pointer;
-      font-size: 14px;
-      box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .icon-btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 0 0 0 var(--border);
-    }
-    .edit-btn   { background: #E0F5EA; color: var(--accent2); }
-    .edit-btn:hover   { background: #DDD6FE; }
-    .delete-btn { background: #FEE2E2; color: #DC2626; }
-    .delete-btn:hover { background: #FECACA; }
-    .icon-btn.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; box-shadow: none; }
-
-    .empty-state { font-weight: 600; }
-
-    /* ── Alert ── */
-    .page-alert {
-      display: none;
-      padding: 12px 16px;
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 700;
-      margin-bottom: 16px;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 3px 3px 0 var(--border);
-      animation: slide-up 0.2s ease;
-    }
-    .page-alert.show { display: flex; }
-    .alert-success { background: #D1FAE5; color: #065f46; }
-    .alert-error   { background: #FEE2E2; color: #DC2626; }
-
-    /* ── Modal ── */
-    .modal-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .modal-backdrop.open { display: flex; animation: fade-in 0.15s ease; }
-    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-
-    .modal {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: 18px;
-      padding: 28px 28px 24px;
-      width: 100%;
-      max-width: 440px;
-      box-shadow: 8px 8px 0 var(--border);
-      animation: modal-in 0.2s ease both;
-    }
-    @keyframes modal-in {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 22px;
-    }
-    .modal-title { font-size: 17px; font-weight: 800; color: var(--text); }
-    .modal-close {
-      width: 34px; height: 34px;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--surface2);
-      border: var(--bw) solid var(--border);
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      color: var(--muted);
-      box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .modal-close:active {
-      transform: translate(2px, 2px);
-      box-shadow: 0 0 0 var(--border);
-    }
-    .modal-close:hover { color: var(--text); }
-
-    .form-group { margin-bottom: 16px; }
-    .form-label {
-      display: block;
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 800;
-      color: var(--text);
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      margin-bottom: 6px;
-    }
-    .form-input {
-      width: 100%;
-      padding: 11px 14px;
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      outline: none;
-      box-shadow: 3px 3px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .form-input::placeholder { color: var(--muted); font-weight: 400; }
-    .form-input:focus {
-      outline: 3px solid var(--accent);
-      outline-offset: 2px;
-    }
-    .form-hint {
-      font-family: var(--mono); font-size: 10px; color: var(--muted);
-      margin-top: 5px; font-weight: 500;
-    }
-
-    /* ── Checkbox group (neobrutalism) ── */
-    .checkbox-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      box-shadow: 2px 2px 0 var(--border);
-      cursor: pointer;
-      transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
-      user-select: none;
-    }
-    .checkbox-item:hover { background: #F5F3FF; }
-    .checkbox-item:active {
-      transform: translate(2px, 2px);
-      box-shadow: 0 0 0 var(--border);
-    }
-    .checkbox-item.checked { background: #E0F5EA; }
-    .checkbox-item input[type="checkbox"] {
-      width: 18px; height: 18px;
-      accent-color: var(--accent2);
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-    .checkbox-label {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .checkbox-desc {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--muted);
+    .admin-hero-desc {
+      font-size: 16px; color: var(--muted); margin-top: 4px;
       font-weight: 500;
     }
 
-    .modal-error {
-      display: none;
-      background: #FEE2E2;
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      color: #DC2626;
-      margin-bottom: 16px;
-      box-shadow: 2px 2px 0 var(--border);
+    /* ── Material Symbols icon baseline ── */
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle; line-height: 1;
     }
-    .modal-error.show { display: block; animation: slide-up 0.15s ease; }
 
-    .modal-footer {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 22px;
-      padding-top: 18px;
-      border-top: var(--bw) solid var(--border);
+    /* ── Stat cards ── */
+    .admin-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px; margin-bottom: 32px;
     }
-    .btn-cancel {
-      padding: 10px 18px;
+    @media (max-width: 768px) {
+      .admin-stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .admin-stat-grid { grid-template-columns: 1fr; }
+    }
+    .admin-stat-card {
       background: var(--surface);
       border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
-      font-family: var(--sans);
-      font-size: 13px;
-      font-weight: 700;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative; overflow: hidden;
+    }
+    .admin-stat-card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-lg);
+    }
+    .admin-stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+    }
+    .admin-stat-card.sc-total::before  { background: var(--accent); }
+    .admin-stat-card.sc-admin::before  { background: var(--warn); }
+    .admin-stat-card.sc-analyst::before { background: var(--info); }
+    .admin-stat-card.sc-viewer::before { background: var(--muted); }
+    .admin-stat-head {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 8px;
+    }
+    .admin-stat-label {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .admin-stat-icon { font-size: 20px; }
+    .admin-stat-value {
+      font-family: var(--mono); font-size: 36px; font-weight: 900;
       color: var(--text);
-      cursor: pointer;
+    }
+
+    /* ── Table card ── */
+    .admin-table-card {
+      background: var(--surface);
+      border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    /* ── Toolbar ── */
+    .admin-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: var(--bw) solid var(--border);
+      background: var(--surface2);
+      gap: 12px; flex-wrap: wrap;
+    }
+    .admin-search-wrap {
+      position: relative; flex: 1; max-width: 360px; min-width: 200px;
+    }
+    .admin-search-wrap .search-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: 20px;
+    }
+    .admin-search-input {
+      width: 100%; padding: 10px 14px 10px 44px;
+      font-family: var(--mono); font-size: 13px; font-weight: 600;
+      border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface); outline: none;
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .admin-search-input:focus {
+      outline: 3px solid var(--accent); outline-offset: 2px;
+    }
+    .admin-toolbar-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .admin-role-select {
+      padding: 10px 14px;
+      font-family: var(--mono); font-size: 12px; font-weight: 700;
+      border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      box-shadow: 2px 2px 0 var(--border);
+      cursor: pointer; min-width: 150px;
+    }
+    .admin-role-select:focus {
+      outline: 3px solid var(--accent); outline-offset: 2px;
+    }
+
+    /* ── Table ── */
+    .admin-table-wrap { overflow-x: auto; }
+    .admin-table { width: 100%; border-collapse: collapse; }
+    .admin-table thead tr {
+      background: var(--surface2);
+      border-bottom: var(--bw) solid var(--border);
+    }
+    .admin-table th {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      color: var(--text); text-transform: uppercase;
+      letter-spacing: 0.08em; padding: 14px 16px;
+      text-align: left; white-space: nowrap;
+    }
+    .admin-table td { padding: 14px 16px; vertical-align: middle; }
+    .admin-table tbody tr {
+      border-bottom: 2px solid rgba(26,26,26,0.08);
+      transition: background 0.15s;
+    }
+    .admin-table tbody tr:hover { background: var(--surface2); }
+    .admin-table tbody tr.inactive-row { opacity: 0.55; background: rgba(240,237,237,0.5); }
+    .admin-table tbody tr:last-child { border-bottom: none; }
+
+    /* User cell */
+    .admin-user-cell { display: flex; align-items: center; gap: 12px; }
+    .admin-user-avatar {
+      width: 40px; height: 40px; border-radius: 10px;
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 14px; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .admin-av-admin  { background: #FEF3C7; color: #92400E; }
+    .admin-av-analyst { background: #FFEDD5; color: #9A3412; }
+    .admin-av-viewer { background: #E0F5EA; color: #1D7A56; }
+    .admin-user-name { font-weight: 700; color: var(--text); }
+    .admin-username { font-family: var(--mono); font-size: 12px; font-weight: 600; }
+
+    /* Role badge */
+    .admin-role-badge {
+      display: inline-block; padding: 4px 14px; border-radius: 9999px;
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      border: var(--bw) solid var(--border);
+    }
+    .admin-role-admin  { background: #FEF3C7; color: #92400E; }
+    .admin-role-analyst { background: #FFEDD5; color: #9A3412; }
+    .admin-role-viewer { background: #E0F5EA; color: #1D7A56; }
+
+    /* Status dot with ring effect (matching mockup) */
+    .admin-status-row { display: flex; align-items: center; gap: 8px; }
+    .admin-status-dot {
+      width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+    }
+    .admin-status-dot.active {
+      background: var(--success);
+      box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--success);
+    }
+    .admin-status-dot.inactive {
+      background: var(--danger);
+      box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--danger);
+    }
+    .admin-status-text { font-size: 13px; font-weight: 700; }
+    .admin-status-text.active { color: #059669; }
+    .admin-status-text.inactive { color: #DC2626; }
+
+    .admin-date-cell {
+      font-family: var(--mono); font-size: 12px;
+      color: var(--muted); font-weight: 500;
+    }
+
+    /* Action buttons */
+    .admin-action-cell { display: flex; gap: 8px; justify-content: flex-end; }
+    .admin-icon-btn {
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; border: var(--bw) solid var(--border);
+      cursor: pointer; box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
+      background: var(--surface);
+    }
+    .admin-icon-btn:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--border); }
+    .admin-icon-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .admin-icon-btn.edit:hover { background: #D1FAE5; color: var(--accent2); }
+    .admin-icon-btn.delete:hover { background: #FEE2E2; color: #DC2626; }
+    .admin-icon-btn .material-symbols-outlined { font-size: 18px; }
+    .admin-icon-btn.disabled {
+      opacity: 0.3; cursor: not-allowed; pointer-events: none;
+      box-shadow: none !important; transform: none !important;
+    }
+
+    /* ── Pagination ── */
+    .admin-pagi-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-top: var(--bw) solid var(--border);
+      background: var(--surface); flex-wrap: wrap; gap: 10px;
+    }
+    .admin-pagi-info {
+      font-family: var(--mono); font-size: 13px;
+      font-weight: 700; color: var(--muted);
+    }
+    .admin-pagi-btns { display: flex; gap: 12px; }
+    .admin-pagi-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 12px; font-weight: 700;
+      padding: 10px 18px; border-radius: var(--radius-sm);
+      cursor: pointer; background: var(--surface);
+      border: var(--bw) solid var(--border);
       box-shadow: 3px 3px 0 var(--border);
       transition: transform 0.1s, box-shadow 0.1s;
     }
-    .btn-cancel:active {
+    .admin-pagi-btn:hover:not(:disabled) {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--border);
+    }
+    .admin-pagi-btn:active:not(:disabled) {
       transform: translate(3px, 3px);
       box-shadow: 0 0 0 var(--border);
     }
-    .btn-cancel:hover { background: #f5f5f5; }
+    .admin-pagi-btn:disabled {
+      opacity: 0.4; cursor: not-allowed; box-shadow: none; transform: none;
+    }
+    .admin-pagi-btn .material-symbols-outlined { font-size: 18px; }
 
-    .btn-submit {
-      padding: 10px 20px;
-      background: var(--accent);
-      color: #ffffff;
+    /* ── Buttons (page-specific, extends shared .btn) ── */
+    .admin-btn-add {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 13px; font-weight: 800;
+      padding: 12px 24px;
+      background: var(--accent); color: #fff;
       border: var(--bw) solid var(--border);
       border-radius: var(--radius-sm);
-      font-family: var(--sans);
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow); cursor: pointer;
       transition: transform 0.1s, box-shadow 0.1s;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
     }
-    .btn-submit:hover:not(:disabled) { background: var(--accent2); }
-    .btn-submit:active:not(:disabled) {
-      transform: translate(4px, 4px);
-      box-shadow: 0 0 0 var(--border);
-    }
-    .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; transform: translate(2px, 2px); }
-    .btn-submit-danger {
-      background: var(--danger);
-    }
-    .btn-submit-danger:hover:not(:disabled) { background: #EF4444; }
+    .admin-btn-add:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+    .admin-btn-add:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--border); }
+    .admin-btn-add .material-symbols-outlined { font-size: 20px; }
 
-    .spinner-sm {
-      width: 13px; height: 13px;
+    .admin-btn-filter {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 12px; font-weight: 700;
+      padding: 10px 16px;
+      background: var(--surface); color: var(--text);
+      border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 3px 3px 0 var(--border); cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .admin-btn-filter:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--border); }
+    .admin-btn-filter:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--border); }
+    .admin-btn-filter .material-symbols-outlined { font-size: 18px; }
+
+    /* ── Toast (page-level override) ── */
+    .admin-toast {
+      display: none; align-items: center; gap: 8px;
+      padding: 12px 18px; border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); font-family: var(--mono);
+      font-size: 12px; font-weight: 700; margin-bottom: 16px;
+      box-shadow: var(--shadow); animation: slide-up 0.25s ease;
+    }
+    .admin-toast.show { display: flex; }
+    .admin-toast.success { background: #D1FAE5; color: #065F46; }
+    .admin-toast.error   { background: #FEE2E2; color: #DC2626; }
+
+    /* ── Empty state ── */
+    .admin-empty {
+      text-align: center; padding: 48px 20px;
+      font-family: var(--sans); font-size: 14px;
+      color: var(--muted); font-weight: 600;
+    }
+    .admin-empty .material-symbols-outlined {
+      font-size: 48px; display: block; margin-bottom: 12px;
+      color: var(--border); opacity: 0.6;
+    }
+
+    /* ── Loading spinner ── */
+    .admin-spinner-sm {
+      width: 14px; height: 14px;
       border: 2.5px solid rgba(255,255,255,0.35);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
+      border-top-color: white; border-radius: 50%;
+      animation: a-spin 0.6s linear infinite;
       display: inline-block;
-      vertical-align: middle;
     }
+    @keyframes a-spin { to { transform: rotate(360deg); } }
 
-    /* Delete confirm */
-    .delete-confirm-text {
-      font-size: 14px;
-      color: var(--text2);
-      line-height: 1.6;
+    /* ── Modal (page-specific overrides) ── */
+    .admin-modal-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); z-index: 100;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .admin-modal-backdrop.open { display: flex; animation: a-fade-in 0.15s ease; }
+    @keyframes a-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .admin-modal {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+      width: 100%; max-width: 460px;
+      box-shadow: 8px 8px 0 var(--border);
+      animation: a-modal-in 0.2s ease both;
+    }
+    @keyframes a-modal-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .admin-modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .admin-modal-title { font-size: 18px; font-weight: 900; color: var(--text); }
+    .admin-modal-close {
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      background: var(--surface2); border: var(--bw) solid var(--border);
+      border-radius: 8px; cursor: pointer; font-size: 18px; color: var(--muted);
+      box-shadow: 2px 2px 0 var(--border);
+    }
+    .admin-modal-close:hover { color: var(--text); background: #FEE2E2; }
+
+    .admin-form-group { margin-bottom: 18px; }
+    .admin-form-label {
+      display: block; font-family: var(--mono); font-size: 11px; font-weight: 800;
+      color: var(--text); text-transform: uppercase; letter-spacing: 0.06em;
       margin-bottom: 6px;
     }
-    .delete-confirm-name {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: #FEE2E2;
+    .admin-form-input {
+      width: 100%; padding: 12px 14px; background: var(--surface);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text);
+      outline: none; box-shadow: 3px 3px 0 var(--border);
+    }
+    .admin-form-input:focus {
+      outline: 3px solid var(--accent); outline-offset: 2px;
+    }
+    .admin-form-hint {
+      font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 5px;
+    }
+
+    .admin-checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+    .admin-checkbox-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); box-shadow: 2px 2px 0 var(--border);
+      cursor: pointer; user-select: none;
+    }
+    .admin-checkbox-item.checked { background: #E0F5EA; }
+    .admin-checkbox-item input[type="checkbox"] {
+      width: 18px; height: 18px; accent-color: var(--accent2); cursor: pointer;
+    }
+    .admin-checkbox-label { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); }
+    .admin-checkbox-desc { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+    .admin-modal-error {
+      display: none; background: #FEE2E2; border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      color: #DC2626; margin-bottom: 16px; box-shadow: 2px 2px 0 var(--border);
+    }
+    .admin-modal-error.show { display: block; }
+
+    .admin-modal-footer {
+      display: flex; justify-content: flex-end; gap: 10px;
+      margin-top: 24px; padding-top: 18px;
+      border-top: var(--bw) solid var(--border);
+    }
+    .admin-btn-cancel {
+      padding: 10px 20px; background: var(--surface);
       border: var(--bw) solid var(--border);
-      border-radius: 8px;
-      padding: 4px 12px;
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 800;
-      color: #DC2626;
-      margin: 6px 0;
-      box-shadow: 2px 2px 0 var(--border);
+      border-radius: var(--radius-sm); font-family: var(--sans);
+      font-size: 13px; font-weight: 700; color: var(--text);
+      cursor: pointer; box-shadow: 3px 3px 0 var(--border);
+    }
+    .admin-btn-cancel:hover { background: var(--surface2); }
+    .admin-btn-submit {
+      padding: 10px 22px; background: var(--accent); color: #fff;
+      border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); font-family: var(--sans);
+      font-size: 13px; font-weight: 800; cursor: pointer;
+      box-shadow: var(--shadow);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .admin-btn-submit.danger { background: var(--danger); }
+    .admin-btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Footer ── */
+    .admin-footer {
+      border-top: var(--bw) solid var(--border);
+      background: var(--surface); margin-top: 48px;
+    }
+    .admin-footer-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1200px; margin: 0 auto;
+      padding: 20px 24px; flex-wrap: wrap; gap: 12px;
+    }
+    .admin-footer-brand {
+      font-size: 18px; font-weight: 900; color: var(--text);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .admin-footer-version {
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      font-weight: 600;
+    }
+    .admin-footer-links { display: flex; gap: 24px; }
+    .admin-footer-links a {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      color: var(--muted); text-decoration: none;
+      transition: color 0.15s;
+    }
+    .admin-footer-links a:hover { color: var(--accent2); text-decoration: underline; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .admin-navbar .admin-nav-links { display: none; }
+      .admin-main { padding: 20px 14px 32px; }
+      .admin-hero-title { font-size: 26px; }
+      .admin-hero { flex-direction: column; }
+      .admin-toolbar { flex-direction: column; align-items: stretch; }
+      .admin-search-wrap { max-width: 100%; }
+      .admin-toolbar-right { justify-content: flex-start; }
+      .admin-pagi-bar { flex-direction: column; align-items: flex-start; }
+      .admin-footer-inner { flex-direction: column; text-align: center; }
+      .admin-footer-links { justify-content: center; }
     }
   </style>
 </head>
-<body>
-<div class="app">
+<body x-data="adminPage()" x-init="init()">
 
-  <!-- ── Header ── -->
-  <header class="header">
-    <div class="header-left">
-      <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
-      <div>
-        <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">manajemen pengguna &nbsp;·&nbsp; admin panel &nbsp;·&nbsp; v0.5</div>
+<!-- ══════════════════════════ STICKY NAVBAR ══════════════════════════ -->
+<header class="admin-navbar" x-data="{ navOpen: false }">
+  <div class="admin-nav-inner">
+    <div class="admin-nav-left">
+      <img class="admin-nav-logo" src="/assets/logo.png" alt="RADAR Pangan">
+      <span class="admin-nav-title">RADAR Pangan</span>
+    </div>
+    <nav class="admin-nav-links">
+      <a href="/" class="admin-nav-link">Dashboard</a>
+      <a href="/guide" class="admin-nav-link">Panduan</a>
+      <a href="/prediksi" class="admin-nav-link">Prediksi ML</a>
+      <a href="/admin" class="admin-nav-link active">Admin</a>
+    </nav>
+    <div class="admin-nav-actions">
+      <!-- Avatar (no S3, use initials fallback) -->
+      <div class="admin-avatar admin-avatar-placeholder" x-text="userInitials"></div>
+      <button class="admin-hamburger" @click="navOpen = !navOpen" aria-label="Toggle navigation">
+        <span x-text="navOpen ? '✕' : '☰'"></span>
+      </button>
+    </div>
+  </div>
+  <!-- Mobile nav dropdown -->
+  <nav class="admin-mobile-nav" :class="navOpen ? 'show' : ''">
+    <a href="/" class="admin-mobile-link">Dashboard</a>
+    <a href="/guide" class="admin-mobile-link">Panduan</a>
+    <a href="/prediksi" class="admin-mobile-link">Prediksi ML</a>
+    <a href="/admin" class="admin-mobile-link active">Admin</a>
+  </nav>
+</header>
+
+<!-- ══════════════════════════ MAIN CONTENT ══════════════════════════ -->
+<main class="admin-main">
+
+  <!-- ── Toast notifications ── -->
+  <div class="admin-toast success" :class="{ show: toast.show && toast.type === 'success' }" x-text="toast.msg"></div>
+  <div class="admin-toast error" :class="{ show: toast.show && toast.type === 'error' }" x-text="toast.msg"></div>
+
+  <!-- ── Hero ── -->
+  <div class="admin-hero">
+    <div>
+      <h1 class="admin-hero-title">Manajemen Pengguna</h1>
+      <p class="admin-hero-desc">Atur hak akses dan profil personil sistem RADAR Pangan.</p>
+    </div>
+    <button class="admin-btn-add" @click="openAddModal()">
+      <span class="material-symbols-outlined" style="font-variation-settings:'wght' 700;">add</span>
+      Tambah Pengguna
+    </button>
+  </div>
+
+  <!-- ── Stat cards ── -->
+  <div class="admin-stat-grid">
+    <div class="admin-stat-card sc-total">
+      <div class="admin-stat-head">
+        <span class="admin-stat-label">Total Pengguna</span>
+        <span class="material-symbols-outlined admin-stat-icon" style="color:var(--accent);">groups</span>
+      </div>
+      <div class="admin-stat-value" x-text="stats.total"></div>
+    </div>
+    <div class="admin-stat-card sc-admin">
+      <div class="admin-stat-head">
+        <span class="admin-stat-label">Admin</span>
+        <span class="material-symbols-outlined admin-stat-icon" style="color:var(--warn);">admin_panel_settings</span>
+      </div>
+      <div class="admin-stat-value" x-text="stats.admin"></div>
+    </div>
+    <div class="admin-stat-card sc-analyst">
+      <div class="admin-stat-head">
+        <span class="admin-stat-label">Analis</span>
+        <span class="material-symbols-outlined admin-stat-icon" style="color:var(--info);">analytics</span>
+      </div>
+      <div class="admin-stat-value" x-text="stats.analyst"></div>
+    </div>
+    <div class="admin-stat-card sc-viewer">
+      <div class="admin-stat-head">
+        <span class="admin-stat-label">Viewer</span>
+        <span class="material-symbols-outlined admin-stat-icon" style="color:var(--muted);">visibility</span>
+      </div>
+      <div class="admin-stat-value" x-text="stats.viewer"></div>
+    </div>
+  </div>
+
+  <!-- ── Table card ── -->
+  <div class="admin-table-card">
+
+    <!-- Toolbar -->
+    <div class="admin-toolbar">
+      <div class="admin-search-wrap">
+        <span class="material-symbols-outlined search-icon">search</span>
+        <input type="text"
+               class="admin-search-input"
+               placeholder="Cari nama atau username..."
+               x-model="searchQuery"
+               @input="filterUsers()">
+      </div>
+      <div class="admin-toolbar-right">
+        <select class="admin-role-select" x-model="roleFilter" @change="filterUsers()">
+          <option value="">Semua Role</option>
+          <option value="admin">Admin</option>
+          <option value="analyst">Analis</option>
+          <option value="viewer">Viewer</option>
+        </select>
+        <button class="admin-btn-filter" @click="searchQuery=''; roleFilter=''; filterUsers()">
+          <span class="material-symbols-outlined">filter_list</span>
+          Reset
+        </button>
       </div>
     </div>
-    <div class="header-right">
-      <span class="user-badge" id="userBadge">-</span>
-      <a href="/" class="nav-link nav-link-default">Dashboard</a>
-      <a href="/guide" class="nav-link nav-link-default">Panduan</a>
-      <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
-      <a href="/admin" class="nav-link nav-link-active">Admin</a>
-      <button class="nav-link nav-link-danger" onclick="logout()">Keluar</button>
-    </div>
-  </header>
 
-  <!-- ── Alert ── -->
-  <div class="page-alert alert-success" id="pageAlertSuccess">
-    <span>✓</span><span id="alertSuccessText"></span>
-  </div>
-  <div class="page-alert alert-error" id="pageAlertError">
-    <span>⚠</span><span id="alertErrorText"></span>
-  </div>
-
-  <!-- ── Users Table Card ── -->
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title-wrap">
-        <div class="card-title">Daftar Pengguna</div>
-        <div class="card-count" id="userCount">0 users</div>
-      </div>
-      <button class="btn-primary" onclick="openAddModal()">+ Tambah User</button>
-    </div>
-    <div class="table-wrap">
-      <table>
+    <!-- Table -->
+    <div class="admin-table-wrap">
+      <table class="admin-table">
         <thead>
           <tr>
-            <th>ID</th>
+            <th>Nama</th>
             <th>Username</th>
             <th>Role</th>
             <th>Status</th>
-            <th>Dibuat</th>
-            <th>Aksi</th>
+            <th style="text-align:right;">Aksi</th>
           </tr>
         </thead>
-        <tbody id="userTableBody">
-          <tr><td colspan="6" class="empty-state">Memuat data...</td></tr>
+        <tbody>
+          <!-- Loading state -->
+          <tr x-show="loading">
+            <td colspan="6" class="admin-empty">
+              <span class="spinner" style="border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);width:20px;height:20px;border-width:3px;margin:0 auto 12px;"></span>
+              Memuat data pengguna...
+            </td>
+          </tr>
+          <!-- Empty state -->
+          <tr x-show="!loading && filteredUsers.length === 0">
+            <td colspan="6" class="admin-empty">
+              <span class="material-symbols-outlined">person_off</span>
+              <template x-if="searchQuery || roleFilter">
+                <span>Tidak ada pengguna yang cocok dengan filter. <a href="#" @click.prevent="searchQuery=''; roleFilter=''; filterUsers();" style="color:var(--accent2);font-weight:700;">Reset filter</a></span>
+              </template>
+              <template x-if="!searchQuery && !roleFilter">
+                <span>Belum ada pengguna terdaftar.</span>
+              </template>
+            </td>
+          </tr>
+          <!-- User rows -->
+          <template x-for="u in paginatedUsers" :key="u.id">
+            <tr :class="{ 'inactive-row': !u.is_active }" class="animate-in">
+              <td>
+                <div class="admin-user-cell">
+                  <div class="admin-user-avatar" :class="'admin-av-' + (u.role || 'viewer')"
+                       x-text="initials(u.username)"></div>
+                  <span class="admin-user-name" x-text="u.username"></span>
+                </div>
+              </td>
+              <td class="admin-username" x-text="u.username"></td>
+              <td>
+                <span class="admin-role-badge" :class="'admin-role-' + (u.role || 'viewer')"
+                      x-text="(u.role || 'viewer').toUpperCase()"></span>
+              </td>
+              <td>
+                <div class="admin-status-row">
+                  <div class="admin-status-dot" :class="u.is_active ? 'active' : 'inactive'"></div>
+                  <span class="admin-status-text" :class="u.is_active ? 'active' : 'inactive'"
+                        x-text="u.is_active ? 'Aktif' : 'Nonaktif'"></span>
+                </div>
+              </td>
+              <td>
+                <div class="admin-action-cell">
+                  <button class="admin-icon-btn edit" @click="openEditModal(u)" title="Edit">
+                    <span class="material-symbols-outlined">edit</span>
+                  </button>
+                  <button class="admin-icon-btn delete"
+                          :class="{ disabled: u.id === myId }"
+                          @click="openDeleteModal(u)"
+                          :title="u.id === myId ? 'Tidak bisa menghapus akun sendiri' : 'Hapus'">
+                    <span class="material-symbols-outlined" style="color:var(--danger);">delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
+
+    <!-- Pagination -->
+    <div class="admin-pagi-bar" x-show="pageCount > 1">
+      <span class="admin-pagi-info" x-text="pageInfo"></span>
+      <div class="admin-pagi-btns">
+        <button class="admin-pagi-btn" :disabled="currentPage <= 1" @click="goPage(currentPage - 1)">
+          <span class="material-symbols-outlined">chevron_left</span>
+          Sebelumnya
+        </button>
+        <button class="admin-pagi-btn" :disabled="currentPage >= pageCount" @click="goPage(currentPage + 1)">
+          Selanjutnya
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
   </div>
 
-</div>
+</main>
 
-<!-- ── Modal: Tambah User ── -->
-<div class="modal-backdrop" id="addModal" onclick="closeIfBackdrop(event, 'addModal')">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Tambah User Baru</div>
-      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+<!-- ══════════════════════════ FOOTER ══════════════════════════ -->
+<footer class="admin-footer">
+  <div class="admin-footer-inner">
+    <div class="admin-footer-brand">
+      <span>RADAR Pangan</span>
+      <span class="admin-footer-version">v0.8.0-stable · Data Integrity Team</span>
     </div>
-    <div class="modal-error" id="addError"></div>
-    <div class="form-group">
-      <label class="form-label" for="addUsername">Username</label>
-      <input type="text" id="addUsername" class="form-input" placeholder="Masukkan username" autocomplete="off">
+    <div class="admin-footer-links">
+      <a href="/docs" target="_blank">Dokumentasi</a>
+      <a href="/docs" target="_blank">API Status</a>
+      <a href="/guide">Panduan</a>
     </div>
-    <div class="form-group">
-      <label class="form-label" for="addPassword">Password</label>
-      <input type="password" id="addPassword" class="form-input" placeholder="Masukkan password">
+  </div>
+</footer>
+
+<!-- ══════════════════════════ MODALS ══════════════════════════ -->
+
+<!-- ── Tambah User ── -->
+<div class="admin-modal-backdrop" :class="{ open: modals.add }" @click.self="modals.add = false">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <div class="admin-modal-title">Tambah Pengguna Baru</div>
+      <button class="admin-modal-close" @click="modals.add = false">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
-    <div class="form-group">
-      <label class="form-label">Hak Akses</label>
-      <div class="checkbox-group">
-        <label class="checkbox-item" id="addAdminItem">
-          <input type="checkbox" id="addIsAdmin" onchange="toggleCheckStyle('addAdminItem', this)">
+    <div class="admin-modal-error" :class="{ show: addError }" x-text="addError"></div>
+    <div class="admin-form-group">
+      <label class="admin-form-label">Username</label>
+      <input type="text" class="admin-form-input" x-model="addForm.username"
+             placeholder="Masukkan username" autocomplete="off">
+    </div>
+    <div class="admin-form-group">
+      <label class="admin-form-label">Password</label>
+      <input type="password" class="admin-form-input" x-model="addForm.password"
+             placeholder="Masukkan password">
+    </div>
+    <div class="admin-form-group">
+      <label class="admin-form-label">Hak Akses</label>
+      <div class="admin-checkbox-group">
+        <label class="admin-checkbox-item" :class="{ checked: addForm.is_admin }">
+          <input type="checkbox" x-model="addForm.is_admin">
           <div>
-            <div class="checkbox-label">Admin</div>
-            <div class="checkbox-desc">Kelola pengguna + akses penuh</div>
+            <div class="admin-checkbox-label">Admin</div>
+            <div class="admin-checkbox-desc">Kelola pengguna + akses penuh</div>
           </div>
         </label>
-        <label class="checkbox-item" id="addAnalystItem">
-          <input type="checkbox" id="addIsAnalyst" onchange="toggleCheckStyle('addAnalystItem', this)">
+        <label class="admin-checkbox-item" :class="{ checked: addForm.is_analyst }">
+          <input type="checkbox" x-model="addForm.is_analyst">
           <div>
-            <div class="checkbox-label">Analyst</div>
-            <div class="checkbox-desc">Akses FTA + analisis detail</div>
+            <div class="admin-checkbox-label">Analyst</div>
+            <div class="admin-checkbox-desc">Akses analisis + prediksi ML</div>
           </div>
         </label>
       </div>
-      <div class="form-hint">Tanpa centang = Viewer (read-only)</div>
+      <div class="admin-form-hint">Tanpa centang = Viewer (read-only)</div>
     </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal('addModal')">Batal</button>
-      <button class="btn-submit" id="addSubmitBtn" onclick="submitAdd()">
-        <span id="addSubmitContent">Simpan</span>
+    <div class="admin-modal-footer">
+      <button class="admin-btn-cancel" @click="modals.add = false">Batal</button>
+      <button class="admin-btn-submit" :disabled="submitting" @click="submitAdd()">
+        <span x-show="!submitting">Simpan</span>
+        <span x-show="submitting" style="display:flex;align-items:center;gap:6px;">
+          <span class="admin-spinner-sm"></span> Menyimpan...
+        </span>
       </button>
     </div>
   </div>
 </div>
 
-<!-- ── Modal: Edit User ── -->
-<div class="modal-backdrop" id="editModal" onclick="closeIfBackdrop(event, 'editModal')">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Edit User: <span id="editUsername" style="color:var(--accent2)"></span></div>
-      <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+<!-- ── Edit User ── -->
+<div class="admin-modal-backdrop" :class="{ open: modals.edit }" @click.self="modals.edit = false">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <div class="admin-modal-title">
+        Edit Pengguna:
+        <span style="color:var(--accent2);" x-text="editForm.username"></span>
+      </div>
+      <button class="admin-modal-close" @click="modals.edit = false">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
-    <div class="modal-error" id="editError"></div>
-    <input type="hidden" id="editUserId">
-    <div class="form-group">
-      <label class="form-label" for="editPassword">Password Baru</label>
-      <input type="password" id="editPassword" class="form-input" placeholder="Kosongkan untuk tidak diubah">
-      <div class="form-hint">Biarkan kosong jika tidak ingin mengubah password</div>
+    <div class="admin-modal-error" :class="{ show: editError }" x-text="editError"></div>
+    <div class="admin-form-group">
+      <label class="admin-form-label">Password Baru</label>
+      <input type="password" class="admin-form-input" x-model="editForm.password"
+             placeholder="Kosongkan jika tidak ingin mengubah">
+      <div class="admin-form-hint">Biarkan kosong jika tidak ingin mengubah password</div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Hak Akses</label>
-      <div class="checkbox-group">
-        <label class="checkbox-item" id="editAdminItem">
-          <input type="checkbox" id="editIsAdmin" onchange="toggleCheckStyle('editAdminItem', this)">
+    <div class="admin-form-group">
+      <label class="admin-form-label">Hak Akses</label>
+      <div class="admin-checkbox-group">
+        <label class="admin-checkbox-item" :class="{ checked: editForm.is_admin }">
+          <input type="checkbox" x-model="editForm.is_admin">
           <div>
-            <div class="checkbox-label">Admin</div>
-            <div class="checkbox-desc">Kelola pengguna + akses penuh</div>
+            <div class="admin-checkbox-label">Admin</div>
+            <div class="admin-checkbox-desc">Kelola pengguna + akses penuh</div>
           </div>
         </label>
-        <label class="checkbox-item" id="editAnalystItem">
-          <input type="checkbox" id="editIsAnalyst" onchange="toggleCheckStyle('editAnalystItem', this)">
+        <label class="admin-checkbox-item" :class="{ checked: editForm.is_analyst }">
+          <input type="checkbox" x-model="editForm.is_analyst">
           <div>
-            <div class="checkbox-label">Analyst</div>
-            <div class="checkbox-desc">Akses FTA + analisis detail</div>
+            <div class="admin-checkbox-label">Analyst</div>
+            <div class="admin-checkbox-desc">Akses analisis + prediksi ML</div>
           </div>
         </label>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Status Akun</label>
-      <div class="checkbox-group">
-        <label class="checkbox-item" id="editActiveItem">
-          <input type="checkbox" id="editIsActive" onchange="toggleCheckStyle('editActiveItem', this)">
+    <div class="admin-form-group">
+      <label class="admin-form-label">Status Akun</label>
+      <div class="admin-checkbox-group">
+        <label class="admin-checkbox-item" :class="{ checked: editForm.is_active }">
+          <input type="checkbox" x-model="editForm.is_active">
           <div>
-            <div class="checkbox-label">Aktif</div>
-            <div class="checkbox-desc">Nonaktifkan untuk blokir login</div>
+            <div class="admin-checkbox-label">Aktif</div>
+            <div class="admin-checkbox-desc">Nonaktifkan untuk memblokir login</div>
           </div>
         </label>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal('editModal')">Batal</button>
-      <button class="btn-submit" id="editSubmitBtn" onclick="submitEdit()">
-        <span id="editSubmitContent">Simpan</span>
+    <div class="admin-modal-footer">
+      <button class="admin-btn-cancel" @click="modals.edit = false">Batal</button>
+      <button class="admin-btn-submit" :disabled="submitting" @click="submitEdit()">
+        <span x-show="!submitting">Simpan Perubahan</span>
+        <span x-show="submitting" style="display:flex;align-items:center;gap:6px;">
+          <span class="admin-spinner-sm"></span> Menyimpan...
+        </span>
       </button>
     </div>
   </div>
 </div>
 
-<!-- ── Modal: Konfirmasi Hapus ── -->
-<div class="modal-backdrop" id="deleteModal" onclick="closeIfBackdrop(event, 'deleteModal')">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Hapus Pengguna</div>
-      <button class="modal-close" onclick="closeModal('deleteModal')">✕</button>
+<!-- ── Delete Confirm ── -->
+<div class="admin-modal-backdrop" :class="{ open: modals.del }" @click.self="modals.del = false">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <div class="admin-modal-title">Hapus Pengguna</div>
+      <button class="admin-modal-close" @click="modals.del = false">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
-    <input type="hidden" id="deleteUserId">
-    <p class="delete-confirm-text">Yakin ingin menghapus pengguna:</p>
-    <div class="delete-confirm-name" id="deleteConfirmName">username</div>
-    <p class="delete-confirm-text" style="margin-top:10px;font-size:12px;color:var(--muted)">
-      Tindakan ini tidak bisa dibatalkan.
+    <p style="font-size:14px;color:var(--text2);margin-bottom:8px;">
+      Yakin ingin menghapus pengguna berikut?
     </p>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal('deleteModal')">Batal</button>
-      <button class="btn-submit btn-submit-danger" id="deleteSubmitBtn" onclick="submitDelete()">
-        <span id="deleteSubmitContent">Hapus</span>
+    <div style="display:inline-flex;align-items:center;gap:8px;background:#FEE2E2;border:var(--bw) solid var(--border);border-radius:8px;padding:8px 16px;font-family:var(--mono);font-size:14px;font-weight:800;color:#DC2626;box-shadow:2px 2px 0 var(--border);"
+         x-text="deleteForm.username"></div>
+    <p style="margin-top:14px;font-size:12px;color:var(--muted);">
+      Tindakan ini tidak bisa dibatalkan. Semua data terkait akan dihapus permanen.
+    </p>
+    <div class="admin-modal-footer">
+      <button class="admin-btn-cancel" @click="modals.del = false">Batal</button>
+      <button class="admin-btn-submit danger" :disabled="submitting" @click="submitDelete()">
+        <span x-show="!submitting">Hapus Permanen</span>
+        <span x-show="submitting" style="display:flex;align-items:center;gap:6px;">
+          <span class="admin-spinner-sm"></span> Menghapus...
+        </span>
       </button>
     </div>
   </div>
 </div>
 
+<!-- ══════════════════════════ ALPINE.JS ══════════════════════════ -->
 <script>
-  const token = localStorage.getItem('rca_token');
-  const userInfo = JSON.parse(localStorage.getItem('rca_user') || 'null');
+function adminPage() {
+  return {
+    // ── Auth ───────────────────────────────────────────
+    token: localStorage.getItem('rca_token'),
+    userBadge: '-',
+    userInitials: '??',
+    myId: null,
 
-  // Auth guard — redirect if not admin
-  (async function guard() {
-    if (!token) { window.location.replace('/login'); return; }
-    try {
-      const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
-      if (!r.ok) throw new Error();
-      const me = await r.json();
-      // Check admin via boolean flag (with fallback to computed role)
-      if (!me.is_admin && me.role !== 'admin') { window.location.replace('/'); return; }
-      document.getElementById('userBadge').innerHTML = `<strong>${escHtml(me.username)}</strong> · ${escHtml(me.role)}`;
-    } catch {
-      window.location.replace('/login');
-    }
-  })();
+    // ── Data ───────────────────────────────────────────
+    users: [],
+    filteredUsers: [],
+    searchQuery: '',
+    roleFilter: '',
+    currentPage: 1,
+    perPage: 10,
+    loading: true,
+    submitting: false,
+    toast: { show: false, type: 'success', msg: '' },
+    stats: { total: 0, admin: 0, analyst: 0, viewer: 0 },
 
-  function authHeader() {
-    return { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
-  }
+    // ── Modals ─────────────────────────────────────────
+    modals: { add: false, edit: false, del: false },
+    addForm: { username: '', password: '', is_admin: false, is_analyst: false },
+    editForm: { id: null, username: '', password: '', is_admin: false, is_analyst: false, is_active: true },
+    deleteForm: { id: null, username: '' },
+    addError: '',
+    editError: '',
 
-  // ── Checkbox style toggle ───────────────────────────────────────────────────
+    // ── Init ───────────────────────────────────────────
+    async init() {
+      if (!this.token) { window.location.replace('/login'); return; }
+      try {
+        const r = await fetch('/api/auth/me', {
+          headers: { Authorization: 'Bearer ' + this.token },
+        });
+        if (!r.ok) throw new Error();
+        const me = await r.json();
 
-  function toggleCheckStyle(itemId, checkbox) {
-    const el = document.getElementById(itemId);
-    if (checkbox.checked) {
-      el.classList.add('checked');
-    } else {
-      el.classList.remove('checked');
-    }
-  }
+        // RBAC: admin only
+        if (!me.is_admin && me.role !== 'admin') {
+          window.location.replace('/');
+          return;
+        }
 
-  // ── Load users ─────────────────────────────────────────────────────────────
-
-  async function loadUsers() {
-    try {
-      const r = await fetch('/api/auth/users', { headers: { Authorization: 'Bearer ' + token } });
-      if (!r.ok) throw new Error();
-      const users = await r.json();
-      renderTable(users);
-    } catch {
-      document.getElementById('userTableBody').innerHTML =
-        '<tr><td colspan="6" class="empty-state">Gagal memuat data</td></tr>';
-    }
-  }
-
-  const ROLE_ICON = { admin: '🛡', analyst: '🔬', viewer: '👁' };
-
-  function renderTable(users) {
-    const myId = userInfo?.id;
-    document.getElementById('userCount').textContent = `${users.length} user${users.length !== 1 ? 's' : ''}`;
-    if (!users.length) {
-      document.getElementById('userTableBody').innerHTML =
-        '<tr><td colspan="6" class="empty-state">Belum ada pengguna</td></tr>';
-      return;
-    }
-    document.getElementById('userTableBody').innerHTML = users.map(u => {
-      const isActive = u.is_active !== false; // default true
-      return `
-      <tr>
-        <td class="id-cell">#${u.id}</td>
-        <td class="username-cell">${escHtml(u.username)}</td>
-        <td>
-          <span class="role-badge role-${escHtml(u.role)}">
-            ${ROLE_ICON[u.role] || '&middot;'} ${escHtml(u.role)}
-          </span>
-        </td>
-        <td>
-          <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
-            ${isActive ? '● Aktif' : '○ Nonaktif'}
-          </span>
-        </td>
-        <td class="date-cell">${u.created_at ? u.created_at.slice(0, 10) : '—'}</td>
-        <td class="action-cell">
-          <button class="icon-btn edit-btn"
-            onclick="openEditModal(${u.id}, '${escHtml(u.username)}', ${!!u.is_admin}, ${!!u.is_analyst}, ${isActive})"
-            title="Edit">✎</button>
-          <button class="icon-btn delete-btn ${u.id === myId ? 'disabled' : ''}"
-            onclick="openDeleteModal(${u.id}, '${escHtml(u.username)}')"
-            title="${u.id === myId ? 'Tidak bisa hapus akun sendiri' : 'Hapus'}">✕</button>
-        </td>
-      </tr>`;
-    }).join('');
-  }
-
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  // ── Alert helpers ───────────────────────────────────────────────────────────
-
-  let _alertTimer;
-  function showAlert(type, msg) {
-    clearTimeout(_alertTimer);
-    const successEl = document.getElementById('pageAlertSuccess');
-    const errorEl   = document.getElementById('pageAlertError');
-    successEl.classList.remove('show');
-    errorEl.classList.remove('show');
-    if (type === 'success') {
-      document.getElementById('alertSuccessText').textContent = msg;
-      successEl.classList.add('show');
-    } else {
-      document.getElementById('alertErrorText').textContent = msg;
-      errorEl.classList.add('show');
-    }
-    _alertTimer = setTimeout(() => {
-      successEl.classList.remove('show');
-      errorEl.classList.remove('show');
-    }, 4000);
-  }
-
-  // ── Modal helpers ───────────────────────────────────────────────────────────
-
-  function openModal(id)  { document.getElementById(id).classList.add('open'); }
-  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-  function closeIfBackdrop(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
-
-  // ── Add modal ───────────────────────────────────────────────────────────────
-
-  function openAddModal() {
-    document.getElementById('addUsername').value = '';
-    document.getElementById('addPassword').value = '';
-    document.getElementById('addIsAdmin').checked = false;
-    document.getElementById('addIsAnalyst').checked = false;
-    document.getElementById('addAdminItem').classList.remove('checked');
-    document.getElementById('addAnalystItem').classList.remove('checked');
-    document.getElementById('addError').classList.remove('show');
-    document.getElementById('addError').textContent = '';
-    openModal('addModal');
-    setTimeout(() => document.getElementById('addUsername').focus(), 100);
-  }
-
-  async function submitAdd() {
-    const username   = document.getElementById('addUsername').value.trim();
-    const password   = document.getElementById('addPassword').value;
-    const is_admin   = document.getElementById('addIsAdmin').checked;
-    const is_analyst = document.getElementById('addIsAnalyst').checked;
-    const errEl      = document.getElementById('addError');
-    const btn        = document.getElementById('addSubmitBtn');
-    const content    = document.getElementById('addSubmitContent');
-
-    if (!username || !password) {
-      errEl.textContent = 'Username dan password wajib diisi';
-      errEl.classList.add('show');
-      return;
-    }
-
-    errEl.classList.remove('show');
-    btn.disabled = true;
-    content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:6px;"><div class="spinner-sm"></div> Menyimpan...</div>';
-
-    try {
-      const r = await fetch('/api/auth/users', {
-        method: 'POST',
-        headers: authHeader(),
-        body: JSON.stringify({ username, password, is_admin, is_analyst }),
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || 'Gagal menambah user');
-      closeModal('addModal');
-      showAlert('success', `User "${username}" berhasil ditambahkan`);
-      loadUsers();
-    } catch (e) {
-      errEl.textContent = e.message;
-      errEl.classList.add('show');
-    } finally {
-      btn.disabled = false;
-      content.innerHTML = 'Simpan';
-    }
-  }
-
-  // ── Edit modal ──────────────────────────────────────────────────────────────
-
-  function openEditModal(id, username, isAdmin, isAnalyst, isActive) {
-    document.getElementById('editUserId').value = id;
-    document.getElementById('editUsername').textContent = username;
-    document.getElementById('editPassword').value = '';
-    document.getElementById('editIsAdmin').checked = isAdmin;
-    document.getElementById('editIsAnalyst').checked = isAnalyst;
-    document.getElementById('editIsActive').checked = isActive;
-
-    // Sync checkbox visual styles
-    document.getElementById('editAdminItem').classList.toggle('checked', isAdmin);
-    document.getElementById('editAnalystItem').classList.toggle('checked', isAnalyst);
-    document.getElementById('editActiveItem').classList.toggle('checked', isActive);
-
-    document.getElementById('editError').classList.remove('show');
-    document.getElementById('editError').textContent = '';
-    openModal('editModal');
-  }
-
-  async function submitEdit() {
-    const id         = parseInt(document.getElementById('editUserId').value);
-    const password   = document.getElementById('editPassword').value || null;
-    const is_admin   = document.getElementById('editIsAdmin').checked;
-    const is_analyst = document.getElementById('editIsAnalyst').checked;
-    const is_active  = document.getElementById('editIsActive').checked;
-    const errEl      = document.getElementById('editError');
-    const btn        = document.getElementById('editSubmitBtn');
-    const content    = document.getElementById('editSubmitContent');
-
-    errEl.classList.remove('show');
-    btn.disabled = true;
-    content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:6px;"><div class="spinner-sm"></div> Menyimpan...</div>';
-
-    try {
-      const body = { is_admin, is_analyst, is_active };
-      if (password) body.password = password;
-
-      const r = await fetch(`/api/auth/users/${id}`, {
-        method: 'PATCH',
-        headers: authHeader(),
-        body: JSON.stringify(body),
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || 'Gagal mengupdate user');
-      closeModal('editModal');
-      showAlert('success', `User berhasil diperbarui`);
-      loadUsers();
-    } catch (e) {
-      errEl.textContent = e.message;
-      errEl.classList.add('show');
-    } finally {
-      btn.disabled = false;
-      content.innerHTML = 'Simpan';
-    }
-  }
-
-  // ── Delete modal ─────────────────────────────────────────────────────────────
-
-  function openDeleteModal(id, username) {
-    document.getElementById('deleteUserId').value = id;
-    document.getElementById('deleteConfirmName').textContent = username;
-    openModal('deleteModal');
-  }
-
-  async function submitDelete() {
-    const id      = parseInt(document.getElementById('deleteUserId').value);
-    const btn     = document.getElementById('deleteSubmitBtn');
-    const content = document.getElementById('deleteSubmitContent');
-
-    btn.disabled = true;
-    content.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:6px;"><div class="spinner-sm"></div> Menghapus...</div>';
-
-    try {
-      const r = await fetch(`/api/auth/users/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + token },
-      });
-      if (!r.ok) {
-        const data = await r.json().catch(() => ({}));
-        throw new Error(data.detail || 'Gagal menghapus user');
+        this.myId = me.id;
+        this.userBadge = this.esc(me.username) + ' · ' + this.esc(me.role);
+        this.userInitials = this.initials(me.username);
+        await this.loadUsers();
+      } catch {
+        window.location.replace('/login');
       }
-      const name = document.getElementById('deleteConfirmName').textContent;
-      closeModal('deleteModal');
-      showAlert('success', `User "${name}" berhasil dihapus`);
-      loadUsers();
-    } catch (e) {
-      closeModal('deleteModal');
-      showAlert('error', e.message);
-    } finally {
-      btn.disabled = false;
-      content.innerHTML = 'Hapus';
-    }
-  }
+    },
 
-  // ── Logout ──────────────────────────────────────────────────────────────────
+    // ── Data loading ──────────────────────────────────
+    async loadUsers() {
+      this.loading = true;
+      try {
+        const r = await fetch('/api/auth/users', {
+          headers: { Authorization: 'Bearer ' + this.token },
+        });
+        if (!r.ok) throw new Error();
+        this.users = await r.json();
+        this.computeStats();
+        this.filterUsers();
+      } catch {
+        this.users = [];
+      } finally {
+        this.loading = false;
+      }
+    },
 
-  function logout() {
-    localStorage.removeItem('rca_token');
-    localStorage.removeItem('rca_user');
-    window.location.replace('/login');
-  }
+    computeStats() {
+      this.stats.total = this.users.length;
+      this.stats.admin = this.users.filter(u => u.role === 'admin').length;
+      this.stats.analyst = this.users.filter(u => u.role === 'analyst').length;
+      this.stats.viewer = this.users.filter(u => u.role === 'viewer').length;
+    },
 
-  // ── Init ────────────────────────────────────────────────────────────────────
-  loadUsers();
+    filterUsers() {
+      let out = [...this.users];
+      const q = this.searchQuery.toLowerCase().trim();
+      if (q) {
+        out = out.filter(u =>
+          (u.username || '').toLowerCase().includes(q)
+        );
+      }
+      if (this.roleFilter) {
+        out = out.filter(u => u.role === this.roleFilter);
+      }
+      this.filteredUsers = out;
+      this.currentPage = 1;
+    },
+
+    // ── Computed ──────────────────────────────────────
+    get paginatedUsers() {
+      const start = (this.currentPage - 1) * this.perPage;
+      return this.filteredUsers.slice(start, start + this.perPage);
+    },
+    get pageCount() {
+      return Math.max(1, Math.ceil(this.filteredUsers.length / this.perPage));
+    },
+    get pageInfo() {
+      if (this.filteredUsers.length === 0) return 'Tidak ada data';
+      const start = (this.currentPage - 1) * this.perPage + 1;
+      const end = Math.min(start + this.perPage - 1, this.filteredUsers.length);
+      return `Menampilkan ${start} - ${end} dari ${this.filteredUsers.length} pengguna`;
+    },
+
+    goPage(p) {
+      if (p < 1 || p > this.pageCount) return;
+      this.currentPage = p;
+    },
+
+    // ── Helpers ───────────────────────────────────────
+    initials(name) {
+      if (!name) return '??';
+      const parts = String(name).split(/[\s_\-]+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return name.slice(0, 2).toUpperCase();
+    },
+    formatDateTime(d) {
+      if (!d) return '—';
+      // Format: "2026-07-16 08:45" or ISO string
+      const s = String(d);
+      if (s.includes('T')) {
+        const dt = new Date(s);
+        if (isNaN(dt.getTime())) return s.slice(0, 10);
+        return dt.toISOString().slice(0, 10) + ' ' +
+               dt.toTimeString().slice(0, 5);
+      }
+      return s.length > 16 ? s.slice(0, 16) : s;
+    },
+    esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    },
+    authHeaders() {
+      return {
+        Authorization: 'Bearer ' + this.token,
+        'Content-Type': 'application/json',
+      };
+    },
+    showToast(type, msg) {
+      this.toast = { show: true, type, msg };
+      setTimeout(() => { this.toast.show = false; }, 4000);
+    },
+
+    // ── Add ───────────────────────────────────────────
+    openAddModal() {
+      this.addForm = { username: '', password: '', is_admin: false, is_analyst: false };
+      this.addError = '';
+      this.modals.add = true;
+    },
+    async submitAdd() {
+      const { username, password, is_admin, is_analyst } = this.addForm;
+      if (!username || !username.trim()) {
+        this.addError = 'Username wajib diisi'; return;
+      }
+      if (!password) {
+        this.addError = 'Password wajib diisi'; return;
+      }
+      this.addError = '';
+      this.submitting = true;
+      try {
+        const r = await fetch('/api/auth/users', {
+          method: 'POST',
+          headers: this.authHeaders(),
+          body: JSON.stringify({ username: username.trim(), password, is_admin, is_analyst }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Gagal menambah pengguna');
+        this.modals.add = false;
+        this.showToast('success', `Pengguna "${username.trim()}" berhasil ditambahkan`);
+        await this.loadUsers();
+      } catch (e) {
+        this.addError = e.message;
+      } finally {
+        this.submitting = false;
+      }
+    },
+
+    // ── Edit ──────────────────────────────────────────
+    openEditModal(u) {
+      this.editForm = {
+        id: u.id,
+        username: u.username,
+        password: '',
+        is_admin: !!u.is_admin,
+        is_analyst: !!u.is_analyst,
+        is_active: u.is_active !== false,
+      };
+      this.editError = '';
+      this.modals.edit = true;
+    },
+    async submitEdit() {
+      const { id, password, is_admin, is_analyst, is_active } = this.editForm;
+      this.editError = '';
+      this.submitting = true;
+      try {
+        const body = { is_admin, is_analyst, is_active };
+        if (password) body.password = password;
+        const r = await fetch(`/api/auth/users/${id}`, {
+          method: 'PATCH',
+          headers: this.authHeaders(),
+          body: JSON.stringify(body),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Gagal memperbarui pengguna');
+        this.modals.edit = false;
+        this.showToast('success', 'Pengguna berhasil diperbarui');
+        await this.loadUsers();
+      } catch (e) {
+        this.editError = e.message;
+      } finally {
+        this.submitting = false;
+      }
+    },
+
+    // ── Delete ────────────────────────────────────────
+    openDeleteModal(u) {
+      this.deleteForm = { id: u.id, username: u.username };
+      this.modals.del = true;
+    },
+    async submitDelete() {
+      const { id, username } = this.deleteForm;
+      this.submitting = true;
+      try {
+        const r = await fetch(`/api/auth/users/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer ' + this.token },
+        });
+        if (!r.ok) {
+          const data = await r.json().catch(() => ({}));
+          throw new Error(data.detail || 'Gagal menghapus pengguna');
+        }
+        this.modals.del = false;
+        this.showToast('success', `Pengguna "${username}" berhasil dihapus`);
+        await this.loadUsers();
+      } catch (e) {
+        this.modals.del = false;
+        this.showToast('error', e.message);
+      } finally {
+        this.submitting = false;
+      }
+    },
+
+    // ── Logout ────────────────────────────────────────
+    logout() {
+      localStorage.removeItem('rca_token');
+      localStorage.removeItem('rca_user');
+      window.location.replace('/login');
+    },
+  };
+}
 </script>
 </body>
 </html>

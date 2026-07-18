@@ -17,6 +17,7 @@ dependencies = [
     "db-dtypes>=1.6.0",
     "openpyxl>=3.1.5",
     "passlib[bcrypt]>=1.7.4",
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]
@@ -48,3 +49,8 @@ select = ["E", "F", "I", "W"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests (pure functions, no I/O)",
+    "integration: Integration tests (TestClient, requires mocked DB)",
+    "e2e: End-to-end tests (file structure, HTML validation)",
+]

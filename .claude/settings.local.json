@@ -1,13 +1,6 @@
 {
   "includeCoAuthoredBy": false,
   "permissions": {
-    "deny": [
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(.envs/.env)",
-      "Read(etl/.env)",
-      "Read(**/*.tfvars)"
-    ],
     "allow": [
       "Bash(python -c ' *)",
       "Bash(python -m pytest tests/ -v --tb=short)",
@@ -36,7 +29,15 @@
       "PowerShell(Get-Command uvicorn -ErrorAction SilentlyContinue)",
       "PowerShell(Get-Command python3 -ErrorAction SilentlyContinue)",
       "PowerShell(Get-Command py -ErrorAction SilentlyContinue)",
-      "PowerShell(py --list 2>&1)"
+      "PowerShell(py --list 2>&1)",
+      "WebSearch"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(.envs/.env)",
+      "Read(etl/.env)",
+      "Read(**/*.tfvars)"
     ]
   }
 }

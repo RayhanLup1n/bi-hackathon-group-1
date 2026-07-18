@@ -5,8 +5,8 @@ Jalankan dengan: pytest tests/
 import pytest
 from datetime import date
 from unittest.mock import patch
-from src.models.schemas import CommodityData, CuacaInfo, KotaInfo, StokInfo, DiagnosisType
-from src.engine.rca_engine import run_rca
+from src.domain.schemas.models import CommodityData, CuacaInfo, KotaInfo, StokInfo, DiagnosisType
+from src.domain.engines.rca_engine import run_rca
 
 
 # Patch hari besar cache so tests don't need BigQuery
@@ -23,7 +23,7 @@ _TEST_HARI_BESAR = [
 def _mock_hari_besar_cache():
     """Inject test calendar into RCA engine so BigQuery is not needed."""
     with patch(
-        "src.engine.rca_engine._hari_besar_cache", _TEST_HARI_BESAR
+        "src.domain.engines.rca_engine._hari_besar_cache", _TEST_HARI_BESAR
     ):
         yield
 

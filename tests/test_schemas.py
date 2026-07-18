@@ -11,12 +11,12 @@ Validates:
 import pytest
 from pydantic import ValidationError
 
-from src.models.schemas import (
+from src.domain.schemas.models import (
     CommodityData, CuacaInfo, KotaInfo, StokInfo,
     CheckResult, RCAResult, DiagnosisType,
 )
-from src.engine.bowtie_engine import Barrier, BowtieResult
-from src.engine.het_monitor import HETResult, HETStatus
+from src.domain.engines.bowtie_engine import Barrier, BowtieResult
+from src.domain.engines.het_monitor import HETResult, HETStatus
 
 
 # ── DiagnosisType Enum ──────────────────────────────────────────────────────

@@ -47,8 +47,8 @@ def _load_env() -> None:
 _load_env()
 
 from etl.config.log_config import setup_logging
-from src.data.bigquery_client import bq_query, get_bq_client, close_bq_client
-from src.data.database import init_pool, close_pool, db_cursor
+from src.infrastructure.bigquery.bigquery_client import bq_query, get_bq_client, close_bq_client
+from src.infrastructure.postgres.database import init_pool, close_pool, db_cursor
 
 
 # -- DDL: Create tables in Supabase if not exist --------------------------------

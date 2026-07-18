@@ -89,3 +89,11 @@ progress-report-*.html
 
 # Excel File
 *.xlsx
+
+# PDF File
+*.pdf
+
+# session-log & plan
+
+docs/session-log
+docs/superpowers

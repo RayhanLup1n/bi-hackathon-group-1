@@ -9,7 +9,7 @@ services:
     dockerContext: .
     plan: free
     region: singapore
-    healthCheckPath: /api/health
+    healthCheckPath: /health
     envVars:
       # PostgreSQL (Supabase)
       - key: SUPABASE_HOST

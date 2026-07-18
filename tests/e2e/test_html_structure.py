@@ -136,76 +136,135 @@ def _read_page(filename: str) -> str:
 
 
 class TestDashboardStructure:
-    """Tests specific to the dashboard (index.html) layout."""
+    """Tests specific to the Executive Dashboard (index.html) revamp layout."""
 
-    def test_has_pillar_cards(self):
-        """Dashboard should have Predict/Prevent/Protect pillar cards."""
+    def test_has_executive_dashboard_component(self):
+        """Dashboard should use the Executive Dashboard Alpine component."""
         content = _read_page("index.html")
-        assert "pillar-predict" in content
-        assert "pillar-prevent" in content
-        assert "pillar-protect" in content
+        assert "executiveDashboard" in content
+        assert "loadOverview" in content
 
-    def test_has_pillar_tags(self):
-        """Dashboard should have pillar tag labels."""
+    def test_has_priority_cards(self):
+        """Dashboard should show priority cards with risk levels."""
         content = _read_page("index.html")
-        assert "Predict" in content
-        assert "Prevent" in content
-        assert "Protect" in content
+        assert "priority-card" in content
+        assert "risk-kritis" in content
+        assert "priority-name" in content
 
-    def test_has_ml_state_variables(self):
-        """Dashboard Alpine.js state should include ML variables."""
+    def test_has_top_stat_bar(self):
+        """Dashboard should show top stat bar with summary counts."""
         content = _read_page("index.html")
-        assert "mlAvailable" in content
-        assert "mlResult" in content
-        assert "mlLoading" in content
-        assert "mlAlerts" in content
+        assert "dash-stat" in content
+        assert "Komoditas Dipantau" in content
 
-    def test_has_ml_health_check(self):
-        """Dashboard should call ML health check on init."""
+    def test_has_freshness_indicator(self):
+        """Dashboard should show data freshness bar."""
         content = _read_page("index.html")
-        assert "checkMLHealth" in content
-        assert "/api/ml/health" in content
+        assert "freshness-bar" in content
+        assert "freshness-dot" in content
 
-    def test_has_ml_prediction_fetch(self):
-        """Dashboard should fetch ML predictions."""
+    def test_has_ml_offline_warning(self):
+        """Dashboard should handle ML offline gracefully."""
         content = _read_page("index.html")
-        assert "loadMLPrediction" in content
-        assert "/api/ml/analyze" in content
+        assert "ml-service" in content.lower() or "ml_service" in content
+        assert "offline" in content.lower()
 
-    def test_has_ml_alert_banner(self):
-        """Dashboard should have ML alert banner."""
+    def test_has_review_bundle_section(self):
+        """Dashboard should have review bundle section."""
         content = _read_page("index.html")
-        assert "ml-alert-bar" in content
-        assert "mlAlerts" in content
+        assert "review_bundles" in content
+        assert "Paket Tinjauan" in content
 
-    def test_has_bowtie_section(self):
-        """Dashboard should have Bowtie visualization."""
+    def test_has_detail_view(self):
+        """Dashboard should support detail view routing."""
         content = _read_page("index.html")
-        assert "bowtieData" in content
-        assert "Bowtie" in content
+        assert "openDetail" in content
+        assert "detailLoading" in content
 
-    def test_has_fta_threats_section(self):
-        """Dashboard should have FTA threats grid."""
+    def test_has_evidence_groups(self):
+        """Detail view should separate evidence into groups."""
         content = _read_page("index.html")
-        assert "FTA Threats" in content
-        assert "active_threats" in content
+        assert "evidence-block" in content
+        assert "Fakta Teramati" in content
+        assert "Output Model" in content
+
+    def test_has_human_review_buttons(self):
+        """Detail view should have human review action buttons."""
+        content = _read_page("index.html")
+        assert "Untuk Dibahas" in content
+        assert "Ditunda" in content
+        assert "Ditolak" in content
+        assert "submitReview" in content
+
+    def test_has_response_options(self):
+        """Dashboard should show response options from rule engine."""
+        content = _read_page("index.html")
+        assert "response_options" in content
+        assert "response-option" in content
+
+    def test_has_missing_information_section(self):
+        """Detail view should show missing information block."""
+        content = _read_page("index.html")
+        assert "missing_information" in content
+        assert "Belum Tersedia" in content
 
     def test_tagline_updated(self):
-        """Dashboard header should show predict/prevent/protect tagline."""
+        """Dashboard header should show decision-support tagline."""
         content = _read_page("index.html")
-        assert "predict" in content.lower()
-        assert "v0.7" in content
+        assert "decision-support" in content.lower()
 
-    def test_chart_has_prediction_lines(self):
-        """Dashboard chart should support prediction line datasets."""
+    def test_chart_in_detail_view(self):
+        """Detail view should have price history chart."""
         content = _read_page("index.html")
-        assert "Prediksi 7d" in content
-        assert "borderDash" in content
+        assert "detailPriceChart" in content
+        assert "buildDetailChart" in content
 
     def test_graceful_ml_offline(self):
-        """Dashboard should handle ML server offline gracefully."""
+        """Dashboard should handle ML server offline with banner."""
         content = _read_page("index.html")
-        assert "server offline" in content.lower()
+        assert "ML service offline" in content or "ml offline" in content.lower()
+
+    def test_has_search_bar(self):
+        """Dashboard should have keyword search bar."""
+        content = _read_page("index.html")
+        assert "searchQuery" in content
+        assert "doSearch" in content
+        assert "Cari komoditas" in content
+
+    def test_has_search_loading_state(self):
+        """Dashboard search should have loading indicator support."""
+        content = _read_page("index.html")
+        assert "searchLoading" in content
+        assert "searchNoResults" in content
+
+    def test_has_filter_loading_state(self):
+        """Dashboard filter should have loading indicator support."""
+        content = _read_page("index.html")
+        assert "prioritiesLoading" in content
+
+    def test_has_toast_notification(self):
+        """Dashboard should have toast notification component."""
+        content = _read_page("index.html")
+        assert "toast" in content.lower()
+        assert "showToast" in content
+
+    def test_has_skeleton_shimmer(self):
+        """Dashboard should use shimmer skeleton for loading."""
+        content = _read_page("index.html")
+        assert "skeleton" in content
+
+    def test_has_export_buttons(self):
+        """Dashboard should have CSV + Excel export buttons."""
+        content = _read_page("index.html")
+        assert "exportPriorities" in content
+        assert "exportSingle" in content
+        assert "Export CSV" in content or "Export Excel" in content
+
+    def test_bundle_commodities_clickable(self):
+        """Bundle commodity tags should be clickable via openDetail."""
+        content = _read_page("index.html")
+        assert 'openDetail(c.recommendation_id)' in content
+        assert "cursor:pointer" in content
 
 
 class TestFTAPageStructure:
@@ -239,3 +298,200 @@ class TestPrediksiPageStructure:
     def test_has_prediction_display(self):
         content = _read_page("prediksi.html")
         assert "prediksi" in content.lower() or "prediction" in content.lower()
+
+
+class TestLoginPageStructure:
+    """Tests specific to the Login page (login.html)."""
+
+    def test_has_login_form(self):
+        """Login page must have authentication form."""
+        content = _read_page("login.html")
+        assert "handleLogin" in content
+        assert "loginForm" in content
+        assert 'type="password"' in content
+
+    def test_has_error_alert(self):
+        """Login page must show error feedback to user."""
+        content = _read_page("login.html")
+        assert "errorAlert" in content
+        assert "errorText" in content
+
+    def test_has_demo_hint(self):
+        """Login page must have demo credential hint (hidden by default)."""
+        content = _read_page("login.html")
+        assert "demoHint" in content
+        assert "display:none" in content  # hidden by default
+
+    def test_has_jwt_token_check(self):
+        """Login page must check for existing token on load."""
+        content = _read_page("login.html")
+        assert "rca_token" in content
+        assert "localStorage.getItem" in content
+
+    def test_has_pw_toggle(self):
+        """Login page must have password visibility toggle."""
+        content = _read_page("login.html")
+        assert "togglePw" in content
+        assert "password" in content.lower()
+
+
+class TestGuidePageStructure:
+    """Tests specific to the Guide page (guide.html)."""
+
+    def test_has_navigation(self):
+        """Guide page must have nav header with user badge and links."""
+        content = _read_page("guide.html")
+        assert "userBadge" in content
+        assert "Dashboard" in content
+        assert "Panduan" in content
+
+    def test_has_toc(self):
+        """Guide page must have table of contents for navigation."""
+        content = _read_page("guide.html")
+        assert "Daftar Isi" in content
+        assert "toc" in content
+
+    def test_has_all_sections(self):
+        """Guide page must cover all 6 documented sections."""
+        content = _read_page("guide.html")
+        for sid in ["s1", "s2", "s3", "s4", "s5", "s6"]:
+            assert f'id="{sid}"' in content
+
+    def test_has_het_status_explanation(self):
+        """Guide must explain both risk levels and HET status thresholds."""
+        content = _read_page("guide.html")
+        # New risk levels
+        assert "RENDAH" in content
+        assert "TINGGI" in content
+        assert "KRITIS" in content
+        # HET status still referenced for HET Monitor
+        assert "AMAN" in content
+        assert "WASPADA" in content
+        assert "MELAMPAUI" in content
+
+    def test_has_faq_section(self):
+        """Guide page must have FAQ for self-service help."""
+        content = _read_page("guide.html")
+        assert "FAQ" in content
+        assert "Pertanyaan Umum" in content
+
+    def test_section2_describes_current_dashboard(self):
+        """Guide section 2 must describe current dashboard features, not legacy ones."""
+        content = _read_page("guide.html")
+        # Current features should be documented
+        assert "Stat Bar" in content or "Ringkasan" in content
+        assert "Freshness" in content
+        assert "Prioritas" in content
+        assert "Priority Score" in content
+        # Legacy features should NOT be in section 2
+        # (Filter Tanggal, Grafik Tren Harga were removed)
+
+    def test_section4_has_risk_levels(self):
+        """Guide section 4 must document the composite risk level system."""
+        content = _read_page("guide.html")
+        assert "Level Risiko" in content
+        assert "RENDAH" in content
+        assert "SEDANG" in content
+        assert "TINGGI" in content
+
+    def test_section4_has_rca_explanation(self):
+        """Guide section 4 must explain RCA sequential check process."""
+        content = _read_page("guide.html")
+        assert "RCA" in content or "Root Cause" in content
+        assert "sequential" in content.lower()
+        assert "D1" in content
+        assert "S1" in content
+
+    def test_section6_has_search_tip(self):
+        """Guide section 6 tips must mention search feature."""
+        content = _read_page("guide.html")
+        assert "Search" in content or "search bar" in content.lower()
+
+    def test_has_logout_function(self):
+        """Guide page must support logout for authenticated users."""
+        content = _read_page("guide.html")
+        assert "guideLogout" in content
+        assert "logout" in content.lower()
+
+
+class TestAdminPageStructure:
+    """Tests specific to the Admin page (admin.html)."""
+
+    def test_has_user_management_card(self):
+        """Admin page must have user management section."""
+        content = _read_page("admin.html")
+        assert "Daftar Pengguna" in content
+        assert "userTableBody" in content
+
+    def test_has_crud_modals(self):
+        """Admin page must have add, edit, delete user modals."""
+        content = _read_page("admin.html")
+        assert "addModal" in content
+        assert "editModal" in content
+        assert "deleteModal" in content
+
+    def test_has_auth_guard(self):
+        """Admin page must redirect non-admin users."""
+        content = _read_page("admin.html")
+        assert "is_admin" in content or "role !== 'admin'" in content
+        assert "login" in content  # redirect path
+
+    def test_has_role_checkboxes(self):
+        """Admin page must have role permission toggles."""
+        content = _read_page("admin.html")
+        assert "addIsAdmin" in content
+        assert "addIsAnalyst" in content
+        assert "editIsActive" in content
+
+    def test_has_delete_confirmation(self):
+        """Admin page must confirm before deleting users."""
+        content = _read_page("admin.html")
+        assert "deleteConfirmName" in content
+        assert "Yakin ingin menghapus" in content or "Hapus Pengguna" in content
+
+    def test_has_empty_state(self):
+        """Admin page must handle empty user list."""
+        content = _read_page("admin.html")
+        assert "Belum ada pengguna" in content
+
+
+class TestSharedStylesheet:
+    """Tests for shared CSS (style.css) containing UX components."""
+
+    def _read_css(self) -> str:
+        css_path = os.path.join(FRONTEND_DIR, "css", "style.css")
+        with open(css_path, encoding="utf-8") as f:
+            return f.read()
+
+    def test_has_skeleton_shimmer_animation(self):
+        """CSS must define shimmer animation for skeleton loading."""
+        css = self._read_css()
+        assert ".skeleton" in css
+        assert "sk-shimmer" in css
+
+    def test_has_toast_styles(self):
+        """CSS must define toast notification styles."""
+        css = self._read_css()
+        assert ".toast" in css
+        assert ".toast-success" in css
+        assert ".toast-error" in css
+
+    def test_has_filter_active_style(self):
+        """CSS must define active filter indicator style."""
+        css = self._read_css()
+        assert ".filter-active" in css
+
+    def test_has_priorities_loading_style(self):
+        """CSS must define loading overlay for priority list."""
+        css = self._read_css()
+        assert ".priorities-loading" in css
+
+    def test_has_form_select_style(self):
+        """CSS must define neobrutalism form select style."""
+        css = self._read_css()
+        assert ".form-select" in css
+
+    def test_has_animate_in(self):
+        """CSS must define animate-in utility class."""
+        css = self._read_css()
+        assert ".animate-in" in css

@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panduan Analis — R.A.D.A.R Pangan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+  <script src="/config.js"></script>
   <style>
     /* -- Reset + Design tokens (inline fallback) -- */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,7 +20,7 @@
       --highlight: #A7F3D0; --info: #67E8F9;
       --text: #1a1a1a; --text2: #3f3f46; --muted: #71717a;
       --mono: 'JetBrains Mono', monospace;
-      --sans: 'Inter', system-ui, sans-serif;
+      --sans: 'Space Grotesk', 'Inter', system-ui, sans-serif;
       --radius: 16px; --radius-sm: 12px;
       --shadow: 4px 4px 0px #1a1a1a; --shadow-lg: 6px 6px 0px #1a1a1a;
       --bw: 2.5px;
@@ -83,11 +84,55 @@
     .user-badge strong { color: var(--accent2); }
     .nav-role-link { display: none; }
 
+    /* ── Mobile hamburger ── */
+    .hamburger-btn {
+      display: none; background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); cursor: pointer; font-size: 18px;
+      padding: 6px 10px; box-shadow: 2px 2px 0 var(--border); transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .hamburger-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .mobile-nav {
+      display: none; flex-direction: column; gap: 8px;
+      padding: 12px 0;
+    }
+    .mobile-nav.show { display: flex; }
+
+    .header-right { flex-wrap: nowrap !important; }
+
+    @media (max-width: 640px) {
+      .header { flex-direction: row; flex-wrap: wrap; }
+      .header-right { display: none !important; }
+      .hamburger-btn { display: flex; align-items: center; justify-content: center; margin-left: auto; }
+      .mobile-nav { width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .header { padding: 10px 14px; }
+      .header-title { font-size: 15px; }
+    }
+
     /* -- Guide page-specific styles -- */
     .app {
       position: relative; z-index: 1;
-      max-width: 820px; margin: 0 auto;
+      max-width: 1100px; margin: 0 auto;
       padding: 24px 20px 72px;
+    }
+
+    /* 2-column layout: sticky TOC aside + main content */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 32px;
+      align-items: start;
+    }
+    .guide-grid .toc {
+      position: sticky; top: 20px;
+      margin-bottom: 0; align-self: start;
+      max-height: calc(100vh - 40px); overflow-y: auto;
+    }
+    .guide-main { min-width: 0; }
+    @media (max-width: 860px) {
+      .guide-grid { grid-template-columns: 1fr; }
+      .guide-grid .toc { position: static; max-height: none; }
     }
 
     /* Hero */
@@ -376,10 +421,6 @@
     }
     .animate-in { animation: slide-up 0.45s ease both; }
 
-    @media (max-width: 640px) {
-      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
-      .header-right { width: 100%; justify-content: flex-start; }
-    }
   </style>
 </head>
 <body>
@@ -402,6 +443,16 @@
       <a href="/admin" class="nav-link nav-link-default nav-role-link" id="navAdmin">Admin</a>
       <button class="nav-link nav-link-danger" id="navLogout" style="display:none" onclick="guideLogout()">Keluar</button>
     </div>
+    <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle navigation" onclick="document.getElementById('mobileNav').classList.toggle('show'); var s = document.getElementById('hamburgerSpan'); s.textContent = s.textContent === '☰' ? '✕' : '☰';">
+      <span id="hamburgerSpan">☰</span>
+    </button>
+    <div class="mobile-nav" id="mobileNav" style="width:100%;margin-top:10px;">
+      <a href="/" class="nav-link nav-link-default">Dashboard</a>
+      <a href="/guide" class="nav-link nav-link-active">Panduan</a>
+      <a href="/prediksi" class="nav-link nav-link-default nav-role-link" id="mobileNavPrediksi">Prediksi</a>
+      <a href="/admin" class="nav-link nav-link-default nav-role-link" id="mobileNavAdmin">Admin</a>
+      <button class="nav-link nav-link-danger" id="mobileNavLogout" style="display:none" onclick="guideLogout()">Keluar</button>
+    </div>
   </header>
 
   <!-- Hero -->
@@ -414,8 +465,11 @@
     </div>
   </div>
 
+  <!-- TOC + Content (2-column sticky) -->
+  <div class="guide-grid">
+
   <!-- TOC -->
-  <div class="toc">
+  <aside class="toc">
     <div class="toc-label">Daftar Isi</div>
     <div class="toc-items">
       <a href="#s1"><span class="toc-n">1</span> Memulai - Login &amp; Navigasi</a>
@@ -425,8 +479,9 @@
       <a href="#s5"><span class="toc-n">5</span> Halaman Admin (Khusus Admin)</a>
       <a href="#s6"><span class="toc-n">6</span> Tips &amp; FAQ</a>
     </div>
-  </div>
+  </aside>
 
+  <main class="guide-main">
 
   <!-- 1. Login & Navigasi -->
   <section class="section" id="s1">
@@ -488,15 +543,102 @@
   <section class="section" id="s2">
     <div class="section-header">
       <div class="section-num">2</div>
-      <div class="section-title">Dashboard - Monitoring Harga</div>
+      <div class="section-title">Dashboard - Executive Decision Support</div>
     </div>
 
     <div class="card" style="margin-bottom:10px;">
-      <div class="sub-label">Fitur Utama Dashboard</div>
+      <div class="sub-label">Komponen Dashboard</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        Dashboard adalah halaman utama untuk memantau harga pangan secara real-time.
-        Di sini Anda bisa melihat status harga, tren, dan alert untuk setiap komoditas.
+        Dashboard adalah halaman utama untuk monitoring prioritas risiko harga pangan.
+        Sistem menganalisis data PIHPS, cuaca, kalender hari besar, dan persebaran kota
+        untuk menghasilkan daftar prioritas yang actionable bagi analis TPID.
       </p>
+      <div class="signal-rows">
+        <div class="signal-row">
+          <div class="signal-icon">📊</div>
+          <div class="signal-info">
+            <div class="signal-name">Stat Bar (Ringkasan)</div>
+            <div class="signal-desc">
+              Menampilkan 3 metrik utama: jumlah komoditas yang dipantau,
+              jumlah risiko tinggi/kritis, dan cakupan data (persentase).
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🟢</div>
+          <div class="signal-info">
+            <div class="signal-name">Freshness Bar</div>
+            <div class="signal-desc">
+              Menunjukkan kesegaran data: tanggal terakhir, umur data (hari),
+              status layanan ML (online/offline), dan distribusi risiko (rendah, sedang, kritis).
+              Titik hijau = data segar, kuning = agak lama, merah = sudah usang.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🔍</div>
+          <div class="signal-info">
+            <div class="signal-name">Search Bar</div>
+            <div class="signal-desc">
+              Cari komoditas, wilayah, atau risiko secara cepat. Ketik minimal 2 huruf,
+              hasil pencarian muncul sebagai dropdown. Klik untuk membuka detail prioritas.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🏆</div>
+          <div class="signal-info">
+            <div class="signal-name">Prioritas Utama (Top 3)</div>
+            <div class="signal-desc">
+              Tiga prioritas tertinggi ditampilkan dengan kartu detail:
+              skor prioritas, level risiko, diagnosis RCA, faktor pendukung,
+              dan langkah selanjutnya yang direkomendasikan.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">📋</div>
+          <div class="signal-info">
+            <div class="signal-name">Daftar Prioritas Lengkap</div>
+            <div class="signal-desc">
+              Seluruh daftar prioritas yang bisa difilter berdasarkan level risiko
+              (kritis, tinggi, sedang, rendah) dan provinsi. Klik kartu untuk melihat detail.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">📦</div>
+          <div class="signal-info">
+            <div class="signal-name">Paket Tinjauan Bersama</div>
+            <div class="signal-desc">
+              Sistem mengelompokkan komoditas yang sebaiknya ditinjau bersamaan
+              (contoh: semua cabai di provinsi yang sama). Memudahkan koordinasi rapat TPID.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">📑</div>
+          <div class="signal-info">
+            <div class="signal-name">Transparansi Data</div>
+            <div class="signal-desc">
+              Tombol <strong>Buka</strong> di sidebar membuka panel transparansi:
+              daftar sumber data (PIHPS, Open-Meteo, hari besar, HET), bobot scoring prioritas,
+              dan batasan model. Ringkas tapi penting untuk verifikasi metodologi.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🔢</div>
+          <div class="signal-info">
+            <div class="signal-name">Pagination Daftar Prioritas</div>
+            <div class="signal-desc">
+              Daftar prioritas dipaginasi agar tingginya sejajar dengan chart di sampingnya.
+              Gunakan tombol <strong>Prev</strong>/<strong>Next</strong> atau nomor halaman
+              untuk berpindah. Indikator menampilkan halaman aktif dan jumlah total.
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="card" style="margin-bottom:10px;">
@@ -505,20 +647,19 @@
         <div class="step-item">
           <div class="step-num">1</div>
           <div class="step-content">
-            <div class="step-title">Filter Komoditas</div>
+            <div class="step-title">Filter Level Risiko</div>
             <div class="step-desc">
-              Pilih komoditas yang ingin dipantau dari dropdown. Tersedia 6 komoditas:
-              Bawang Merah, Bawang Putih, Cabai Merah Besar, Cabai Merah Keriting,
-              Cabai Rawit Hijau, dan Cabai Rawit Merah.
+              Pilih level risiko pada dropdown di section "Daftar Prioritas Lengkap":
+              Kritis, Tinggi, Sedang, atau Rendah. Gunakan "Reset Filter" untuk kembali ke semua data.
             </div>
           </div>
         </div>
         <div class="step-item">
           <div class="step-num">2</div>
           <div class="step-content">
-            <div class="step-title">Filter Wilayah</div>
+            <div class="step-title">Filter Provinsi</div>
             <div class="step-desc">
-              Pilih provinsi atau kota untuk melihat data spesifik wilayah.
+              Pilih provinsi untuk melihat prioritas spesifik wilayah.
               Tersedia 4 provinsi: Banten, Jawa Barat, DKI Jakarta, dan Sulawesi Selatan.
             </div>
           </div>
@@ -526,10 +667,10 @@
         <div class="step-item">
           <div class="step-num">3</div>
           <div class="step-content">
-            <div class="step-title">Filter Tanggal</div>
+            <div class="step-title">Export Data</div>
             <div class="step-desc">
-              Pilih rentang tanggal untuk melihat data historis atau fokus pada periode tertentu.
-              Data tersedia dari tahun 2020 hingga sekarang.
+              Gunakan tombol CSV atau Excel di atas daftar prioritas untuk mengunduh data.
+              Bisa juga export per-komoditas dari halaman detail.
             </div>
           </div>
         </div>
@@ -537,40 +678,40 @@
     </div>
 
     <div class="card">
-      <div class="sub-label">Membaca Grafik &amp; Tabel</div>
+      <div class="sub-label">Membaca Kartu Prioritas</div>
       <div class="signal-rows">
         <div class="signal-row">
-          <div class="signal-icon">📈</div>
+          <div class="signal-icon">🎯</div>
           <div class="signal-info">
-            <div class="signal-name">Grafik Tren Harga</div>
+            <div class="signal-name">Priority Score</div>
             <div class="signal-desc">
-              Menampilkan pergerakan harga dalam periode yang dipilih.
-              Garis merah menunjukkan batas HET (Harga Eceran Tertinggi).
-              Hover pada titik untuk melihat detail harga dan tanggal.
+              Skor 0-100 dihitung dari 5 sinyal: posisi harga vs HET (25%),
+              risiko forecast P90 (30%), momentum anomali (20%), persebaran kota (15%),
+              dan cuaca + kalender (10%). Dikali faktor confidence data.
             </div>
           </div>
         </div>
         <div class="signal-row">
-          <div class="signal-icon">📊</div>
+          <div class="signal-icon">🏷️</div>
           <div class="signal-info">
-            <div class="signal-name">Tabel Harga per Kota</div>
+            <div class="signal-name">Level Risiko</div>
             <div class="signal-desc">
-              Menampilkan harga terkini di setiap kota pantauan.
-              Kolom status menunjukkan kondisi harga dibanding HET.
-              Klik header kolom untuk mengurutkan data.
+              Badge berwarna menunjukkan level:
+              <strong style="color:#059669;">RENDAH</strong> (hijau),
+              <strong style="color:#4338CA;">SEDANG</strong> (biru),
+              <strong style="color:#d97706;">TINGGI</strong> (oranye),
+              <strong style="color:#dc2626;">KRITIS</strong> (merah).
             </div>
           </div>
         </div>
         <div class="signal-row">
-          <div class="signal-icon">🔔</div>
+          <div class="signal-icon">🔬</div>
           <div class="signal-info">
-            <div class="signal-name">Alert &amp; Notifikasi</div>
+            <div class="signal-name">Diagnosis & Next Step</div>
             <div class="signal-desc">
-              Badge berwarna menunjukkan status harga:
-              <strong style="color:#059669;">AMAN</strong> (hijau),
-              <strong style="color:#d97706;">WASPADA</strong> (kuning),
-              <strong style="color:#dc2626;">KRITIS</strong> (merah),
-              <strong style="color:#991b1b;">MELAMPAUI</strong> (merah gelap).
+              Setiap prioritas menunjukkan diagnosis RCA (penyebab: hari raya, cuaca, distribusi, dll.)
+              dan rekomendasi langkah selanjutnya: Monitor, Verifikasi, Koordinasikan,
+              atau Pertimbangkan Intervensi.
             </div>
           </div>
         </div>
@@ -578,9 +719,8 @@
 
       <div class="info-box">
         <span class="info-icon">💡</span>
-        <span>Status harga dihitung berdasarkan perbandingan dengan HET:
-        <strong>AMAN</strong> (&lt;80%), <strong>WASPADA</strong> (80-100%),
-        <strong>KRITIS</strong> (100-120%), <strong>MELAMPAUI</strong> (&gt;120%).</span>
+        <span>Klik kartu prioritas untuk melihat detail lengkap: evidence, faktor risiko,
+        histori harga 30 hari, opsi respons, dan form review analis.</span>
       </div>
     </div>
   </section>
@@ -596,9 +736,11 @@
     <div class="card" style="margin-bottom:10px;">
       <div class="sub-label">Tentang Prediksi ML</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        Halaman Prediksi menggunakan model Machine Learning (LightGBM Quantile) untuk
-        memprediksi harga pangan 7-14 hari ke depan. Prediksi dilengkapi dengan
-        analisis FTA (Fault Tree Analysis) dan rekomendasi dari LLM Agent.
+        Halaman Prediksi menggunakan arsitektur ML 4 lapis:
+        <strong>Lapis 1</strong> (LightGBM Quantile) memprediksi harga 7-14 hari ke depan,
+        <strong>Lapis 2</strong> (Detection) mendeteksi changepoint dan pelanggaran HET,
+        <strong>Lapis 2.5</strong> (FTA) mengklasifikasi ancaman penyebab (hari raya, cuaca, stok, distribusi),
+        <strong>Lapis 3</strong> (LLM Agent) mensintesis seluruh sinyal menjadi rekomendasi intervensi berbasis Bowtie.
       </p>
     </div>
 
@@ -628,10 +770,12 @@
         <div class="step-item">
           <div class="step-num">3</div>
           <div class="step-content">
-            <div class="step-title">Baca Analisis FTA</div>
+            <div class="step-title">Baca Analisis Detection &amp; FTA</div>
             <div class="step-desc">
-              Panel FTA menampilkan faktor-faktor yang mempengaruhi prediksi:
-              hari raya, cuaca ekstrem, persebaran kota, dan kondisi stok.
+              Lapis 2 (Detection) mendeteksi lonjakan harga struktural (changepoint),
+              pelanggaran HET, dan ketimpangan harga antar kota.
+              Lapis 2.5 (FTA) mengklasifikasi ancaman: T1 Hari Raya, T2 Inflasi,
+              T3 Cuaca, T4 Defisit Stok, T5 Distribusi - dengan tingkat siaga kritis/siaga/waspada/aman.
             </div>
           </div>
         </div>
@@ -640,8 +784,9 @@
           <div class="step-content">
             <div class="step-title">Lihat Rekomendasi LLM</div>
             <div class="step-desc">
-              LLM Agent memberikan rekomendasi aksi berdasarkan hasil analisis.
-              Rekomendasi mencakup langkah pencegahan dan mitigasi yang bisa diambil.
+              Lapis 3 (LLM Agent) mensintesis seluruh sinyal dari forecast, detection, dan FTA
+              menjadi rekomendasi intervensi berbasis metodologi Bowtie.
+              Rekomendasi mencakup langkah pencegahan (preventive barriers) dan mitigasi (recovery barriers).
             </div>
           </div>
         </div>
@@ -654,10 +799,41 @@
         <div class="signal-row">
           <div class="signal-icon">📉</div>
           <div class="signal-info">
-            <div class="signal-name">Confidence Interval</div>
+            <div class="signal-name">Interval Keyakinan (Confidence Interval)</div>
             <div class="signal-desc">
               Area berwarna di sekitar garis prediksi menunjukkan rentang kemungkinan harga.
               Semakin lebar area, semakin tinggi ketidakpastian prediksi.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">📊</div>
+          <div class="signal-info">
+            <div class="signal-name">Faktor Pendorong (SHAP)</div>
+            <div class="signal-desc">
+              Visualisasi SHAP menunjukkan fitur mana yang paling mempengaruhi prediksi harga,
+              misalnya harga lag-7, hari raya, atau cuaca.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">🔍</div>
+          <div class="signal-info">
+            <div class="signal-name">Sinyal Detection</div>
+            <div class="signal-desc">
+              Changepoint (Z-score), CUSUM drift, jarak HET, dan disparitas harga antar kota.
+              Sinyal ini mengkonfirmasi apakah lonjakan harga bersifat struktural atau sementara.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">⚠️</div>
+          <div class="signal-info">
+            <div class="signal-name">Ancaman FTA (T1-T5)</div>
+            <div class="signal-desc">
+              Klasifikasi ancaman: T1 Hari Raya, T2 Inflasi, T3 Cuaca Ekstrem,
+              T4 Defisit Stok, T5 Gangguan Distribusi - masing-masing dengan
+              tingkat siaga (kritis/siaga/waspada/aman).
             </div>
           </div>
         </div>
@@ -677,7 +853,8 @@
             <div class="signal-name">LLM Agent (Groq)</div>
             <div class="signal-desc">
               Rekomendasi dihasilkan oleh LLM (Llama 3.3 70B via Groq API).
-              Agent menganalisis hasil FTA dan memberikan saran aksi yang kontekstual.
+              Agent mensintesis seluruh sinyal (forecast + detection + FTA) menggunakan
+              metodologi Bowtie untuk menghasilkan rekomendasi intervensi yang kontekstual.
             </div>
           </div>
         </div>
@@ -696,84 +873,111 @@
   <section class="section" id="s4">
     <div class="section-header">
       <div class="section-num">4</div>
-      <div class="section-title">Memahami Status &amp; Alert</div>
+      <div class="section-title">Memahami Status &amp; Level Risiko</div>
     </div>
 
     <div class="card" style="margin-bottom:10px;">
-      <div class="sub-label">Status Harga vs HET</div>
+      <div class="sub-label">Level Risiko Prioritas</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        Setiap komoditas memiliki HET (Harga Eceran Tertinggi) yang ditetapkan pemerintah.
-        Status harga dihitung berdasarkan perbandingan harga aktual dengan HET.
+        Setiap komoditas-wilayah mendapat skor prioritas (0-100) yang dihitung dari 5 sinyal
+        tertimbang. Level risiko ditentukan dari skor tersebut.
       </p>
 
       <div class="sev-row">
         <div class="sev-pill sp-l0">
-          <span class="lv">AMAN</span>
+          <span class="lv">RENDAH</span>
           <span class="nm">Hijau</span>
+          <span class="sc">Skor rendah</span>
+        </div>
+        <div class="sev-pill sp-l1">
+          <span class="lv">SEDANG</span>
+          <span class="nm">Biru</span>
+          <span class="sc">Skor menengah</span>
+        </div>
+        <div class="sev-pill sp-l3">
+          <span class="lv">TINGGI</span>
+          <span class="nm">Oranye</span>
+          <span class="sc">Skor tinggi</span>
+        </div>
+        <div class="sev-pill sp-l4">
+          <span class="lv">KRITIS</span>
+          <span class="nm">Merah</span>
+          <span class="sc">Skor sangat tinggi</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px;">
+      <div class="sub-label">Status HET (Harga Eceran Tertinggi)</div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
+        HET Monitor membandingkan harga aktual dengan batas harga pemerintah:
+      </p>
+      <div class="sev-row">
+        <div class="sev-pill sp-l0">
+          <span class="lv">AMAN</span>
           <span class="sc">&lt;80% HET</span>
         </div>
         <div class="sev-pill sp-l1">
           <span class="lv">WASPADA</span>
-          <span class="nm">Kuning</span>
-          <span class="sc">80-100% HET</span>
+          <span class="sc">&gt;=80% HET</span>
         </div>
         <div class="sev-pill sp-l3">
           <span class="lv">KRITIS</span>
-          <span class="nm">Merah</span>
-          <span class="sc">100-120% HET</span>
+          <span class="sc">&gt;=95% HET</span>
         </div>
         <div class="sev-pill sp-l4">
           <span class="lv">MELAMPAUI</span>
-          <span class="nm">Merah Gelap</span>
-          <span class="sc">&gt;120% HET</span>
+          <span class="sc">&gt;100% HET</span>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="sub-label">Faktor Analisis FTA</div>
+      <div class="sub-label">Faktor Analisis RCA (Root Cause Analysis)</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">
-        Sistem menganalisis 4 faktor utama yang mempengaruhi harga pangan:
+        Sistem menganalisis 4 faktor secara sequential (early-exit) untuk menentukan penyebab:
       </p>
       <div class="ind-list">
         <div class="ind-item">
           <span class="ind-code">D1</span>
           <div class="ind-info">
-            <div class="ind-name">Hari Raya</div>
+            <div class="ind-name">Check 1: Hari Raya</div>
             <div class="ind-cond">Apakah tanggal analisis masuk window H-14 s/d H+3 dari hari raya nasional.
-            Lonjakan permintaan menjelang hari besar menyebabkan kenaikan harga.</div>
+            Jika ya: Diagnosis = DEMAND SPIKE (skip check selanjutnya).</div>
           </div>
         </div>
         <div class="ind-item">
           <span class="ind-code">S1</span>
           <div class="ind-info">
-            <div class="ind-name">Cuaca Ekstrem</div>
-            <div class="ind-cond">Apakah ada cuaca ekstrem dalam 7 hari terakhir di wilayah pantauan:
-            hujan &gt;100 mm/hari, kekeringan &gt;14 hari, suhu &gt;38°C, atau angin &gt;60 km/jam.</div>
+            <div class="ind-name">Check 2: Cuaca Ekstrem</div>
+            <div class="ind-cond">Apakah ada cuaca ekstrem dalam 7 hari terakhir:
+            hujan &gt;100 mm/hari, kekeringan &gt;14 hari, suhu &gt;38C, atau angin &gt;60 km/jam.
+            Jika ya: Diagnosis = GANGGUAN SUPPLY.</div>
           </div>
         </div>
         <div class="ind-item">
           <span class="ind-code">S2</span>
           <div class="ind-info">
-            <div class="ind-name">Persebaran Kota</div>
-            <div class="ind-cond">Apakah kenaikan harga terjadi di banyak kota sekaligus (&gt;60% kota pantauan).
-            Kenaikan serempak menandakan tekanan bersifat nasional, bukan lokal.</div>
+            <div class="ind-name">Check 3: Persebaran Kota</div>
+            <div class="ind-cond">Apakah &gt;=60% kota mengalami kenaikan serempak.
+            Jika ya: Diagnosis = SUPPLY NASIONAL.</div>
           </div>
         </div>
         <div class="ind-item">
           <span class="ind-code">S3</span>
           <div class="ind-info">
-            <div class="ind-name">Kondisi Stok</div>
-            <div class="ind-cond">Apakah stok pedagang di bawah normal.
-            Stok menipis (&lt;60%) atau kritis (&lt;35%) memperkuat potensi kenaikan harga.</div>
+            <div class="ind-name">Check 4: Kondisi Stok</div>
+            <div class="ind-cond">Apakah stok pedagang di bawah normal (&lt;60%).
+            Jika ya: Diagnosis = BOTTLENECK DISTRIBUSI.
+            Jika tidak: Diagnosis = PENYEBAB BELUM TERIDENTIFIKASI.</div>
           </div>
         </div>
       </div>
 
       <div class="info-box">
         <span class="info-icon">📌</span>
-        <span>Semakin banyak faktor yang aktif, semakin tinggi risiko kenaikan harga.
-        Gunakan informasi ini untuk mengantisipasi dan merencanakan respons.</span>
+        <span>RCA bersifat sequential: begitu satu penyebab teridentifikasi, check selanjutnya dilewati.
+        Rekomendasi aksi disesuaikan dengan diagnosis dan level confidence data.</span>
       </div>
     </div>
   </section>
@@ -860,12 +1064,23 @@
       <div class="sub-label">Tips Penggunaan</div>
       <div class="signal-rows">
         <div class="signal-row">
-          <div class="signal-icon">💡</div>
+          <div class="signal-icon">🔍</div>
           <div class="signal-info">
-            <div class="signal-name">Bookmark Halaman Penting</div>
+            <div class="signal-name">Gunakan Search untuk Navigasi Cepat</div>
             <div class="signal-desc">
-              Bookmark Dashboard dan Prediksi untuk akses cepat.
-              Gunakan filter yang sering dipakai sebagai default.
+              Ketik nama komoditas atau wilayah di search bar Dashboard untuk langsung
+              menuju detail komoditas. Minimal 2 karakter untuk memulai pencarian.
+            </div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-icon">📊</div>
+          <div class="signal-info">
+            <div class="signal-name">Export Data untuk Rapat</div>
+            <div class="signal-desc">
+              Klik tombol Export di Dashboard untuk download CSV seluruh daftar prioritas,
+              atau Export di halaman detail untuk satu komoditas-wilayah.
+              Cocok untuk bahan presentasi atau diskusi tim.
             </div>
           </div>
         </div>
@@ -882,10 +1097,11 @@
         <div class="signal-row">
           <div class="signal-icon">🔄</div>
           <div class="signal-info">
-            <div class="signal-name">Refresh Data</div>
+            <div class="signal-name">Data Freshness</div>
             <div class="signal-desc">
-              Data diperbarui setiap hari pukul 07:00 WIB.
-              Refresh halaman untuk melihat data terbaru.
+              Data PIHPS diperbarui setiap hari kerja melalui pipeline ETL otomatis (pukul 07:00 WIB).
+              Cek freshness bar di atas Dashboard untuk melihat kapan data terakhir diperbarui.
+              Data tidak tersedia untuk hari libur dan weekend.
             </div>
           </div>
         </div>
@@ -898,9 +1114,11 @@
         <div class="step-item">
           <div class="step-num">?</div>
           <div class="step-content">
-            <div class="step-title">Mengapa saya tidak bisa akses halaman Prediksi?</div>
+            <div class="step-title">Mengapa saya tidak bisa akses halaman tertentu?</div>
             <div class="step-desc">
-              Halaman Prediksi hanya bisa diakses oleh user dengan role Analyst atau Admin.
+              Platform menggunakan RBAC (Role-Based Access Control).
+              Halaman Prediksi dan FTA/Bowtie hanya bisa diakses oleh Analyst atau Admin.
+              Halaman Admin hanya untuk user dengan role Admin.
               Hubungi admin untuk upgrade akses jika diperlukan.
             </div>
           </div>
@@ -908,10 +1126,23 @@
         <div class="step-item">
           <div class="step-num">?</div>
           <div class="step-content">
-            <div class="step-title">Data harga tidak muncul untuk tanggal tertentu?</div>
+            <div class="step-title">Dashboard menampilkan "Data terakhir: X hari lalu" - apakah itu normal?</div>
             <div class="step-desc">
-              Data PIHPS tidak tersedia untuk hari libur dan weekend.
-              Coba pilih tanggal hari kerja untuk melihat data lengkap.
+              Data PIHPS tidak tersedia untuk hari libur dan weekend. Jika hari ini Senin,
+              data terakhir mungkin dari hari Jumat (3 hari lalu). Ini normal.
+              Jika freshness lebih dari 3 hari kerja, hubungi admin untuk cek pipeline ETL.
+            </div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">?</div>
+          <div class="step-content">
+            <div class="step-title">Apa bedanya level risiko dengan status HET?</div>
+            <div class="step-desc">
+              Level risiko (rendah/sedang/tinggi/kritis) dihitung dari composite scoring
+              5 sinyal: posisi harga, forecast, momentum, persebaran, dan cuaca/kalender.
+              Status HET secara spesifik membandingkan harga aktual vs Harga Eceran Tertinggi pemerintah.
+              Keduanya saling melengkapi untuk memberikan gambaran lengkap.
             </div>
           </div>
         </div>
@@ -922,7 +1153,8 @@
             <div class="step-desc">
               Prediksi ML adalah estimasi berdasarkan pola historis.
               Faktor eksternal seperti kebijakan mendadak atau bencana
-              mungkin tidak tercakup dalam model.
+              mungkin tidak tercakup dalam model. Selalu gunakan bersama
+              analisis RCA dan konteks lapangan.
             </div>
           </div>
         </div>
@@ -947,6 +1179,9 @@
     </div>
   </section>
 
+  </main>
+  </div>
+  <!-- /guide-grid -->
 
   <!-- Footer -->
   <footer class="footer">
@@ -969,8 +1204,9 @@
     const token = localStorage.getItem('rca_token');
     if (!token) return;
 
-    // Show logout button when logged in
+    // Show logout buttons when logged in
     document.getElementById('navLogout').style.display = '';
+    document.getElementById('mobileNavLogout').style.display = '';
 
     fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } })
       .then(r => r.ok ? r.json() : null)
@@ -979,12 +1215,14 @@
         document.getElementById('userBadge').innerHTML =
           '<strong>' + me.username + '</strong> ' + me.role;
 
-        // Show nav links based on role
+        // Show nav links based on role (desktop + mobile)
         if (me.is_analyst || me.is_admin || me.role === 'analyst' || me.role === 'admin') {
           document.getElementById('navPrediksi').style.display = '';
+          document.getElementById('mobileNavPrediksi').style.display = '';
         }
         if (me.is_admin || me.role === 'admin') {
           document.getElementById('navAdmin').style.display = '';
+          document.getElementById('mobileNavAdmin').style.display = '';
         }
       })
       .catch(() => {});

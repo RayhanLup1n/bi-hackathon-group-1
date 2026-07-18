@@ -1,0 +1,87 @@
+name: Daily data refresh
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_year:
+        description: First year to refresh
+        required: false
+        default: "2026"
+      end_year:
+        description: Last year to refresh
+        required: false
+        default: "2026"
+  schedule:
+    # 07:15 WIB daily (00:15 UTC)
+    - cron: "15 0 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: radar-daily-data-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # GCP BigQuery
+      GCP_PROJECT: ${{ vars.GCP_PROJECT || 'radar-pangan-hackathon' }}
+      BQ_LOCATION: ${{ vars.BQ_LOCATION || 'asia-southeast2' }}
+      # Supabase PostgreSQL
+      SUPABASE_HOST: ${{ secrets.SUPABASE_HOST }}
+      SUPABASE_PORT: ${{ vars.SUPABASE_PORT || '5432' }}
+      SUPABASE_DB: ${{ vars.SUPABASE_DB || 'postgres' }}
+      SUPABASE_USER: ${{ vars.SUPABASE_USER }}
+      SUPABASE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install project dependencies
+        run: uv sync --extra etl --extra dev
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+
+      - name: Load current price data
+        run: >
+          uv run python etl/scripts/load_historical.py
+          --start-year "${{ inputs.start_year || '2026' }}"
+          --end-year "${{ inputs.end_year || '2026' }}"
+
+      - name: Load current weather data
+        run: >
+          uv run python etl/scripts/load_weather_historical.py
+          --start-year "${{ inputs.start_year || '2026' }}"
+          --end-year "${{ inputs.end_year || '2026' }}"
+
+      - name: Run dbt transformations
+        run: uv run dbt run --profiles-dir etl/dbt_project --project-dir etl/dbt_project
+
+      - name: Run dbt tests
+        run: uv run dbt test --profiles-dir etl/dbt_project --project-dir etl/dbt_project
+
+      - name: Sync Gold layer to PostgreSQL
+        run: uv run python etl/scripts/sync_gold_to_postgres.py
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Daily data refresh FAILED at $(date -u)."
+          echo "Check: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -3,972 +3,1071 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>R.A.D.A.R Pangan</title>
+  <title>R.A.D.A.R Pangan — Executive Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
-  <!-- Alpine.js CDN -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
   <style>
-    /* -- Reset + Design tokens (inline fallback) -- */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #EEF7F1; --bg2: #F0FBF4;
-      --surface: #FFFFFF; --surface2: #F0FBF4;
-      --border: #1a1a1a; --border2: #1a1a1a;
-      --accent: #2ECC88; --accent2: #1D7A56;
-      --warn: #FBBF24; --danger: #F87171; --success: #34D399;
-      --highlight: #A7F3D0; --info: #67E8F9;
-      --text: #1a1a1a; --text2: #3f3f46; --muted: #71717a;
-      --mono: 'JetBrains Mono', monospace;
-      --sans: 'Inter', system-ui, sans-serif;
-      --radius: 16px; --radius-sm: 12px;
-      --shadow: 4px 4px 0px #1a1a1a; --shadow-lg: 6px 6px 0px #1a1a1a;
-      --bw: 2.5px;
-    }
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: var(--sans); min-height: 100vh; overflow-x: hidden;
-    }
-    body::before {
-      content: ''; position: fixed; inset: 0;
-      background-image:
-        radial-gradient(circle at 20% 50%, rgba(46,204,136,0.12) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(29,122,86,0.08) 0%, transparent 50%),
-        radial-gradient(circle at 60% 80%, rgba(52,211,153,0.08) 0%, transparent 50%);
-      pointer-events: none; z-index: 0;
-    }
-
-    /* -- App container (inline fallback) -- */
-    .app {
-      position: relative; z-index: 1;
-      max-width: 1100px; margin: 0 auto;
-      padding: 24px 20px 48px;
-    }
-
-    /* -- Header (inline fallback) -- */
-    .header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 28px; padding: 14px 20px;
-      background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow);
-    }
-    .header-left { display: flex; align-items: center; gap: 14px; }
-    .logo-icon {
-      width: 52px; height: 52px;
-      border: var(--bw) solid var(--border); border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; box-shadow: 3px 3px 0 var(--border);
-      overflow: hidden; padding: 0;
-    }
-    .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
-    .header-title {
-      font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
-    }
-    .header-sub {
-      font-family: var(--mono); font-size: 10px; color: var(--muted);
-      margin-top: 2px; letter-spacing: 0.5px;
-    }
-    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .nav-link {
-      font-family: var(--mono); font-size: 11px; font-weight: 700;
-      padding: 7px 13px; border-radius: var(--radius-sm); text-decoration: none;
-      border: var(--bw) solid var(--border); box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s; cursor: pointer;
-    }
-    .nav-link:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
-    .nav-link-default { background: var(--surface); color: var(--accent2); }
-    .nav-link-default:hover { background: #E0F5EA; }
-    .nav-link-active { background: var(--accent); color: #fff; }
-    .nav-link-danger { background: #FEE2E2; color: #DC2626; }
-    .nav-link-danger:hover { background: #FECACA; }
-    .user-badge {
-      font-family: var(--mono); font-size: 11px; font-weight: 700;
-      padding: 7px 13px; background: var(--surface2);
-      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
-      box-shadow: 2px 2px 0 var(--border);
-    }
-    .user-badge strong { color: var(--accent2); }
-
-    /* -- Cards (inline fallback) -- */
-    .card {
-      background: var(--surface); border: var(--bw) solid var(--border);
-      border-radius: var(--radius); padding: 18px;
-      position: relative; overflow: hidden; box-shadow: var(--shadow);
-    }
-    .card::after {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 5px;
-      background: var(--accent); border-radius: var(--radius) var(--radius) 0 0;
-    }
-    .card + .card { margin-top: 14px; }
-    .card-label {
-      font-family: var(--mono); font-size: 10px; color: var(--text);
-      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
-      display: flex; align-items: center; gap: 6px; font-weight: 800;
-    }
-    .card-label::before {
-      content: ''; display: inline-block;
-      width: 4px; height: 12px; background: var(--accent);
-      border-radius: 2px; border: 1px solid var(--border);
-    }
-
-    /* -- Responsive header stacking -- */
-    @media (max-width: 640px) {
-      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
-      .header-right { width: 100%; justify-content: flex-start; }
-    }
-
-    /* -- Dashboard page-specific styles -- */
-
-    /* -- Main layout -- */
-    .main-grid {
+    /* ── Two-column dashboard grid (mockup: 8+4 grid) ── */
+    .dash-grid {
       display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 16px;
-      align-items: start;
+      grid-template-columns: 1fr;
+      gap: 24px;
     }
-    @media (max-width: 768px) {
-      .main-grid { grid-template-columns: 1fr; }
+    @media (min-width: 1024px) {
+      .dash-grid {
+        grid-template-columns: 2fr 1fr;
+      }
     }
+    .dash-main { min-width: 0; }
+    .dash-sidebar { min-width: 0; }
 
-    /* -- Cards (page overrides) -- */
-    .commodity-select {
-      width: 100%;
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 14px;
-      font-weight: 600;
-      padding: 10px 14px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      outline: none;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231a1a1a' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      box-shadow: 3px 3px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s;
+    /* ── Dashboard layout ── */
+    .dash-top-bar {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px; margin-bottom: 24px;
     }
-    .commodity-select:focus {
-      outline: 3px solid var(--accent);
-      outline-offset: 2px;
+    .dash-stat {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); padding: 16px 20px;
+      box-shadow: var(--shadow); position: relative; overflow: hidden;
     }
-    .commodity-select:active {
-      transform: translate(2px, 2px);
-      box-shadow: 1px 1px 0 var(--border);
-    }
-
-    /* ── Price display ── */
-    .price-block { margin-top: 4px; }
-    .price-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
-    .price-now {
-      font-family: var(--mono);
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -1px;
-      line-height: 1;
-    }
-    .price-delta {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 8px;
-      border: 2px solid var(--border);
-    }
-    .delta-up { background: #FEE2E2; color: #DC2626; }
-    .delta-down { background: #D1FAE5; color: #059669; }
-    .price-pred {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-      font-weight: 500;
-    }
-    .price-pred span { color: var(--accent2); font-weight: 800; }
-
-    /* ── Signal grid ── */
-    .signal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .signal-item {
-      background: var(--surface2);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px 12px;
-      box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .signal-item.warn-item {
-      background: #FEF3C7;
-      box-shadow: 2px 2px 0 var(--border);
-    }
-    .signal-key { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.5px; font-weight: 600; }
-    .signal-val { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text); }
-    .signal-val.warn { color: #B45309; }
-    .signal-val.ok { color: #059669; }
-    .signal-val.danger { color: #DC2626; }
-
-    /* ── Anomaly banner ── */
-    .anomaly-banner {
-      border-radius: var(--radius);
-      padding: 16px 20px;
-      border: var(--bw) solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-      transition: all 0.3s ease;
-      box-shadow: var(--shadow);
-    }
-    .anomaly-banner.normal {
-      background: #D1FAE5;
-    }
-    .anomaly-banner.anomali {
-      background: #FEE2E2;
-    }
-    .anomaly-banner.blank {
-      background: var(--surface);
-    }
-    .anomaly-left { display: flex; align-items: center; gap: 10px; }
-    .anomaly-icon { font-size: 22px; line-height: 1; }
-    .anomaly-label { font-family: var(--mono); font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
-    .anomaly-status { font-size: 16px; font-weight: 900; margin-top: 1px; }
-    .anomaly-status.normal-text { color: #059669; }
-    .anomaly-status.danger-text { color: #DC2626; }
-    .anomaly-right { text-align: right; }
-    .anomaly-delta { font-family: var(--mono); font-size: 20px; font-weight: 800; }
-    .anomaly-threshold { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; font-weight: 600; }
-
-
-    /* ── Result card ── */
-    .result-card {
-      border-radius: var(--radius);
-      padding: 22px;
-      border: var(--bw) solid var(--border);
-      margin-top: 14px;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      box-shadow: var(--shadow-lg);
-    }
-    .result-card::before {
-      content: '';
-      position: absolute;
-      top: -60px; right: -60px;
-      width: 160px; height: 160px;
-      border-radius: 50%;
-      opacity: 0.15;
-    }
-    .result-card::after {
-      content: '';
-      position: absolute;
-      bottom: -40px; left: -40px;
-      width: 100px; height: 100px;
-      border-radius: 50%;
-      opacity: 0.10;
-    }
-    .result-demand { background: #D1FAE5; }
-    .result-demand::before { background: var(--success); }
-    .result-demand::after { background: var(--info); }
-    .result-supply { background: #FEF3C7; }
-    .result-supply::before { background: var(--warn); }
-    .result-supply::after { background: var(--danger); }
-    .result-distribusi { background: #E0F5EA; }
-    .result-distribusi::before { background: var(--accent); }
-    .result-distribusi::after { background: var(--highlight); }
-    .result-unknown { background: #F4F4F5; }
-
-    .result-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-    .result-meta { flex: 1; }
-    .result-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text2); margin-bottom: 5px; font-weight: 800; }
-    .result-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.2; }
-    .result-demand .result-title { color: #065F46; }
-    .result-supply .result-title { color: #92400E; }
-    .result-distribusi .result-title { color: #1D7A56; }
-    .result-unknown .result-title { color: var(--muted); }
-    .result-type-badge {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 800;
-      padding: 5px 14px;
-      border-radius: 8px;
-      flex-shrink: 0;
-      border: var(--bw) solid var(--border);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      box-shadow: 3px 3px 0 var(--border);
-    }
-    .result-demand .result-type-badge { background: #A7F3D0; color: #065F46; }
-    .result-supply .result-type-badge { background: #FDE68A; color: #92400E; }
-    .result-distribusi .result-type-badge { background: #A7F3D0; color: #1D7A56; }
-    .result-unknown .result-type-badge { background: #E4E4E7; color: var(--muted); }
-
-    .result-desc { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 14px; }
-
-    .action-box {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 14px 16px;
-      box-shadow: 2px 2px 0 var(--border);
-    }
-    .action-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 8px;
-      display: flex; align-items: center; gap: 6px;
-      font-weight: 800;
-    }
-    .action-label::before {
-      content: '';
-      display: inline-block;
-      width: 4px; height: 12px;
+    .dash-stat::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
       background: var(--accent);
-      border-radius: 2px;
-      border: 1px solid var(--border);
     }
-    .action-text { font-size: 13px; color: var(--text); line-height: 1.7; }
-
-    /* ── Sim date ── */
-    .sim-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .sim-date-input {
-      flex: 1;
-      min-width: 140px;
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      outline: none;
-      box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .sim-date-input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
-    .sim-date-input.active { background: #FEF3C7; color: #92400E; }
-    .sim-reset {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      white-space: nowrap;
-      box-shadow: 2px 2px 0 var(--border);
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .sim-reset:hover { background: #E0F5EA; }
-    .sim-reset:active {
-      transform: translate(2px, 2px);
-      box-shadow: 0 0 0 var(--border);
-    }
-    .sim-label { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 100%; margin-top: 4px; font-weight: 600; }
-    .sim-label.warn { color: #92400E; }
-
-    /* ── Run button — neobrutalist press effect ── */
-    .run-btn {
-      width: 100%;
-      padding: 14px;
-      background: var(--accent);
-      color: #ffffff;
-      font-family: var(--sans);
-      font-size: 14px;
-      font-weight: 800;
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      letter-spacing: 0.3px;
-      box-shadow: var(--shadow);
-      margin-top: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .run-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      box-shadow: none;
-      transform: translate(2px, 2px);
-    }
-    .run-btn:hover:not(:disabled) {
-      background: var(--accent2);
-    }
-    .run-btn:active:not(:disabled) {
-      transform: translate(4px, 4px);
-      box-shadow: 0 0 0 var(--border);
+    .dash-stat.critical { background: #DC2626; color: #fff; }
+    .dash-stat.critical::after { background: #991B1B; }
+    .dash-stat.critical .stat-label { color: rgba(255,255,255,0.85); }
+    .dash-stat.warning { background: #F59E0B; }
+    .dash-stat.warning::after { background: #B45309; }
+    .dash-stat.warning .stat-label { color: rgba(0,0,0,0.65); }
+    .dash-stat.safe { background: var(--accent); }
+    .dash-stat.safe::after { background: var(--accent2); }
+    .dash-stat.safe .stat-label { color: rgba(0,0,0,0.65); }
+    .dash-stat .stat-num { font-family: var(--mono); font-size: 32px; font-weight: 800; line-height: 1.1; }
+    .dash-stat .stat-label {
+      font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted); margin-top: 6px; font-weight: 600;
     }
 
-    /* ── Footer ── */
-    .footer {
-      text-align: center;
-      margin-top: 32px;
-      padding-top: 20px;
-      border-top: var(--bw) solid var(--border);
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--muted);
-      font-weight: 600;
+    /* ── Freshness indicator ── */
+    .freshness-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 10px 16px; margin-bottom: 20px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); box-shadow: var(--shadow);
+      font-family: var(--sans); font-size: 12px; font-weight: 500;
     }
-    .footer a { color: var(--accent2); text-decoration: none; font-weight: 700; }
-    .footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
-    .footer-sep { margin: 0 10px; color: var(--border); }
+    .freshness-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; }
+    .freshness-dot.fresh { background: #34D399; animation: pulse-dot 2s ease-in-out infinite; }
+    .freshness-dot.stale { background: #FBBF24; }
+    .freshness-dot.very-stale { background: #F87171; }
 
-    /* ── Info panels (HET + weather) ── */
-    .wilayah-section {
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 2px dashed #d4d4d8;
+    /* ── Top 3 priority grid (mockup: 3-column horizontal cards) ── */
+    .top3-grid {
+      display: grid; grid-template-columns: 1fr;
+      gap: 16px; margin-bottom: 24px;
     }
-    .wilayah-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-weight: 800;
+    @media (min-width: 640px) {
+      .top3-grid { grid-template-columns: repeat(3, 1fr); }
     }
-    .info-panel {
-      padding: 10px 12px;
-      border-radius: var(--radius-sm);
-      border: var(--bw) solid var(--border);
-      background: var(--surface);
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--muted);
-      box-shadow: 2px 2px 0 var(--border);
-      transition: all 0.3s ease;
+    .top3-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); overflow: hidden;
+      box-shadow: var(--shadow); cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s;
+      display: flex; flex-direction: column;
+    }
+    .top3-card:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+    .top3-body { padding: 16px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .top3-name { font-size: 16px; font-weight: 800; line-height: 1.2; }
+    .top3-region { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .top3-bottom { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 12px; }
+    .top3-score-label { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .top3-score-val { font-family: var(--mono); font-size: 24px; font-weight: 800; line-height: 1; }
+
+    /* ── Priority card (full list) ── */
+    .priority-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); padding: 18px 20px;
+      box-shadow: var(--shadow); margin-bottom: 12px;
+      cursor: pointer; transition: transform 0.12s, box-shadow 0.12s;
+      position: relative; overflow: hidden;
+    }
+    .priority-card:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+    .priority-card::before {
+      content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 5px;
+    }
+    .priority-card.risk-kritis::before { background: #DC2626; }
+    .priority-card.risk-tinggi::before { background: #F59E0B; }
+    .priority-card.risk-sedang::before { background: #6366F1; }
+    .priority-card.risk-rendah::before { background: #34D399; }
+
+    .priority-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .priority-rank {
+      font-family: var(--mono); font-size: 12px; font-weight: 800; color: var(--muted);
+      letter-spacing: 1px; margin-bottom: 2px;
+    }
+    .priority-name { font-size: 17px; font-weight: 900; letter-spacing: -0.3px; line-height: 1.2; }
+    .priority-region { font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+
+    .priority-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .priority-tag {
+      font-family: var(--mono); font-size: 10px; font-weight: 800; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 6px; border: 1.5px solid var(--border);
+      letter-spacing: 0.5px;
+    }
+    .tag-risk-kritis { background: #FEE2E2; color: #DC2626; }
+    .tag-risk-tinggi { background: #FEF3C7; color: #B45309; }
+    .tag-risk-sedang { background: #E0E7FF; color: #4338CA; }
+    .tag-risk-rendah { background: #D1FAE5; color: #059669; }
+    .tag-confidence-high { background: #D1FAE5; color: #059669; }
+    .tag-confidence-medium { background: #FEF3C7; color: #B45309; }
+    .tag-confidence-low { background: #FEE2E2; color: #DC2626; }
+
+    .priority-score {
+      font-family: var(--mono); font-size: 22px; font-weight: 800;
+      margin-left: auto; flex-shrink: 0;
+    }
+    .priority-next-step {
+      font-family: var(--sans); font-size: 13px; color: var(--text2);
+      margin-top: 8px; padding: 8px 10px; background: var(--surface2);
+      border-radius: 8px; border: 1.5px solid var(--border);
+      font-weight: 500; line-height: 1.5;
     }
 
-    /* ── Price Trend Chart ── */
-    .chart-mini-card {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 16px 18px;
-      margin-bottom: 14px;
-    }
-    .chart-mini-card canvas { max-height: 200px; }
-    .chart-mini-label {
-      font-family: var(--mono); font-size: 10px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1.2px;
-      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
-    }
-    .chart-mini-label::before {
-      content: ''; display: inline-block;
-      width: 4px; height: 12px; background: var(--accent);
-      border-radius: 2px; border: 1px solid var(--border);
-    }
-
-    /* ── Animations ── */
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.6; transform: scale(0.85); }
-    }
-    @keyframes slide-up {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-in { animation: slide-up 0.35s ease both; }
-
-    /* ── Pillar Hero Cards (Predict · Prevent · Protect) ── */
-    .pillar-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+    /* ── Evidence section (detail page) ── */
+    .evidence-block {
       margin-bottom: 16px;
     }
-    @media (max-width: 768px) {
-      .pillar-grid { grid-template-columns: 1fr; }
+    .evidence-block h3 {
+      font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
     }
-    .pillar-card {
-      background: var(--surface);
-      border: var(--bw) solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
+    .evidence-block h3::before {
+      content: ''; display: inline-block; width: 4px; height: 12px;
+      border-radius: 2px; border: 1px solid var(--border);
     }
-    .pillar-card::after {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 4px;
+    .evidence-block.facts h3::before { background: #34D399; }
+    .evidence-block.models h3::before { background: #6366F1; }
+    .evidence-block.factors h3::before { background: #F59E0B; }
+    .evidence-block.missing h3::before { background: #F87171; }
+
+    .evidence-item {
+      padding: 8px 12px; margin-bottom: 4px;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 13px; font-family: var(--sans);
     }
-    .pillar-card.pillar-predict::after { background: #6366f1; }
-    .pillar-card.pillar-prevent::after { background: #f59e0b; }
-    .pillar-card.pillar-protect::after  { background: #10b981; }
-    .pillar-tag {
-      font-family: var(--mono); font-size: 9px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1.5px;
-      padding: 2px 8px; border-radius: 6px;
-      border: 1.5px solid var(--border);
-      display: inline-block; margin-bottom: 10px;
+    .evidence-tag {
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      text-transform: uppercase; padding: 1px 6px; border-radius: 4px;
+      border: 1px solid var(--border); margin-right: 6px;
     }
-    .pillar-tag-predict  { background: rgba(99,102,241,0.1); color: #6366f1; }
-    .pillar-tag-prevent  { background: rgba(245,158,11,0.1); color: #d97706; }
-    .pillar-tag-protect  { background: rgba(16,185,129,0.1); color: #059669; }
-    .pillar-value {
-      font-family: var(--mono); font-size: 22px; font-weight: 800;
-      color: var(--text); line-height: 1.1; margin-bottom: 4px;
+    .etag-fact { background: #D1FAE5; color: #059669; }
+    .etag-model { background: #E0E7FF; color: #4338CA; }
+    .etag-inference { background: #FEF3C7; color: #B45309; }
+    .etag-missing { background: #FEE2E2; color: #DC2626; }
+
+    /* ── Response option cards ── */
+    .response-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; margin-bottom: 6px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: 8px; box-shadow: 2px 2px 0 var(--border);
     }
-    .pillar-sub {
-      font-family: var(--sans); font-size: 11px; color: var(--muted);
-      line-height: 1.4;
-    }
-    .pillar-badge {
-      font-family: var(--mono); font-size: 10px; font-weight: 700;
-      padding: 2px 8px; border-radius: 6px;
-      border: 1.5px solid var(--border);
-      display: inline-block; margin-top: 8px;
+    .response-icon {
+      font-family: var(--mono); font-size: 10px; font-weight: 800;
+      padding: 4px 8px; border-radius: 6px; border: 1.5px solid var(--border);
+      flex-shrink: 0;
     }
 
-    /* ── ML Alert Banner ── */
-    .ml-alert-bar {
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    /* ── Bundle card (sidebar) ── */
+    .bundle-card {
+      background: var(--accent); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); padding: 20px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .bundle-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+    .bundle-reason { font-size: 12px; color: rgba(0,0,0,0.75); margin-bottom: 14px; line-height: 1.5; }
+    .bundle-items { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ── Sidebar card ── */
+    .sidebar-card {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); padding: 20px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .sidebar-card-title {
+      font-size: 16px; font-weight: 800; margin-bottom: 16px;
+    }
+
+    /* ── Review buttons ── */
+    .review-btn {
+      font-family: var(--sans); font-size: 12px; font-weight: 600;
+      padding: 8px 14px; border: var(--bw) solid var(--border);
+      border-radius: 8px; cursor: pointer;
+      box-shadow: 2px 2px 0 var(--border);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .review-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--border); }
+    .review-btn.bahas { background: #D1FAE5; color: #059669; }
+    .review-btn.bahas:hover { background: #A7F3D0; }
+    .review-btn.tunda { background: #FEF3C7; color: #B45309; }
+    .review-btn.tunda:hover { background: #FDE68A; }
+    .review-btn.tolak { background: #FEE2E2; color: #DC2626; }
+    .review-btn.tolak:hover { background: #FECACA; }
+    .review-btn.active-review { box-shadow: inset 2px 2px 0 var(--border); transform: translate(2px, 2px); }
+
+    /* ── Filter bar - layout only, styling via .form-select in style.css ── */
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-active { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    /* ── Loading state for priorities list ── */
+    .priorities-loading { opacity: 0.4; pointer-events: none; transition: opacity 0.2s; }
+
+    /* ── Section heading ── */
+    .section-head {
+      font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--text); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px; font-weight: 800;
+    }
+    .section-head::after {
+      content: ''; flex: 1; height: 2px; background: var(--border);
+      opacity: 0.15;
+    }
+
+    /* ── Skeleton - now in style.css, keep local overrides only ── */
+
+    /* ── Error / stale banner ── */
+    .stale-banner {
       padding: 10px 16px; margin-bottom: 16px;
+      background: #FEF3C7; border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      font-family: var(--mono); font-size: 10px; font-weight: 600; color: #92400E;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .offline-banner {
+      padding: 10px 16px; margin-bottom: 16px;
+      background: #FEE2E2; border: var(--bw) solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      font-family: var(--mono); font-size: 10px; font-weight: 600; color: #DC2626;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── Review note textarea ── */
+    .review-note-input {
+      width: 100%; min-height: 60px; margin-top: 8px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      font-family: var(--sans); font-size: 12px; padding: 8px 10px;
+      border-radius: 8px; resize: vertical;
+    }
+
+    /* ── Mobile hamburger ── */
+    .hamburger-btn {
+      display: none;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius-sm); padding: 6px 10px;
+      font-size: 20px; cursor: pointer; box-shadow: 2px 2px 0 var(--border);
+      line-height: 1;
+    }
+    .mobile-nav {
+      display: none;
+      flex-direction: column; gap: 6px;
+      padding: 12px; background: var(--surface);
+      border: var(--bw) solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+    }
+    .mobile-nav.show { display: flex; }
+
+    /* ── Utility: hide on mobile ── */
+    @media (max-width: 768px) {
+      .hidden-mobile { display: none !important; }
+    }
+
+    /* ── Pagination buttons (CSS class so Alpine :style won't fight inline margins) ── */
+    .pagi-bar {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; flex-wrap: wrap;
+      margin-top: 20px; padding: 16px;
+      font-family: var(--mono); font-size: 13px;
+    }
+    .pagi-num {
+      min-width: 20px; min-height: 12px; padding: 4px 10px;
+      margin: 0 8px;  /* explicit horizontal gap between number buttons */
+      border: var(--bw) solid var(--border); border-radius: 6px;
+      cursor: pointer; font-weight: 700; font-size: 12px;
+      background: var(--surface);
+      box-shadow: 1px 1px 0 var(--border);
+      font-family: var(--mono);
+    }
+    .pagi-num.active { background: var(--accent); color: #fff; box-shadow: 2px 2px 0 var(--border); }
+    .pagi-nav {
+      min-width: 28px; min-height: 12px; padding: 4px 12px;
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: 6px; cursor: pointer; box-shadow: 1px 1px 0 var(--border);
+      font-weight: 700; font-size: 12px; font-family: var(--mono);
+    }
+    .pagi-disabled { opacity: 0.3; cursor: not-allowed !important; }
+    .pagi-info { color: var(--muted); margin-left: 16px; font-size: 11px; }
+    .pagi-num:not(.active):hover, .pagi-nav:not(.pagi-disabled):hover {
+      transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--border);
+    }
+    @media (max-width: 640px) {
+      .pagi-num { margin: 0 6px; }
+      .pagi-info { width: 100%; text-align: center; margin: 8px 0 0; }
+    }
+
+    /* ── Responsive breakpoints ── */
+    @media (max-width: 768px) {
+      .app { padding: 12px 12px 32px; }
+
+      /* Hamburger nav */
+      .header-right { display: none; }
+      .hamburger-btn { display: block; margin-left: auto; }
+      .header { flex-direction: row; flex-wrap: wrap; }
+      .mobile-nav { width: 100%; }
+
+      /* Top 3 stacked */
+      .top3-grid { grid-template-columns: 1fr; }
+
+      /* Priority card compact */
+      .priority-card { padding: 12px 14px; }
+      .priority-name { font-size: 15px; }
+      .priority-score { font-size: 18px; }
+      .priority-meta { gap: 4px; }
+
+      /* Detail header compact */
+      .detail-commodity { font-size: 20px; }
+      .detail-scores { gap: 12px; }
+      .detail-score-val { font-size: 16px; }
+
+      /* Filter bar stacked */
+      .filter-bar { flex-direction: column; }
+      .filter-bar .form-select { max-width: 100% !important; }
+
+      /* Search full-width */
+      .search-bar > div { max-width: 100% !important; }
+
+      /* Sidebar stacks below main */
+      .dash-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .dash-top-bar { grid-template-columns: repeat(2, 1fr); }
+      .header-title { font-size: 15px; }
+      .priority-name { font-size: 14px; }
+      .header { padding: 10px 14px; }
+    }
+
+    /* ── Detail page header ── */
+    .detail-header {
+      background: var(--surface); border: var(--bw) solid var(--border);
+      border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .detail-commodity { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+    .detail-region { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .detail-scores { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
+    .detail-score-item { text-align: center; }
+    .detail-score-val { font-family: var(--mono); font-size: 20px; font-weight: 800; }
+    .detail-score-lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; }
+
+    /* ── Back link ── */
+    .back-link {
+      font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--accent2);
+      text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+      margin-bottom: 12px;
+    }
+    .back-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+    /* ── Review status indicator ── */
+    .review-status {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      padding: 5px 10px; border-radius: 6px; border: 1.5px solid var(--border);
+    }
+    .review-status.belum { background: #F4F4F5; color: var(--muted); }
+    .review-status.bahas { background: #D1FAE5; color: #059669; }
+    .review-status.tunda { background: #FEF3C7; color: #B45309; }
+    .review-status.tolak { background: #FEE2E2; color: #DC2626; }
+
+    /* ── Empty state ── */
+    .empty-card {
+      text-align: center; padding: 40px 20px;
       background: var(--surface); border: var(--bw) solid var(--border);
       border-radius: var(--radius); box-shadow: var(--shadow);
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      font-family: var(--sans); font-size: 14px; color: var(--muted);
     }
-    .ml-alert-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      display: inline-block; flex-shrink: 0;
-    }
-    .ml-alert-dot.red    { background: #dc2626; }
-    .ml-alert-dot.yellow { background: #f59e0b; }
-    .ml-alert-dot.green  { background: #10b981; }
-
   </style>
 </head>
 <body>
 
-<!-- ════════════════════════════════════════════════════════════════════════════
-     ALPINE.JS APP — Single reactive component
-     ════════════════════════════════════════════════════════════════════════════ -->
-<div class="app" x-data="radar()">
+<!-- ═══════════════════════════════════════════════════════════════════════
+     EXECUTIVE DASHBOARD — Single Alpine.js app
+     Route: / (dashboard) or /detail/{recommendation_id}
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="app" x-data="executiveDashboard()" x-init="init()">
 
   <!-- ── Header ── -->
-  <header class="header">
+  <header class="header" x-data="{ navOpen: false }">
     <div class="header-left">
       <div class="logo-icon"><img src="/assets/logo.png" alt="RADAR Pangan"></div>
       <div>
         <div class="header-title">R.A.D.A.R Pangan</div>
-        <div class="header-sub">predict &middot; prevent &middot; protect &nbsp;&middot;&nbsp; v0.7</div>
+        <div class="header-sub">decision-support &middot; v0.8</div>
       </div>
     </div>
     <div class="header-right">
       <span class="user-badge">
-        <strong x-text="user?.username || '—'"></strong> &middot; <span x-text="user?.role || ''"></span>
+        <strong x-text="user?.username || '-'"></strong> &middot; <span x-text="user?.role || ''"></span>
       </span>
       <a href="/" class="nav-link nav-link-active">Dashboard</a>
-      <a href="/guide" class="nav-link nav-link-default">Panduan</a>
       <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
-        <a href="/prediksi" class="nav-link nav-link-default">Prediksi</a>
+        <a href="/prediksi" class="nav-link nav-link-default">Prediksi ML</a>
       </template>
+      <a href="/guide" class="nav-link nav-link-default">Panduan</a>
       <template x-if="user?.is_admin || user?.role === 'admin'">
         <a href="/admin" class="nav-link nav-link-default">Admin</a>
       </template>
       <button @click="logout()" class="nav-link nav-link-danger">Keluar</button>
     </div>
+    <!-- Hamburger (mobile only) -->
+    <button class="hamburger-btn" @click="navOpen = !navOpen" aria-label="Toggle navigation">
+      <span x-text="navOpen ? '✕' : '☰'"></span>
+    </button>
+    <!-- Mobile nav dropdown -->
+    <div class="mobile-nav" :class="navOpen ? 'show' : ''" style="width:100%;margin-top:10px;">
+      <a href="/" class="nav-link nav-link-active" @click="navOpen = false">Dashboard</a>
+      <template x-if="user?.is_analyst || user?.is_admin || user?.role === 'analyst' || user?.role === 'admin'">
+        <a href="/prediksi" class="nav-link nav-link-default" @click="navOpen = false">Prediksi ML</a>
+      </template>
+      <a href="/guide" class="nav-link nav-link-default" @click="navOpen = false">Panduan</a>
+      <template x-if="user?.is_admin || user?.role === 'admin'">
+        <a href="/admin" class="nav-link nav-link-default" @click="navOpen = false">Admin</a>
+      </template>
+      <button @click="logout(); navOpen = false" class="nav-link nav-link-danger">Keluar</button>
+    </div>
   </header>
 
-  <!-- ── ML Alert Banner ── -->
-  <template x-if="mlAvailable && mlAlerts && mlAlerts.total_alerts > 0">
-    <div class="ml-alert-bar animate-in">
-      <span class="ml-alert-dot" :class="mlAlerts.alerts.some(a => a.decision?.final_alert_level === 'red') ? 'red' : 'yellow'"></span>
-      <span x-text="mlAlerts.total_alerts + ' alert aktif hari ini'"></span>
-      <span style="color:var(--muted);">·</span>
-      <span style="color:#dc2626;" x-show="mlAlerts.alerts.filter(a => a.decision?.final_alert_level === 'red').length > 0"
-            x-text="mlAlerts.alerts.filter(a => a.decision?.final_alert_level === 'red').length + ' RED'"></span>
-      <span style="color:#d97706;" x-show="mlAlerts.alerts.filter(a => a.decision?.final_alert_level === 'yellow').length > 0"
-            x-text="mlAlerts.alerts.filter(a => a.decision?.final_alert_level === 'yellow').length + ' YELLOW'"></span>
-      <a href="/prediksi" style="margin-left:auto;color:var(--accent2);font-size:10px;text-decoration:underline;">Detail →</a>
-    </div>
-  </template>
+  <!-- ═══════════ DASHBOARD VIEW ═══════════ -->
+  <template x-if="page === 'dashboard'">
+    <div>
 
-  <!-- ── 3 Pillar Hero Cards: Predict · Prevent · Protect ── -->
-  <div class="pillar-grid" x-show="currentData">
+    <!-- ── Service warnings ── -->
+    <template x-if="overview">
+      <div>
+        <div class="offline-banner" x-show="overview.service_health.ml_service === 'offline'">
+          <span>⚠️</span> ML service offline — confidence dan forecast dibatasi. Monitoring historis tetap tersedia.
+        </div>
+        <div class="stale-banner" x-show="overview.data_freshness.status === 'stale' || overview.data_freshness.status === 'very_stale'">
+          <span x-text="overview.data_freshness.status === 'very_stale' ? '🔴' : '🟡'"></span>
+          Data terakhir: <strong x-text="overview.data_freshness.latest_date"></strong>
+          (<span x-text="overview.data_freshness.age_days + ' hari lalu'"></span>) — confidence dibatasi.
+        </div>
+      </div>
+    </template>
 
-    <!-- PREDICT -->
-    <div class="pillar-card pillar-predict">
-      <div class="pillar-tag pillar-tag-predict">Predict</div>
-      <template x-if="mlAvailable && mlResult && mlResult.predictions">
-        <div>
-          <div class="pillar-value" x-text="fmt(Math.round(mlResult.predictions.p50_7d || 0))"></div>
-          <div class="pillar-sub">Prediksi 7 hari ke depan (P50)</div>
-          <div style="display:flex;gap:10px;margin-top:8px;">
-            <div>
-              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);">14 hari:</span>
-              <span style="font-family:var(--mono);font-size:12px;font-weight:700;" x-text="mlResult.predictions.p50_14d ? fmt(Math.round(mlResult.predictions.p50_14d)) : '—'"></span>
+    <!-- ── Loading state (centered spinner) ── -->
+    <template x-if="loading && !overview">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;min-height:50vh;">
+        <span class="spinner" style="border-color:rgba(26,26,26,0.15);border-top-color:var(--accent2);width:40px;height:40px;border-width:4px;"></span>
+        <p style="font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:16px;font-weight:600;">Memuat dashboard...</p>
+      </div>
+    </template>
+
+    <!-- ── Error state ── -->
+    <template x-if="error && !overview">
+      <div class="empty-card">
+        <p style="font-size:16px;font-weight:700;margin-bottom:8px;">⚠️ Gagal memuat dashboard</p>
+        <p x-text="error"></p>
+        <button class="btn btn-primary" style="margin-top:12px;" @click="loadOverview()">Coba Lagi</button>
+      </div>
+    </template>
+
+    <!-- ── Dashboard content ── -->
+    <template x-if="overview">
+      <div class="animate-in">
+
+      <!-- ── Top stat bar (4 cards matching mockup) ── -->
+      <div class="dash-top-bar">
+        <div class="dash-stat">
+          <div class="stat-num" x-text="overview.summary.total_commodities"></div>
+          <div class="stat-label">Total Komoditas</div>
+        </div>
+        <div class="dash-stat" :class="(overview.summary.risk_counts.kritis || 0) > 0 ? 'critical' : ''">
+          <div class="stat-num" x-text="overview.summary.risk_counts.kritis || 0"></div>
+          <div class="stat-label">Kritis</div>
+        </div>
+        <div class="dash-stat" :class="(overview.summary.risk_counts.tinggi || 0) > 0 ? 'warning' : ''">
+          <div class="stat-num" x-text="overview.summary.risk_counts.tinggi || 0"></div>
+          <div class="stat-label">Tinggi</div>
+        </div>
+        <div class="dash-stat safe">
+          <div class="stat-num" x-text="(overview.summary.risk_counts.rendah || 0) + (overview.summary.risk_counts.sedang || 0)"></div>
+          <div class="stat-label">Rendah/Sedang</div>
+        </div>
+      </div>
+
+      <!-- ── Freshness bar (2-row layout with coverage progress bar) ── -->
+      <div class="freshness-bar" style="display:flex;justify-content:space-between;flex-wrap:wrap;">
+        <!-- Left: Data metadata -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span class="freshness-dot" :class="overview.data_freshness.status"></span>
+          <span style="font-weight:600;">Data: <strong x-text="overview.data_freshness.latest_date"></strong></span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);"
+                x-text="overview.data_freshness.status === 'fresh' ? 'Segar' : (overview.data_freshness.age_days + ' hari lalu')"></span>
+          <span>ML:
+            <strong :style="overview.service_health.ml_service === 'online' ? 'color:#059669;' : 'color:#DC2626;'"
+                    x-text="overview.service_health.ml_service"></strong>
+          </span>
+        </div>
+        <!-- Right: Coverage bar (from mockup) -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-family:var(--mono);font-size:10px;font-weight:600;">Coverage:</span>
+          <div style="width:100px;height:12px;background:#fff;border:var(--bw) solid var(--border);border-radius:8px;overflow:hidden;">
+            <div style="height:100%;background:var(--accent);transition:width 0.3s;"
+                 :style="'width:' + (overview.data_freshness.coverage_ratio != null ? (overview.data_freshness.coverage_ratio * 100) : 0) + '%'"></div>
+          </div>
+          <span style="font-family:var(--mono);font-size:11px;font-weight:700;"
+                x-text="overview.data_freshness.coverage_ratio != null ? (overview.data_freshness.coverage_ratio * 100).toFixed(0) + '%' : '-'"></span>
+        </div>
+      </div>
+
+      <!-- ── Search bar (full-width, matching mockup) ── -->
+      <div class="search-bar" style="position:relative;margin-bottom:24px;">
+        <div style="position:relative;">
+          <input type="text"
+                 x-model="searchQuery"
+                 @input="doSearch()"
+                 @keydown.escape="searchQuery=''; searchResults=[]; searchNoResults=false;"
+                 placeholder="Cari komoditas, wilayah, atau level risiko..."
+                 class="search-input"
+                 style="width:100%;padding:14px 44px 14px 44px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);font-family:var(--sans);font-size:15px;box-shadow:var(--shadow);outline:none;">
+          <!-- Search icon (left) -->
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--muted);pointer-events:none;">&#x1F50D;</span>
+          <!-- Search loading spinner (right) -->
+          <div x-show="searchLoading"
+               style="position:absolute;right:14px;top:50%;transform:translateY(-50%);">
+            <span class="spinner" style="border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);width:16px;height:16px;border-width:2px;"></span>
+          </div>
+        </div>
+        <!-- Search results dropdown -->
+        <div class="search-dropdown" x-show="searchResults.length > 0"
+             @click.outside="searchResults=[]"
+             x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 transform -translate-y-1"
+             x-transition:enter-end="opacity-100 transform translate-y-0"
+             style="position:absolute;top:100%;left:0;width:100%;max-width:480px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:100;max-height:320px;overflow-y:auto;margin-top:4px;">
+          <template x-for="r in searchResults" :key="r.recommendation_id">
+            <div @click="openDetail(r.recommendation_id); searchQuery=''; searchResults=[];"
+                 style="display:flex;align-items:center;gap:8px;padding:10px 13px;cursor:pointer;border-bottom:1px solid #e5e5e5;font-family:var(--sans);font-size:13px;transition:background 0.1s;"
+                 class="search-result-item">
+              <span x-text="r.commodity" style="font-weight:700;"></span>
+              <span style="font-size:10px;color:var(--muted);" x-text="r.region"></span>
+              <span class="priority-tag" :class="'tag-risk-' + r.risk_level" x-text="r.risk_level" style="font-size:8px;"></span>
+              <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted);" x-text="'Score: ' + r.relevance_score"></span>
             </div>
-            <div>
-              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);">Batas atas:</span>
-              <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:#dc2626;" x-text="mlResult.predictions.p90_7d ? fmt(Math.round(mlResult.predictions.p90_7d)) : '—'"></span>
-            </div>
-          </div>
-        </div>
-      </template>
-      <template x-if="mlAvailable && mlLoading">
-        <div>
-          <div class="pillar-value" style="color:var(--muted);">⟳</div>
-          <div class="pillar-sub">Memuat prediksi ML...</div>
-        </div>
-      </template>
-      <template x-if="!mlAvailable">
-        <div>
-          <div class="pillar-value" style="color:var(--muted);">—</div>
-          <div class="pillar-sub" style="color:var(--muted);">ML server offline</div>
-        </div>
-      </template>
-    </div>
-
-    <!-- PREVENT -->
-    <div class="pillar-card pillar-prevent">
-      <div class="pillar-tag pillar-tag-prevent">Prevent</div>
-      <template x-if="hetData">
-        <div>
-          <div class="pillar-value" :style="'color:' + hetStyle.color" x-text="hetStyle.icon + ' ' + hetData.status.toUpperCase()"></div>
-          <div class="pillar-sub">Status HET — <span x-text="hetData.pct_of_het ? hetData.pct_of_het + '% dari batas' : 'tidak tersedia'"></span></div>
-          <div class="pillar-sub" style="margin-top:4px;" x-text="hetData.het_harga ? 'HET: Rp ' + (hetData.het_harga||0).toLocaleString('id-ID') + '/kg' : ''"></div>
-          <div style="margin-top:6px;" x-show="currentData && currentData.cuaca">
-            <span class="pillar-badge"
-                  :style="currentData.cuaca.ekstrem ? 'background:#FEF3C7;color:#92400e;' : 'background:#ECFDF5;color:#059669;'"
-                  x-text="(currentData.cuaca.ekstrem ? '⛈ ' : '☀ ') + currentData.cuaca.desc"></span>
-          </div>
-        </div>
-      </template>
-      <template x-if="!hetData">
-        <div>
-          <div class="pillar-value" style="color:var(--muted);">—</div>
-          <div class="pillar-sub">Memuat status HET...</div>
-        </div>
-      </template>
-    </div>
-
-    <!-- PROTECT -->
-    <div class="pillar-card pillar-protect">
-      <div class="pillar-tag pillar-tag-protect">Protect</div>
-      <template x-if="mlAvailable && mlResult && mlResult.decision">
-        <div>
-          <div class="pillar-value" :style="'color:' + mlAlertStyle.color" x-text="mlAlertStyle.icon + ' ' + mlAlertStyle.label"></div>
-          <div class="pillar-sub">Alert Level ML</div>
-          <div class="pillar-sub" style="margin-top:6px;font-size:10px;line-height:1.4;"
-               x-text="mlResult.decision.rekomendasi ? mlResult.decision.rekomendasi.substring(0, 100) + (mlResult.decision.rekomendasi.length > 100 ? '...' : '') : 'Tidak ada rekomendasi'"></div>
-        </div>
-      </template>
-      <template x-if="mlAvailable && !mlResult">
-        <div>
-          <div class="pillar-value">
-            <span x-text="currentData ? fmt(currentData.price_now) : '—'"></span>
-          </div>
-          <div class="pillar-sub">Harga saat ini</div>
-          <div class="pillar-badge" style="background:#ECFDF5;color:#059669;" x-show="currentData">
-            <span x-text="(deltaPct >= 0 ? '▲ +' : '▼ ') + deltaPct.toFixed(1) + '%'"></span> vs kemarin
-          </div>
-        </div>
-      </template>
-      <template x-if="!mlAvailable">
-        <div>
-          <div class="pillar-value">
-            <span x-text="currentData ? fmt(currentData.price_now) : '—'"></span>
-          </div>
-          <div class="pillar-sub">Harga saat ini · ML offline</div>
-          <div class="pillar-badge" :style="deltaPct >= 0 ? 'background:#FEE2E2;color:#dc2626;' : 'background:#ECFDF5;color:#059669;'" x-show="currentData">
-            <span x-text="(deltaPct >= 0 ? '▲ +' : '▼ ') + deltaPct.toFixed(1) + '%'"></span> vs kemarin
-          </div>
-        </div>
-      </template>
-    </div>
-  </div>
-
-  <!-- ── Main grid ── -->
-  <div class="main-grid">
-
-    <!-- ── Left panel: controls ── -->
-    <div class="left-panel">
-
-      <!-- Commodity + HET + Weather + Price -->
-      <div class="card">
-        <div class="card-label">Komoditas</div>
-        <select class="commodity-select" x-model="selectedKey" @change="selectCommodity()">
-          <template x-for="c in commodities" :key="c.key">
-            <option :value="c.key" x-text="c.name"></option>
           </template>
-        </select>
+        </div>
+        <!-- No results message -->
+        <div x-show="searchNoResults && !searchLoading && searchQuery.trim().length >= 2"
+             style="position:absolute;top:100%;left:0;max-width:480px;width:100%;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:100;margin-top:4px;padding:14px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);">
+          Tidak ada hasil untuk "<span x-text="searchQuery" style="font-weight:700;color:var(--text);"></span>"
+        </div>
+      </div>
 
-        <!-- HET Status -->
-        <div class="wilayah-section">
-          <div class="wilayah-label">📊 Status HET</div>
-          <div class="info-panel"
-               :style="hetData ? `background:${hetStyle.bg};border-color:${hetStyle.border};color:${hetStyle.color}` : ''">
-            <template x-if="hetData">
+      <!-- ══════ Two-column grid: Main + Sidebar ══════ -->
+      <div class="dash-grid">
+
+        <!-- ── LEFT: Main content ── -->
+        <div class="dash-main">
+
+      <!-- ── Top 3 Priorities (horizontal card grid from mockup) ── -->
+      <div class="section-head">Top 3 Prioritas Utama</div>
+
+      <template x-if="overview.top_priorities.length === 0">
+        <div class="empty-card">Tidak ada prioritas risiko tinggi saat ini. Semua komoditas dalam kondisi normal.</div>
+      </template>
+
+      <div class="top3-grid">
+        <template x-for="(p, idx) in overview.top_priorities.slice(0, 3)" :key="p.recommendation_id">
+          <div class="top3-card animate-in"
+               :style="'animation-delay:' + (idx * 0.08) + 's'"
+               @click="openDetail(p.recommendation_id)">
+            <div class="top3-body">
               <div>
-                <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;margin-bottom:3px">
-                  <span x-text="hetStyle.icon"></span>
-                  <span x-text="hetData.status.toUpperCase()"></span>
-                  <span x-show="hetData.pct_of_het" x-text="'(' + hetData.pct_of_het + '%)'"></span>
-                </div>
-                <div x-show="hetData.het_harga" style="font-size:11px;opacity:0.8"
-                     x-text="'HET: Rp ' + (hetData.het_harga||0).toLocaleString('id-ID') + '/kg'"></div>
-                <div style="font-size:10px;margin-top:2px;opacity:0.7" x-text="hetData.keterangan || ''"></div>
+                <span class="priority-tag" :class="'tag-risk-' + p.risk_level"
+                      x-text="p.risk_level.toUpperCase()" style="font-size:9px;"></span>
+                <div class="top3-name" style="margin-top:8px;" x-text="p.commodity"></div>
+                <div class="top3-region" x-text="p.region"></div>
               </div>
-            </template>
-            <template x-if="!hetData"><span>Memuat...</span></template>
-          </div>
-        </div>
-
-        <!-- Weather -->
-        <div class="wilayah-section" style="margin-top:8px; border-top:none;">
-          <div class="wilayah-label">🌤 Cuaca (Open-Meteo)</div>
-          <div class="info-panel"
-               :style="currentData ? `background:${weatherStyle.bg};border-color:${weatherStyle.border};color:${weatherStyle.color}` : ''">
-            <template x-if="currentData">
-              <div>
-                <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:12px;margin-bottom:2px">
-                  <span x-text="currentData.cuaca.ekstrem ? '⛈' : '☀'"></span>
-                  <span x-text="currentData.cuaca.desc"></span>
+              <div class="top3-bottom">
+                <!-- Mini sparkline -->
+                <div x-show="sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2"
+                     style="width:70px;">
+                  <svg width="70" height="24" viewBox="0 0 100 24" preserveAspectRatio="none" style="display:block;">
+                    <polyline :points="sparklinePoints(p.recommendation_id)"
+                              fill="none" :stroke="riskColor(p.risk_level)" stroke-width="2"
+                              stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+                  </svg>
                 </div>
-                <div x-show="currentData.cuaca.daerah" style="font-size:10px;opacity:0.8"
-                     x-text="'Lokasi: ' + currentData.cuaca.daerah"></div>
-                <div style="font-size:10px;margin-top:2px;opacity:0.7" x-text="currentData.cuaca.detail || ''"></div>
-              </div>
-            </template>
-            <template x-if="!currentData"><span>Memuat...</span></template>
-          </div>
-        </div>
-
-        <!-- Price -->
-        <div class="price-block" style="margin-top:16px">
-          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Harga Sekarang</div>
-          <div class="price-row">
-            <span class="price-now" x-text="currentData ? fmt(currentData.price_now) : '—'"></span>
-            <span x-show="currentData" class="price-delta"
-                  :class="deltaPct >= 0 ? 'delta-up' : 'delta-down'"
-                  x-text="(deltaPct >= 0 ? '▲ +' : '▼ ') + deltaPct.toFixed(1) + '%'"></span>
-          </div>
-          <!-- ML Prediction -->
-          <template x-if="mlAvailable && mlResult && mlResult.predictions">
-            <div style="margin-top:8px;padding:8px 10px;background:rgba(99,102,241,0.06);border:1.5px solid rgba(99,102,241,0.2);border-radius:8px;">
-              <div style="font-family:var(--mono);font-size:9px;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-weight:700;">Prediksi ML</div>
-              <div style="display:flex;gap:12px;font-family:var(--sans);font-size:12px;">
-                <div>
-                  <span style="color:var(--muted);font-size:10px;">7 hari:</span>
-                  <span style="font-weight:700;color:var(--text);" x-text="mlResult.predictions.p50_7d ? fmt(Math.round(mlResult.predictions.p50_7d)) : '—'"></span>
-                </div>
-                <div>
-                  <span style="color:var(--muted);font-size:10px;">14 hari:</span>
-                  <span style="font-weight:700;color:var(--text);" x-text="mlResult.predictions.p50_14d ? fmt(Math.round(mlResult.predictions.p50_14d)) : '—'"></span>
+                <div style="text-align:right;">
+                  <div class="top3-score-label">Skor Prioritas</div>
+                  <div class="top3-score-val" :style="'color:' + riskColor(p.risk_level)"
+                       x-text="p.display_priority_score"></div>
                 </div>
               </div>
-            </div>
-          </template>
-          <template x-if="mlAvailable && mlLoading">
-            <div style="margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--muted);">
-              ⟳ Memuat prediksi ML...
-            </div>
-          </template>
-          <template x-if="!mlAvailable">
-            <div class="price-pred" style="opacity:0.5;">Prediksi ML: <span style="color:var(--muted);">server offline</span></div>
-          </template>
-        </div>
-      </div>
-
-      <!-- Signal inputs -->
-      <div class="card">
-        <div class="card-label">Sinyal Input</div>
-        <div class="signal-grid">
-          <div class="signal-item">
-            <div class="signal-key">Tgl. Analisis</div>
-            <div class="signal-val" :class="simDate ? 'warn' : ''"
-                 x-text="simDate ? simDate + ' (sim)' : todayISO()"></div>
-          </div>
-          <div class="signal-item" :class="currentData && currentData.cuaca.ekstrem ? 'warn-item' : ''">
-            <div class="signal-key">Cuaca</div>
-            <div class="signal-val" :class="currentData && currentData.cuaca.ekstrem ? 'warn' : 'ok'"
-                 x-text="currentData ? currentData.cuaca.desc : '—'"></div>
-          </div>
-          <div class="signal-item" :class="kotaRatio >= 0.6 ? 'warn-item' : ''">
-            <div class="signal-key">Kota Naik</div>
-            <div class="signal-val" :class="kotaRatio >= 0.6 ? 'warn' : ''"
-                 x-text="currentData ? kotaNaik + ' / ' + totalKota + ' kota' : '—'"></div>
-          </div>
-          <div class="signal-item" :class="currentData && currentData.stok.kelas !== 'ok' ? 'warn-item' : ''">
-            <div class="signal-key">Stok Pedagang</div>
-            <div class="signal-val" :class="currentData ? currentData.stok.kelas : ''"
-                 x-text="currentData ? currentData.stok.status : '—'"></div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px"
-                 x-text="currentData ? (currentData.stok.pct * 100).toFixed(1) + '% kapasitas' : ''"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Simulation date -->
-      <div class="card">
-        <div class="card-label">Simulasi Tanggal</div>
-        <div class="sim-row">
-          <input type="date" class="sim-date-input" :class="simDate ? 'active' : ''"
-                 x-model="simDate" @change="onSimDateChange()"
-                 min="2020-01-01" max="2026-12-31">
-          <button class="sim-reset" @click="simDate = ''; onSimDateChange()">↺ Hari ini</button>
-        </div>
-        <div class="sim-label" :class="simDate ? 'warn' : ''"
-             x-text="simDate ? '⚠ simulasi aktif: ' + simDate : '— menggunakan tanggal hari ini'"></div>
-      </div>
-
-      <!-- Run button -->
-      <button class="run-btn" @click="runRCA()" :disabled="!selectedKey || rcaRunning">
-        <span x-text="rcaRunning ? '⟳' : '▶'"></span>
-        <span x-text="rcaRunning ? 'Menganalisis...' : 'Jalankan Analisis'"></span>
-      </button>
-
-    </div>
-
-    <!-- ── Right panel: FTA Analysis ── -->
-    <div class="right-panel">
-
-      <!-- Anomaly banner -->
-      <div class="anomaly-banner" :class="!currentData ? 'blank' : (isAnomaly ? 'anomali' : 'normal')">
-        <div class="anomaly-left">
-          <div class="anomaly-icon" x-text="!currentData ? '🔍' : (isAnomaly ? '⚠️' : '✅')"></div>
-          <div>
-            <div class="anomaly-label">Status Anomali Harga</div>
-            <div class="anomaly-status"
-                 :class="!currentData ? '' : (isAnomaly ? 'danger-text' : 'normal-text')"
-                 :style="!currentData ? 'color:var(--muted)' : ''"
-                 x-text="!currentData ? 'Pilih komoditas' : (isAnomaly ? 'ANOMALI TERDETEKSI' : 'Harga Normal')"></div>
-          </div>
-        </div>
-        <div class="anomaly-right">
-          <div class="anomaly-delta"
-               :style="!currentData ? 'color:var(--muted)' : (isAnomaly ? 'color:var(--danger)' : 'color:var(--success)')"
-               x-text="currentData ? '+' + deltaPct.toFixed(1) + '%' : '—'"></div>
-          <div class="anomaly-threshold"
-               x-text="currentData ? 'threshold: ' + currentData.price_threshold + '%' : 'threshold: —'"></div>
-        </div>
-      </div>
-
-      <!-- Price Trend Mini Chart -->
-      <div class="chart-mini-card" x-show="currentData">
-        <div class="chart-mini-label">Tren Harga 30 Hari</div>
-        <canvas id="dashPriceChart"></canvas>
-      </div>
-
-      <!-- Result box -->
-      <div x-show="rcaResult" x-transition class="result-card animate-in"
-           :class="'result-' + (rcaResult ? rcaResult.diagnosis : 'unknown')">
-        <template x-if="rcaResult">
-          <div>
-            <div class="result-top">
-              <div class="result-meta">
-                <div class="result-label">Diagnosis FTA</div>
-                <div class="result-title" x-text="rcaResult.title"></div>
-              </div>
-              <div class="result-type-badge" x-text="typeLabels[rcaResult.diagnosis] || rcaResult.diagnosis"></div>
-            </div>
-            <div class="result-desc" x-text="rcaResult.description"></div>
-            <div class="action-box">
-              <div class="action-label">Rekomendasi Aksi</div>
-              <div class="action-text" x-text="rcaResult.action"></div>
             </div>
           </div>
         </template>
       </div>
 
-      <!-- FTA + Bowtie Summary (shown after analysis runs) -->
-      <template x-if="bowtieData">
-        <div class="animate-in" style="margin-top:14px;">
-          <!-- FTA Threat Summary -->
-          <div class="card">
-            <div class="card-label" style="display:flex;align-items:center;justify-content:space-between;">
-              <span>FTA Threats</span>
-              <span class="signal-val ok" style="font-size:10px;background:#E0F5EA;padding:2px 9px;border-radius:6px;border:1.5px solid var(--border);"
-                    x-text="bowtieData.active_threats.filter(t => t.active).length + ' aktif · ' + bowtieData.severity_level"></span>
+      <!-- ── Full priority list (table-like rows from mockup) ── -->
+      <div class="section-head" style="margin-top:8px;">Daftar Prioritas Lengkap</div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+        <select x-model="filterRisk" @change="loadPriorities()"
+                class="form-select"
+                :class="filterRisk ? 'filter-active' : ''"
+                :disabled="prioritiesLoading"
+                style="flex:1;min-width:140px;max-width:200px;">
+          <option value="">Filter Risiko</option>
+          <option value="kritis">Kritis</option>
+          <option value="tinggi">Tinggi</option>
+          <option value="sedang">Sedang</option>
+          <option value="rendah">Rendah</option>
+        </select>
+        <select x-model="filterProvince" @change="loadPriorities()"
+                class="form-select"
+                :class="filterProvince ? 'filter-active' : ''"
+                :disabled="prioritiesLoading"
+                style="flex:1;min-width:140px;max-width:200px;">
+          <option value="">Wilayah</option>
+          <template x-for="pv in overview.provinces" :key="pv.id">
+            <option :value="pv.name" x-text="pv.name"></option>
+          </template>
+        </select>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:8px 0;display:flex;align-items:center;gap:6px;">
+          <template x-if="prioritiesLoading">
+            <span class="spinner" style="border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);width:12px;height:12px;border-width:2px;"></span>
+          </template>
+          <span x-text="prioritiesLoading ? 'Memuat...' : allPriorities.length + ' hasil'"></span>
+        </span>
+        <!-- Clear filters button -->
+        <button x-show="filterRisk || filterProvince"
+                @click="filterRisk=''; filterProvince=''; loadPriorities();"
+                style="font-family:var(--mono);font-size:9px;font-weight:700;padding:5px 10px;background:#FEE2E2;color:#DC2626;border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);">
+          Reset Filter
+        </button>
+      </div>
+
+      <!-- Priority list card container -->
+      <div class="sidebar-card" style="padding:0;overflow:hidden;">
+        <template x-if="allPriorities.length === 0 && !prioritiesLoading">
+          <div class="empty-card" style="box-shadow:none;border:none;">
+            <template x-if="filterRisk || filterProvince">
+              <span>Tidak ada hasil dengan filter aktif. <a href="#" @click.prevent="filterRisk=''; filterProvince=''; loadPriorities();" style="color:var(--accent2);font-weight:700;">Reset filter</a></span>
+            </template>
+            <template x-if="!filterRisk && !filterProvince">
+              <span>Tidak ada data prioritas tersedia saat ini.</span>
+            </template>
+          </div>
+        </template>
+
+        <div :class="prioritiesLoading ? 'priorities-loading' : ''">
+        <template x-for="p in paginatedPriorities" :key="p.recommendation_id">
+          <div class="animate-in" :class="'risk-' + p.risk_level"
+               style="padding:14px 16px;border-bottom:1px solid #e5e5e5;cursor:pointer;transition:background 0.1s;"
+               @click="openDetail(p.recommendation_id)"
+               @mouseenter="$el.style.background='var(--surface2)'"
+               @mouseleave="$el.style.background='transparent'">
+            <!-- Row 1: Main info -->
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+                <!-- Rank number -->
+                <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--muted);min-width:24px;" x-text="'#' + p.rank"></span>
+                <!-- Risk dot (color indicator from mockup) -->
+                <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;box-shadow:1px 1px 0 var(--border);"
+                     :style="'background:' + riskColor(p.risk_level)"></div>
+                <div style="min-width:0;">
+                  <div style="font-size:14px;font-weight:700;" x-text="p.commodity"></div>
+                  <div style="font-family:var(--mono);font-size:10px;color:var(--muted);" x-text="p.region"></div>
+                </div>
+              </div>
+              <!-- Mini sparkline (hidden on mobile) -->
+              <div x-show="sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2"
+                   style="width:60px;flex-shrink:0;display:none;"
+                   :style="{display: sparklines[p.recommendation_id] && sparklines[p.recommendation_id].length >= 2 ? 'block' : 'none'}"
+                   class="hidden-mobile">
+                <svg width="60" height="18" viewBox="0 0 100 24" preserveAspectRatio="none" style="display:block;">
+                  <polyline :points="sparklinePoints(p.recommendation_id)"
+                            fill="none" :stroke="riskColor(p.risk_level)" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                </svg>
+              </div>
+              <!-- Score + Detail button -->
+              <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                <span style="font-family:var(--mono);font-size:14px;font-weight:700;" :style="'color:' + riskColor(p.risk_level)"
+                      x-text="p.display_priority_score"></span>
+                <span style="font-family:var(--mono);font-size:10px;font-weight:700;padding:4px 12px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:20px;box-shadow:1px 1px 0 var(--border);">Detail</span>
+              </div>
             </div>
-            <div class="signal-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
-              <template x-for="t in bowtieData.active_threats" :key="t.id">
-                <div class="signal-item" :class="t.active ? 'warn-item' : ''" :style="!t.active ? 'opacity:0.7;' : ''">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-                    <span class="signal-val" style="font-size:12px;" x-text="t.id + ': ' + t.name"></span>
-                    <span class="signal-key" style="margin-bottom:0;padding:2px 6px;border-radius:4px;border:1px solid var(--border);"
-                          :style="t.active ? 'background:#FEF3C7;color:#92400e;' : 'background:var(--surface);'"
-                          x-text="t.active ? 'AKTIF' : 'NORMAL'"></span>
-                  </div>
-                  <div class="signal-key" style="margin-bottom:0;font-size:10px;line-height:1.4;" x-text="t.desc"></div>
+            <!-- Row 2: Metadata tags (price condition, confidence, horizon, knowledge status) -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding-left:52px;">
+              <span class="priority-tag" :class="'tag-risk-' + p.risk_level" x-text="p.price_condition" style="font-size:9px;"></span>
+              <span class="priority-tag" :class="'tag-confidence-' + p.confidence_level"
+                    x-text="labelId(p.confidence_level)" style="font-size:9px;"></span>
+              <span class="priority-tag" style="background:var(--surface2);font-size:9px;"
+                    x-text="'Proyeksi ' + p.time_horizon_days + ' Hari'"></span>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:auto;"
+                    x-text="p.knowledge_status === 'fact' ? 'Fakta' : p.knowledge_status === 'model_output' ? 'Model' : 'Inference'"></span>
+            </div>
+          </div>
+        </template>
+        </div><!-- /priorities-loading wrapper -->
+      </div>
+
+      <!-- ── Pagination controls ── -->
+      <div x-show="priorityTotalPages > 1" class="pagi-bar">
+        <button @click="goToPriorityPage(priorityPage - 1)" :disabled="priorityPage <= 1"
+                class="pagi-nav" :class="priorityPage <= 1 ? 'pagi-disabled' : ''">Prev</button>
+        <template x-for="pg in Array.from({length: priorityTotalPages}, (_, i) => i + 1)" :key="pg">
+          <button @click="goToPriorityPage(pg)"
+                  class="pagi-num" :class="pg === priorityPage ? 'active' : ''"
+                  x-text="pg"></button>
+        </template>
+        <button @click="goToPriorityPage(priorityPage + 1)" :disabled="priorityPage >= priorityTotalPages"
+                class="pagi-nav" :class="priorityPage >= priorityTotalPages ? 'pagi-disabled' : ''">Next</button>
+        <span class="pagi-info"
+              x-text="'Hal. ' + priorityPage + ' / ' + priorityTotalPages + ' (' + allPriorities.length + ' total)'"></span>
+      </div>
+
+      <!-- ── Export buttons ── -->
+      <div class="export-buttons" style="display:flex;gap:6px;margin-top:12px;">
+        <button @click="exportPriorities('csv')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 14px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:8px;cursor:pointer;box-shadow:2px 2px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;" class="btn">CSV</button>
+        <button @click="exportPriorities('xlsx')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 14px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:8px;cursor:pointer;box-shadow:2px 2px 0 var(--border);transition:transform 0.1s,box-shadow 0.1s;" class="btn">Excel</button>
+      </div>
+
+        </div><!-- /dash-main -->
+
+        <!-- ── RIGHT: Sidebar ── -->
+        <aside class="dash-sidebar">
+
+      <!-- ── Review bundles (accent background like mockup) ── -->
+      <template x-if="overview.review_bundles.length > 0">
+        <div>
+          <template x-for="b in overview.review_bundles" :key="b.name">
+            <div class="bundle-card">
+              <div class="bundle-title" x-text="b.name"></div>
+              <div class="bundle-reason" x-text="b.reason"></div>
+              <div class="bundle-items">
+                <template x-for="c in b.commodities" :key="c.name">
+                  <span class="priority-tag" :class="'tag-risk-' + c.risk_level"
+                        @click="openDetail(c.recommendation_id)"
+                        style="cursor:pointer;"
+                        :title="'Lihat detail ' + c.name"
+                        x-text="c.name + ' (' + c.display_priority_score + ')'"></span>
+                </template>
+              </div>
+              <template x-if="b.missing_information.filter(m => m.includes('ML server offline')).length > 0">
+                <div style="margin-top:8px;padding:6px 10px;background:rgba(255,255,255,0.6);border:1.5px solid var(--border);border-radius:6px;font-size:11px;color:#92400E;">
+                  <strong>ML Offline:</strong>
+                  <span x-text="b.missing_information.filter(m => m.includes('ML server offline')).map(m => m.split(' - ')[0]).join(', ')"></span>
                 </div>
               </template>
             </div>
-          </div>
+          </template>
+        </div>
+      </template>
 
-          <!-- Bowtie Visualization -->
-          <div class="card">
-            <div class="card-label" style="display:flex;align-items:center;justify-content:space-between;">
-              <span>Bowtie Analysis</span>
-              <span class="signal-val" style="font-size:10px;background:#E0F5EA;padding:2px 9px;border-radius:6px;border:1.5px solid var(--border);"
-                    :class="bowtieData.active_threats.filter(t => t.active).length > 0 ? 'warn' : 'ok'"
-                    x-text="bowtieData.active_threats.filter(t => t.active).length > 0 ? 'Threat Aktif' : 'Clear'"></span>
-            </div>
-            <!-- Summary -->
-            <div class="signal-item" style="margin-bottom:12px;">
-              <div class="signal-key" style="margin-bottom:0;font-size:11px;line-height:1.5;" x-text="bowtieData.summary"></div>
-            </div>
-            <!-- Barriers layout -->
-            <div style="display:flex;gap:10px;flex-wrap:wrap;">
-              <!-- Prevention -->
-              <div class="signal-item" style="flex:1;min-width:180px;background:#ECFDF5;">
-                <div class="signal-key" style="color:#059669;margin-bottom:8px;"
-                     x-text="'Pencegahan (' + bowtieData.prevention.filter(b => b.active).length + ' aktif)'"></div>
-                <template x-for="b in bowtieData.prevention" :key="b.id">
-                  <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
-                       :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
-                    <span x-text="b.active ? '🟢' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
-                    <span x-text="b.id + ': ' + b.name"></span>
+      <!-- ── Latest reviews (sidebar card) ── -->
+      <template x-if="overview.latest_reviews.length > 0">
+        <div class="sidebar-card">
+          <div class="sidebar-card-title">Tinjauan Terbaru</div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <template x-for="r in overview.latest_reviews" :key="r.id">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <!-- Default avatar circle (no S3) -->
+                <div style="width:36px;height:36px;border-radius:50%;border:var(--bw) solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent2);"
+                     x-text="(r.reviewer_username || r.recommendation_id || '?').substring(0,2).toUpperCase()"></div>
+                <div style="min-width:0;">
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="review-status" :class="statusClass(r.status)" x-text="r.status" style="font-size:9px;padding:2px 6px;"></span>
                   </div>
-                </template>
+                  <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;"
+                       x-text="r.created_at?.substring(0,10)"></div>
+                  <div style="font-size:11px;color:var(--text2);margin-top:2px;" x-show="r.note"
+                       x-text="'\"' + (r.note || '').substring(0, 60) + (r.note?.length > 60 ? '...' : '') + '\"'"></div>
+                </div>
               </div>
-              <!-- Hazard Event -->
-              <div class="signal-item warn-item" style="flex:0 0 auto;min-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
-                <div class="signal-key" style="color:#92400e;margin-bottom:6px;">Hazard</div>
-                <div style="font-size:20px;">⚠️</div>
-                <div class="signal-val warn" style="font-size:11px;margin-top:4px;" x-text="bowtieData.hazard_event"></div>
-              </div>
-              <!-- Mitigation -->
-              <div class="signal-item" style="flex:1;min-width:180px;background:#FEE2E2;">
-                <div class="signal-key" style="color:#dc2626;margin-bottom:8px;"
-                     x-text="'Mitigasi (' + bowtieData.mitigation.filter(b => b.active).length + ' aktif)'"></div>
-                <template x-for="b in bowtieData.mitigation" :key="b.id">
-                  <div style="font-family:var(--sans);font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:6px;"
-                       :style="b.active ? 'font-weight:700;' : 'opacity:0.55;'">
-                    <span x-text="b.active ? '🔴' : '⚪'" style="font-size:10px;flex-shrink:0;"></span>
-                    <span x-text="b.id + ': ' + b.name"></span>
-                  </div>
-                </template>
-              </div>
-            </div>
+            </template>
           </div>
         </div>
       </template>
 
+      <!-- ── Transparency toggle (sidebar card, matching mockup) ── -->
+      <div class="sidebar-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px;">
+          <div class="sidebar-card-title" style="margin-bottom:0;">Transparansi Data</div>
+          <button @click="toggleTransparency()"
+                  style="min-width:36px;min-height:36px;padding:6px 14px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:8px;cursor:pointer;box-shadow:2px 2px 0 var(--border);font-family:var(--mono);font-size:11px;font-weight:700;transition:transform 0.1s,box-shadow 0.1s;"
+                  :style="showTransparency ? 'background:var(--accent);color:#fff;' : ''"
+                  onmouseover="this.style.transform='translate(-1px,-1px)';this.style.boxShadow='3px 3px 0 var(--border)'"
+                  onmouseout="this.style.transform='';this.style.boxShadow='2px 2px 0 var(--border)'">
+            <span x-text="showTransparency ? 'Tutup' : 'Buka'"></span>
+          </button>
+        </div>
+        <p style="font-size:11px;color:var(--muted);line-height:1.5;">Tampilkan detail sumber data dan konfigurasi prioritas.</p>
+      </div>
+
+      <!-- ── Transparency panel (expandable) ── -->
+      <template x-if="showTransparency">
+        <div class="animate-in">
+          <!-- Loading state -->
+          <template x-if="transparencyLoading">
+            <div style="text-align:center;padding:20px;font-family:var(--mono);font-size:11px;color:var(--muted);">
+              <span class="spinner" style="border-color:rgba(26,26,26,0.2);border-top-color:var(--accent2);width:16px;height:16px;border-width:2px;margin-right:8px;"></span>
+              Memuat transparansi...
+            </div>
+          </template>
+          <!-- Error state -->
+          <template x-if="transparencyError && !transparencyData">
+            <div class="sidebar-card" style="text-align:center;padding:16px;font-family:var(--mono);font-size:10px;color:#DC2626;">
+              Gagal memuat data transparansi.
+              <button @click="loadTransparency()" style="display:block;margin:8px auto 0;padding:4px 10px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;font-weight:700;">Coba Lagi</button>
+            </div>
+          </template>
+          <!-- Data loaded -->
+          <template x-if="transparencyData">
+            <div class="sidebar-card">
+              <div class="card-label">Sumber Data</div>
+              <template x-for="ds in transparencyData.data_sources" :key="ds.name">
+                <div class="evidence-item" style="margin-bottom:4px;">
+                  <strong x-text="ds.name"></strong> - <span x-text="ds.type"></span>
+                  <div style="font-size:10px;color:var(--muted);margin-top:2px;">
+                    Update: <span x-text="ds.update_cadence"></span> |
+                    Terbaru: <span x-text="ds.latest_data"></span> |
+                    Cakupan: <span x-text="ds.coverage"></span>
+                  </div>
+                </div>
+              </template>
+
+              <div class="card-label" style="margin-top:12px;">Konfigurasi Prioritas</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--mono);font-size:10px;">
+                <template x-for="(w, name) in transparencyData.priority_config.weights" :key="name">
+                  <div class="evidence-item" style="font-size:10px;">
+                    <span x-text="labelId(name)"></span>: <strong x-text="(w * 100).toFixed(0) + '%'"></strong>
+                  </div>
+                </template>
+              </div>
+
+              <div class="card-label" style="margin-top:12px;">Keterbatasan</div>
+              <template x-for="lim in transparencyData.known_limitations" :key="lim">
+                <div class="evidence-item" style="font-size:10px;" x-text="lim"></div>
+              </template>
+
+              <div style="margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--warn);padding:6px 10px;background:#FEF3C7;border-radius:6px;border:1.5px solid var(--border);"
+                   x-text="transparencyData.knowledge_status_note"></div>
+            </div>
+          </template>
+        </div>
+      </template>
+
+        </aside><!-- /dash-sidebar -->
+
+      </div><!-- /dash-grid -->
+
+      </div>
+    </template>  <!-- end dashboard content -->
+
     </div>
-  </div>
+  </template>  <!-- end dashboard view -->
+
+  <!-- ═══════════ DETAIL VIEW ═══════════ -->
+  <template x-if="page === 'detail'">
+    <div>
+
+      <!-- Loading -->
+      <template x-if="detailLoading">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;min-height:50vh;">
+          <span class="spinner" style="border-color:rgba(26,26,26,0.15);border-top-color:var(--accent2);width:40px;height:40px;border-width:4px;"></span>
+          <p style="font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:16px;font-weight:600;">Memuat detail...</p>
+        </div>
+      </template>
+
+      <!-- Error -->
+      <template x-if="detailError">
+        <div class="empty-card">
+          <p style="font-size:16px;font-weight:700;margin-bottom:8px;">⚠️ Gagal memuat detail</p>
+          <p x-text="detailError"></p>
+          <button class="btn btn-primary" style="margin-top:12px;" @click="openDetail(detailId)">Coba Lagi</button>
+          <br>
+          <a href="/" class="back-link" style="margin-top:12px;">← Kembali ke Dashboard</a>
+        </div>
+      </template>
+
+      <!-- Detail content -->
+      <template x-if="detail && !detailLoading">
+        <div>
+          <a href="/" class="back-link" @click.prevent="page='dashboard'; history.pushState({},'','/'); window.scrollTo({top:0, behavior:'smooth'})">← Kembali ke Dashboard</a>
+
+          <!-- Detail export -->
+          <div style="display:flex;gap:6px;margin-top:8px;margin-bottom:8px;">
+            <button @click="exportSingle('csv')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:5px 10px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);">📥 Export CSV</button>
+            <button @click="exportSingle('xlsx')" style="font-family:var(--mono);font-size:10px;font-weight:700;padding:5px 10px;background:var(--surface);border:var(--bw) solid var(--border);border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--border);">📊 Export Excel</button>
+          </div>
+
+          <!-- Header -->
+          <div class="detail-header">
+            <div class="detail-commodity" x-text="detail.commodity"></div>
+            <div class="detail-region" x-text="detail.region + ' · ' + detail.price_condition + ' · Horizon ' + detail.time_horizon_days + ' hari'"></div>
+            <div class="detail-scores">
+              <div class="detail-score-item">
+                <div class="detail-score-val" :style="'color:' + riskColor(detail.risk_level)" x-text="detail.display_priority_score"></div>
+                <div class="detail-score-lbl">Skor Prioritas</div>
+              </div>
+              <div class="detail-score-item">
+                <div class="detail-score-val" style="font-size:14px;" x-text="'Rp ' + (detail.raw_priority_score || 0).toFixed(0)"></div>
+                <div class="detail-score-lbl">Skor Dasar</div>
+              </div>
+              <div class="detail-score-item">
+                <div class="detail-score-val" style="font-size:14px;" x-text="(detail.confidence_factor * 100).toFixed(0) + '%'"></div>
+                <div class="detail-score-lbl">Faktor Keyakinan</div>
+              </div>
+              <div class="detail-score-item">
+                <span class="priority-tag" :class="'tag-risk-' + detail.risk_level" x-text="detail.risk_level.toUpperCase()"></span>
+                <div class="detail-score-lbl" style="margin-top:4px;">Tingkat Risiko</div>
+              </div>
+            </div>
+
+            <!-- Review status -->
+            <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
+              <span class="review-status" :class="statusClass(detail.review?.status || 'Belum Ditinjau')"
+                    x-text="detail.review?.status || 'Belum Ditinjau'"></span>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--muted);"
+                    x-show="detail.review" x-text="'oleh user #' + detail.review.reviewer_user_id + ' · ' + (detail.review.created_at || '').substring(0,10)"></span>
+            </div>
+          </div>
+
+          <!-- Evidence groups -->
+          <!-- 1. Observed Facts -->
+          <div class="evidence-block facts" x-show="detail.observed_facts?.length">
+            <h3>Fakta Teramati</h3>
+            <template x-for="f in detail.observed_facts" :key="f.label">
+              <div class="evidence-item">
+                <span class="evidence-tag etag-fact">FAKTA</span>
+                <strong x-text="f.label"></strong>
+                <span x-show="f.value" style="margin-left:4px;" x-text="': ' + f.value"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 2. Model Outputs -->
+          <div class="evidence-block models" x-show="detail.model_outputs?.length">
+            <h3>Output Model</h3>
+            <template x-for="m in detail.model_outputs" :key="m.label">
+              <div class="evidence-item">
+                <span class="evidence-tag etag-model">MODEL</span>
+                <strong x-text="m.label"></strong>
+                <span x-show="m.value" style="margin-left:4px;" x-text="': ' + m.value"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 3. Possible Factors -->
+          <div class="evidence-block factors" x-show="detail.possible_factors?.length">
+            <h3>Faktor yang Mungkin Berkontribusi</h3>
+            <template x-for="f in detail.possible_factors" :key="f.label">
+              <div class="evidence-item">
+                <span class="evidence-tag etag-inference">INFERENSI</span>
+                <strong x-text="f.label"></strong>
+                <span x-show="f.value" style="margin-left:4px;" x-text="': ' + f.value"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 4. Missing Information -->
+          <div class="evidence-block missing" x-show="detail.missing_information?.length">
+            <h3>Informasi yang Belum Tersedia</h3>
+            <template x-for="m in detail.missing_information" :key="m">
+              <div class="evidence-item">
+                <span class="evidence-tag" :class="m.includes('ML server') ? 'etag-model' : 'etag-missing'"
+                      x-text="m.includes('ML server') ? 'ML OFFLINE' : 'TIDAK ADA'"></span>
+                <span x-text="m.split(' - ')[0].split(' (')[0]"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 5. Next Step -->
+          <div class="card" x-show="detail.next_step" style="margin-bottom:14px;">
+            <div class="card-label">Langkah Berikutnya</div>
+            <div class="priority-next-step" style="font-size:14px;font-weight:600;" x-text="'→ ' + detail.next_step"></div>
+          </div>
+
+          <!-- 6. Response Options -->
+          <div class="card" x-show="detail.response_options?.length" style="margin-bottom:14px;">
+            <div class="card-label">Opsi Respons</div>
+            <template x-for="ro in detail.response_options" :key="ro.label">
+              <div class="response-option">
+                <span class="response-icon" :style="'background:' + responseBg(ro.type) + ';color:' + responseColor(ro.type)"
+                      x-text="ro.type?.substring(0,4) || '—'"></span>
+                <span style="font-family:var(--sans);font-size:13px;font-weight:500;" x-text="ro.label"></span>
+              </div>
+            </template>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:8px;">
+              ⚠ Response options adalah rekomendasi tinjauan, bukan instruksi kebijakan.
+            </div>
+          </div>
+
+          <!-- 7. Sources -->
+          <div class="card" x-show="detail.sources?.length" style="margin-bottom:14px;">
+            <div class="card-label">Sumber Data & Metodologi</div>
+            <template x-for="s in detail.sources" :key="s.name">
+              <div class="evidence-item" style="font-size:10px;">
+                <strong x-text="s.name"></strong>
+                <span x-show="s.cutoff" style="margin-left:4px;" x-text="'· cutoff: ' + s.cutoff"></span>
+                <span x-show="s.version" style="margin-left:4px;" x-text="'· v' + s.version"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- 8. Price History Chart (if available) -->
+          <div class="card" x-show="detail.price_history?.length" style="margin-bottom:14px;">
+            <div class="card-label">Histori Harga 30 Hari</div>
+            <canvas id="detailPriceChart" style="max-height:200px;"></canvas>
+          </div>
+
+          <!-- 9. Human Review -->
+          <div class="card" style="margin-bottom:14px;">
+            <div class="card-label">Tinjauan Analis</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+              <button class="review-btn bahas" :class="reviewStatus === 'Untuk Dibahas' ? 'active-review' : ''"
+                      @click="reviewStatus = 'Untuk Dibahas'">📋 Untuk Dibahas</button>
+              <button class="review-btn tunda" :class="reviewStatus === 'Ditunda' ? 'active-review' : ''"
+                      @click="reviewStatus = 'Ditunda'">⏸ Ditunda</button>
+              <button class="review-btn tolak" :class="reviewStatus === 'Ditolak' ? 'active-review' : ''"
+                      @click="reviewStatus = 'Ditolak'">✕ Ditolak</button>
+            </div>
+            <textarea class="review-note-input" x-model="reviewNote" placeholder="Alasan atau catatan reviewer (opsional)..."></textarea>
+            <button class="btn btn-primary" style="margin-top:8px;" @click="submitReview()" :disabled="reviewSubmitting">
+              <span x-text="reviewSubmitting ? '⟳ Menyimpan...' : 'Simpan Review'"></span>
+            </button>
+            <div x-show="reviewSaved" style="margin-top:8px;font-family:var(--mono);font-size:11px;color:#059669;font-weight:700;">
+              ✅ Review tersimpan
+            </div>
+            <div x-show="reviewError" style="margin-top:8px;font-family:var(--mono);font-size:11px;color:#DC2626;font-weight:600;"
+                 x-text="reviewError"></div>
+          </div>
+
+        </div>
+      </template>
+    </div>
+  </template>
 
   <!-- ── Footer ── -->
   <footer class="footer">
@@ -981,126 +1080,68 @@
 
 </div>
 
-<!-- ════════════════════════════════════════════════════════════════════════════
-     ALPINE.JS COMPONENT
-     ════════════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════════════════
+     ALPINE.JS COMPONENT — Executive Dashboard
+     ═══════════════════════════════════════════════════════════════════════ -->
 <script>
-function radar() {
+function executiveDashboard() {
   return {
-    // ── Auth ────────────────────────────────────────────────────────────────
+    // ── Auth ──────────────────────────────────────────────────
     user: null,
     token: null,
 
-    // ── Data state ──────────────────────────────────────────────────────────
-    commodities: [],
-    selectedKey: '',
-    simDate: '',
-    currentData: null,
-    hetData: null,
-    rcaResult: null,
-    bowtieData: null,
+    // ── Page routing ───────────────────────────────────────────
+    page: 'dashboard',     // 'dashboard' | 'detail'
+    detailId: null,
 
-    // ── ML state ──────────────────────────────────────────────────────────
-    mlAvailable: false,       // true if ML server is reachable
-    mlLoading: false,         // true while fetching ML prediction
-    mlResult: null,           // FullAnalysisResult from /api/ml/analyze
-    mlAlerts: null,           // alerts summary from /api/ml/alerts
+    // ── Dashboard state ───────────────────────────────────────
+    loading: true,
+    error: null,
+    overview: null,
+    allPriorities: [],
+    filterRisk: '',
+    filterProvince: '',
+    prioritiesLoading: false,
+    priorityPage: 1,
+    priorityPerPage: 10,
+    showTransparency: false,
+    transparencyData: null,
+    transparencyLoading: false,
+    transparencyError: null,
+    sparklines: {},
+    sparklineLabels: [],
 
-    // ── UI state ────────────────────────────────────────────────────────────
-    rcaRunning: false,
-    dashChart: null,  // Chart.js instance for dashboard mini chart
+    // ── Detail state ──────────────────────────────────────────
+    detail: null,
+    detailLoading: false,
+    detailError: null,
+    reviewStatus: 'Untuk Dibahas',
+    reviewNote: '',
+    reviewSubmitting: false,
+    reviewSaved: false,
+    reviewError: null,
 
-    // Type labels for result card
-    typeLabels: { demand: 'Demand', supply: 'Supply', distribusi: 'Distribusi', unknown: 'Unknown' },
-
-    // HET status → color mapping
-    hetColorMap: {
-      aman:            { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  color: '#059669', icon: '✅' },
-      waspada:         { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#d97706', icon: '⚠️' },
-      kritis:          { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   color: '#dc2626', icon: '🔴' },
-      melampaui:       { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',   color: '#dc2626', icon: '🚨' },
-      tidak_tersedia:  { bg: 'var(--surface2)',        border: 'var(--border)',          color: 'var(--muted)', icon: '—' },
-    },
-
-    // ── Computed properties ─────────────────────────────────────────────────
-
-    get deltaPct() {
-      if (!this.currentData || !this.currentData.price_prev) return 0;
-      return ((this.currentData.price_now - this.currentData.price_prev) / this.currentData.price_prev) * 100;
-    },
-
-    get isAnomaly() {
-      if (!this.currentData) return false;
-      return this.deltaPct >= this.currentData.price_threshold;
-    },
-
-    get kotaNaik() {
-      if (!this.currentData) return 0;
-      return this.currentData.kota_list.filter(k => k.naik).length;
-    },
-
-    get totalKota() {
-      if (!this.currentData) return 0;
-      return this.currentData.kota_list.length;
-    },
-
-    get kotaRatio() {
-      return this.totalKota > 0 ? this.kotaNaik / this.totalKota : 0;
-    },
-
-    get hetStyle() {
-      if (!this.hetData) return this.hetColorMap.tidak_tersedia;
-      return this.hetColorMap[this.hetData.status] || this.hetColorMap.tidak_tersedia;
-    },
-
-    get weatherStyle() {
-      if (!this.currentData) return { bg: '', border: '', color: '' };
-      const ext = this.currentData.cuaca.ekstrem;
-      return {
-        bg:     ext ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.05)',
-        border: ext ? 'rgba(245,158,11,0.3)'  : 'rgba(16,185,129,0.2)',
-        color:  ext ? '#d97706'                : '#059669',
-      };
-    },
-
-    get mlAlertLevel() {
-      if (!this.mlResult || !this.mlResult.decision) return 'unknown';
-      return this.mlResult.decision.final_alert_level || 'green';
-    },
-
-    get mlAlertStyle() {
-      const map = {
-        red:    { bg: 'rgba(239,68,68,0.1)',  border: 'rgba(239,68,68,0.3)',  color: '#dc2626', label: 'KRITIS', icon: '🚨' },
-        yellow: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', color: '#d97706', label: 'WASPADA', icon: '⚠️' },
-        green:  { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)', color: '#059669', label: 'AMAN', icon: '✅' },
-      };
-      return map[this.mlAlertLevel] || map.green;
-    },
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
-    fmt(n) {
-      return 'Rp ' + (n || 0).toLocaleString('id-ID');
-    },
-
-    todayISO() {
-      return new Date().toISOString().slice(0, 10);
-    },
-
-    async fetchJSON(url, opts = {}) {
-      const headers = { ...(this.token ? { Authorization: 'Bearer ' + this.token } : {}), ...(opts.headers || {}) };
-      const res = await fetch(url, { ...opts, headers });
-      if (res.status === 401) { this.logout(); return null; }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    },
-
-    // ── Init ────────────────────────────────────────────────────────────────
-
+    // ── Init ──────────────────────────────────────────────────
     async init() {
-      // Auth check
       this.token = localStorage.getItem('rca_token');
       if (!this.token) { window.location.replace('/login'); return; }
+
+      // ── Keyboard shortcuts ──
+      document.addEventListener('keydown', (e) => {
+        // '/' — focus search (unless already in an input)
+        if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          const searchInput = this.$el.querySelector('.search-input');
+          if (searchInput) searchInput.focus();
+        }
+        // 'Escape' — back to dashboard from detail view
+        if (e.key === 'Escape' && this.page === 'detail') {
+          e.preventDefault();
+          this.page = 'dashboard';
+          history.pushState({}, '', '/');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
 
       try {
         const me = await this.fetchJSON('/api/auth/me');
@@ -1111,19 +1152,411 @@ function radar() {
         return;
       }
 
-      // Load commodities
+      // Cek apakah ada detail ID di URL hash
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#/detail/')) {
+        this.detailId = hash.replace('#/detail/', '');
+        this.page = 'detail';
+        this.openDetail(this.detailId);
+      } else {
+        await this.loadOverview();
+      }
+    },
+
+    // ── Routing helpers ───────────────────────────────────────
+    navigateTo(url) {
+      window.history.pushState({}, '', url);
+    },
+
+    // ── Dashboard loaders ─────────────────────────────────────
+    async loadOverview() {
+      this.loading = true;
+      this.error = null;
       try {
-        this.commodities = await this.fetchJSON('/api/commodities/detail') || [];
-        if (this.commodities.length > 0) {
-          this.selectedKey = this.commodities[0].key;
-          await this.selectCommodity();
+        this.overview = await this.fetchJSON('/api/mvp/overview');
+        if (this.overview) {
+          await this.loadPriorities();
+          // Fetch sparklines in background (non-blocking)
+          this.fetchSparklines();
         }
       } catch (e) {
-        console.error('Gagal load komoditas:', e);
+        this.error = 'Gagal menghubungi server. Periksa koneksi dan coba lagi.';
+        console.error('Overview error:', e);
+      } finally {
+        this.loading = false;
       }
+    },
 
-      // Check ML server availability (non-blocking)
-      this.checkMLHealth();
+    async fetchSparklines() {
+      try {
+        const data = await this.fetchJSON('/api/mvp/sparklines?n_days=14');
+        if (data) {
+          this.sparklineLabels = data.labels || [];
+          this.sparklines = data.sparklines || {};
+        }
+      } catch (e) {
+        // Sparklines are optional — dashboard still works without them
+        console.warn('Sparklines unavailable:', e);
+      }
+    },
+
+    sparklinePoints(recId) {
+      const prices = this.sparklines[recId];
+      if (!prices || prices.length < 2) return '';
+      const valid = prices.filter(p => p != null);
+      if (valid.length < 2) return '';
+      const min = Math.min(...valid);
+      const max = Math.max(...valid);
+      if (max === min) {
+        // Flat line — just draw in the middle
+        const y = 12; // half of 24px height
+        return valid.map((_, i) => {
+          const x = (i / (valid.length - 1)) * 100;
+          return (i === 0 ? `M${x},${y}` : `L${x},${y}`);
+        }).join(' ');
+      }
+      const range = max - min;
+      return valid.map((v, i) => {
+        const x = (i / (valid.length - 1)) * 100;
+        // Invert Y: higher price = lower position in SVG viewport
+        const y = ((max - v) / range) * 20 + 2; // 2px padding top/bottom, 24px total height
+        return (i === 0 ? `M${x},${y}` : `L${x},${y}`);
+      }).join(' ');
+    },
+
+    async loadPriorities() {
+      // Cancel any in-flight request
+      if (this._prioritiesAbort) this._prioritiesAbort.abort();
+      this._prioritiesAbort = new AbortController();
+
+      this.prioritiesLoading = true;
+      this.priorityPage = 1; // Reset pagination on filter change
+      let url = '/api/mvp/priorities?';
+      if (this.filterRisk) url += 'risk=' + encodeURIComponent(this.filterRisk) + '&';
+      if (this.filterProvince) url += 'province=' + encodeURIComponent(this.filterProvince) + '&';
+      try {
+        this.allPriorities = await this.fetchJSON(url, {
+          signal: this._prioritiesAbort.signal,
+        }) || [];
+      } catch (e) {
+        if (e.name === 'AbortError') return; // Cancelled by newer request
+        console.error('Priorities error:', e);
+        this.allPriorities = [];
+      } finally {
+        this.prioritiesLoading = false;
+      }
+    },
+
+    // ── Search ──────────────────────────────────────────────────
+    searchQuery: '',
+    searchResults: [],
+    searchDebounce: null,
+    searchLoading: false,
+    searchNoResults: false,
+
+    doSearch() {
+      clearTimeout(this.searchDebounce);
+      // Minimum 2 characters before searching
+      if (!this.searchQuery || this.searchQuery.trim().length < 2) {
+        this.searchResults = [];
+        this.searchLoading = false;
+        this.searchNoResults = false;
+        return;
+      }
+      this.searchLoading = true;
+      this.searchNoResults = false;
+      this.searchDebounce = setTimeout(async () => {
+        try {
+          const data = await this.fetchJSON(
+            '/api/mvp/search?q=' + encodeURIComponent(this.searchQuery.trim()),
+          );
+          this.searchResults = (data && data.results) ? data.results : [];
+          this.searchNoResults = this.searchResults.length === 0;
+        } catch (e) {
+          console.error('Search error:', e);
+          this.searchResults = [];
+          this.searchNoResults = true;
+        } finally {
+          this.searchLoading = false;
+        }
+      }, 300);
+    },
+
+    // ── Export ──────────────────────────────────────────────────
+    async exportPriorities(fmt) {
+      try {
+        const res = await fetch('/api/mvp/priorities/export?format=' + fmt, {
+          headers: { Authorization: 'Bearer ' + this.token },
+        });
+        if (!res.ok) throw new Error('Export failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.showToast('Export ' + fmt.toUpperCase() + ' berhasil diunduh', 'success');
+      } catch (e) {
+        this.showToast('Gagal mengekspor data. Coba lagi.', 'error');
+      }
+    },
+
+    async exportSingle(fmt) {
+      if (!this.detailId) return;
+      try {
+        const res = await fetch(
+          '/api/mvp/priorities/' + encodeURIComponent(this.detailId) + '/export?format=' + fmt,
+          { headers: { Authorization: 'Bearer ' + this.token } },
+        );
+        if (!res.ok) throw new Error('Export failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.showToast('Export ' + fmt.toUpperCase() + ' berhasil diunduh', 'success');
+      } catch {
+        this.showToast('Gagal mengekspor data. Coba lagi.', 'error');
+      }
+    },
+
+    // ── Transparency ───────────────────────────────────────────
+    async toggleTransparency() {
+      this.showTransparency = !this.showTransparency;
+      if (this.showTransparency && !this.transparencyData && !this.transparencyLoading) {
+        await this.loadTransparency();
+      }
+    },
+
+    async loadTransparency() {
+      this.transparencyLoading = true;
+      this.transparencyError = null;
+      try {
+        this.transparencyData = await this.fetchJSON('/api/mvp/transparency');
+      } catch (e) {
+        console.error('Transparency error:', e);
+        this.transparencyError = e;
+      } finally {
+        this.transparencyLoading = false;
+      }
+    },
+
+    // ── Detail ────────────────────────────────────────────────
+    async openDetail(recId) {
+      this.page = 'detail';
+      this.detailId = recId;
+      this.detailLoading = true;
+      this.detailError = null;
+      this.detail = null;
+      this.reviewSaved = false;
+      this.reviewError = null;
+      this.navigateTo('#/detail/' + recId);
+      // Scroll to top so detail view is immediately visible
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      try {
+        this.detail = await this.fetchJSON('/api/mvp/priorities/' + encodeURIComponent(recId));
+        if (this.detail) {
+          this.reviewStatus = this.detail.review?.status || 'Untuk Dibahas';
+          this.reviewNote = this.detail.review?.note || '';
+          // Render price chart after DOM update
+          await this.$nextTick();
+          this.buildDetailChart();
+        }
+      } catch (e) {
+        this.detailError = 'Gagal memuat detail prioritas.';
+        console.error('Detail error:', e);
+      } finally {
+        this.detailLoading = false;
+      }
+    },
+
+    async submitReview() {
+      if (!this.detailId || this.reviewSubmitting) return;
+      this.reviewSubmitting = true;
+      this.reviewSaved = false;
+      this.reviewError = null;
+
+      try {
+        const result = await this.fetchJSON(
+          '/api/mvp/priorities/' + encodeURIComponent(this.detailId) + '/review',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: this.reviewStatus,
+              note: this.reviewNote || null,
+            }),
+          }
+        );
+        if (result) {
+          this.reviewSaved = true;
+          // Refresh detail to get updated review
+          await this.openDetail(this.detailId);
+          // Refresh overview to update latest reviews
+          await this.loadOverview();
+        }
+      } catch (e) {
+        this.reviewError = 'Gagal menyimpan review: ' + (e.message || 'Periksa izin akses.');
+        console.error('Review error:', e);
+      } finally {
+        this.reviewSubmitting = false;
+      }
+    },
+
+    // ── Detail chart ──────────────────────────────────────────
+    buildDetailChart() {
+      if (!this.detail?.price_history?.length) return;
+
+      const canvas = document.getElementById('detailPriceChart');
+      if (!canvas) return;
+
+      // Destroy existing
+      if (this._detailChart) { this._detailChart.destroy(); this._detailChart = null; }
+
+      const history = this.detail.price_history;
+      const labels = history.map(d => {
+        const parts = (d.tanggal || '').split('-');
+        return parts[2] + '/' + parts[1];
+      });
+      const prices = history.map(d => d.avg_harga);
+
+      const trendUp = prices[prices.length - 1] > prices[0];
+      const lineColor = trendUp ? '#DC2626' : '#1D7A56';
+      const fillColor = trendUp ? 'rgba(220,38,38,0.06)' : 'rgba(46,204,136,0.08)';
+
+      this._detailChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Harga Rata-rata',
+            data: prices,
+            borderColor: lineColor,
+            backgroundColor: fillColor,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.4,
+            fill: true,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: "'JetBrains Mono', monospace", size: 10 },
+              bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
+              padding: 8, cornerRadius: 6,
+              callbacks: {
+                label: ctx => 'Rp ' + Math.round(ctx.parsed.y).toLocaleString('id-ID'),
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { family: "'JetBrains Mono', monospace", size: 8 }, maxTicksLimit: 8 },
+            },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.04)' },
+              ticks: {
+                font: { family: "'JetBrains Mono', monospace", size: 9 },
+                callback: v => 'Rp ' + (v / 1000).toFixed(0) + 'k',
+              },
+            },
+          },
+        },
+      });
+    },
+
+    // ── Helpers ────────────────────────────────────────────────
+    async fetchJSON(url, opts = {}) {
+      const headers = {
+        ...(this.token ? { Authorization: 'Bearer ' + this.token } : {}),
+        ...(opts.headers || {}),
+      };
+      const res = await fetch(url, { ...opts, headers });
+      if (res.status === 401) { this.logout(); return null; }
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || 'HTTP ' + res.status);
+      }
+      return res.json();
+    },
+
+    riskColor(level) {
+      const map = { kritis: '#DC2626', tinggi: '#D97706', sedang: '#4338CA', rendah: '#059669' };
+      return map[level] || '#71717a';
+    },
+
+    riskIcon(level) {
+      // Color-blind accessible: shape + color, not just color alone
+      const map = { kritis: '■', tinggi: '▲', sedang: '◆', rendah: '●' };
+      return map[level] || '●';
+    },
+
+    // Translation helper: snake_case technical terms to Bahasa Indonesia
+    labelId(key) {
+      const map = {
+        price_position: 'Posisi Harga',
+        forecast_p90_breach: 'Pelanggaran Forecast P90',
+        momentum_anomaly: 'Anomali Momentum',
+        regional_spread: 'Persebaran Regional',
+        weather_calendar: 'Cuaca & Kalender',
+        confidence: 'Keyakinan',
+        low: 'Andal Terbatas',
+        medium: 'Cukup Andal',
+        high: 'Sangat Andal',
+      };
+      return map[key] || key;
+    },
+
+    statusClass(status) {
+      if (!status) return 'belum';
+      const s = status.toLowerCase();
+      if (s.includes('belum')) return 'belum';
+      if (s.includes('bahas')) return 'bahas';
+      if (s.includes('tunda')) return 'tunda';
+      if (s.includes('tolak')) return 'tolak';
+      return 'belum';
+    },
+
+    // Pagination helpers for priority list
+    get paginatedPriorities() {
+      const start = (this.priorityPage - 1) * this.priorityPerPage;
+      return this.allPriorities.slice(start, start + this.priorityPerPage);
+    },
+    get priorityTotalPages() {
+      return Math.max(1, Math.ceil(this.allPriorities.length / this.priorityPerPage));
+    },
+    goToPriorityPage(page) {
+      if (page < 1 || page > this.priorityTotalPages) return;
+      this.priorityPage = page;
+    },
+
+    responseBg(type) {
+      const map = { monitor: '#D1FAE5', verifikasi: '#E0E7FF', koordinasikan: '#FEF3C7', pertimbangkan_intervensi: '#FEE2E2' };
+      return map[type?.toLowerCase()] || '#F4F4F5';
+    },
+
+    responseColor(type) {
+      const map = { monitor: '#059669', verifikasi: '#4338CA', koordinasikan: '#B45309', pertimbangkan_intervensi: '#DC2626' };
+      return map[type?.toLowerCase()] || '#71717a';
+    },
+
+    // ── Toast notification ────────────────────────────────────
+    showToast(message, type = 'success') {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { message, type },
+      }));
     },
 
     logout() {
@@ -1131,297 +1564,21 @@ function radar() {
       localStorage.removeItem('rca_user');
       window.location.replace('/login');
     },
-
-    // ── ML Integration ───────────────────────────────────────────────────────
-
-    async checkMLHealth() {
-      try {
-        const h = await this.fetchJSON('/api/ml/health');
-        this.mlAvailable = h && h.status === 'ok';
-      } catch {
-        this.mlAvailable = false;
-      }
-      // If ML available, load alerts summary
-      if (this.mlAvailable) {
-        this.loadMLAlerts();
-      }
-    },
-
-    async loadMLAlerts() {
-      if (!this.mlAvailable) return;
-      try {
-        const data = await this.fetchJSON('/api/ml/alerts?min_alert_level=yellow');
-        this.mlAlerts = data;
-      } catch {
-        this.mlAlerts = null;
-      }
-    },
-
-    async loadMLPrediction() {
-      if (!this.mlAvailable || !this.selectedKey) return;
-
-      // Resolve commodity name from key
-      const commodity = this.commodities.find(c => c.key === this.selectedKey);
-      if (!commodity) return;
-
-      // ML API needs komoditas_nama (human-readable), not key
-      const komoditasNama = commodity.name;
-      // Use first city from kota_list if available, otherwise default
-      const kotaNama = this.currentData?.kota_list?.[0]?.kota || 'Jakarta Pusat';
-      const tanggal = this.simDate || this.todayISO();
-
-      this.mlLoading = true;
-      this.mlResult = null;
-
-      try {
-        const result = await this.fetchJSON('/api/ml/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ komoditas_nama: komoditasNama, kota_nama: kotaNama, tanggal }),
-        });
-        this.mlResult = result;
-        // Rebuild chart to include prediction lines
-        this.buildDashChart();
-      } catch (e) {
-        console.error('ML prediction gagal:', e);
-        this.mlResult = null;
-      } finally {
-        this.mlLoading = false;
-      }
-    },
-
-    // ── Commodity selection ─────────────────────────────────────────────────
-
-    async selectCommodity() {
-      if (!this.selectedKey) return;
-      const sim = this.simDate ? `?sim_date=${this.simDate}` : '';
-
-      try {
-        // Load commodity data
-        this.currentData = await this.fetchJSON(`/api/commodity/${this.selectedKey}${sim}`);
-
-        // Load HET status
-        this.fetchJSON(`/api/het/${this.selectedKey}${sim}`)
-          .then(data => { this.hetData = data; })
-          .catch(() => { this.hetData = null; });
-
-        // Build price trend mini chart
-        this.buildDashChart();
-
-        // Reset state
-        this.rcaResult = null;
-        this.bowtieData = null;
-        this.mlResult = null;
-
-        // Auto-load FTA + Bowtie analysis (non-blocking)
-        this.runRCA();
-
-        // Load ML prediction (non-blocking)
-        this.loadMLPrediction();
-      } catch (e) {
-        console.error('Gagal load data:', e);
-      }
-    },
-
-    // ── Simulation date ─────────────────────────────────────────────────────
-
-    async onSimDateChange() {
-      await this.selectCommodity();
-    },
-
-    // ── Dashboard Mini Chart ─────────────────────────────────────────────
-
-    async buildDashChart() {
-      if (!this.selectedKey) return;
-
-      // Resolve comcat_id from selected commodity key
-      const commodity = this.commodities.find(c => c.key === this.selectedKey);
-      const comcatId = commodity?.comcat_id || this.selectedKey;
-      const sim = this.simDate ? `&sim_date=${this.simDate}` : '';
-
-      let historyData = [];
-      try {
-        const data = await this.fetchJSON(`/api/prices/${comcatId}/history?n_days=30${sim}`);
-        if (data) historyData = data;
-      } catch (e) {
-        console.error('Failed to fetch price history:', e);
-        return;
-      }
-
-      if (historyData.length === 0) return;
-
-      // Wait for canvas to render
-      await this.$nextTick();
-      const canvas = document.getElementById('dashPriceChart');
-      if (!canvas) return;
-
-      // Destroy existing chart
-      if (this.dashChart) {
-        this.dashChart.destroy();
-        this.dashChart = null;
-      }
-
-      const labels = historyData.map(d => {
-        const parts = d.tanggal.split('-');
-        return parts[2] + '/' + parts[1];
-      });
-      const prices = historyData.map(d => d.avg_harga);
-
-      // Determine color based on trend (last vs first)
-      const trendUp = prices[prices.length - 1] > prices[0];
-      const lineColor = trendUp ? '#DC2626' : '#1D7A56';
-      const fillColor = trendUp ? 'rgba(220,38,38,0.06)' : 'rgba(46,204,136,0.08)';
-
-      // Build datasets array
-      const datasets = [{
-        label: 'Harga Rata-rata',
-        data: prices,
-        borderColor: lineColor,
-        backgroundColor: fillColor,
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        tension: 0.4,
-        fill: true,
-      }];
-
-      // Add ML prediction lines if available
-      if (this.mlResult && this.mlResult.predictions) {
-        const pred = this.mlResult.predictions;
-
-        if (pred.p50_7d) {
-          // Add future label for 7d prediction point
-          labels.push('+7d');
-
-          // P50 prediction line: nulls for historical, connect from last actual price
-          const predLine = new Array(prices.length).fill(null);
-          predLine[prices.length - 1] = prices[prices.length - 1]; // connect from last
-          predLine.push(Math.round(pred.p50_7d));
-
-          // Build pointRadius array: all 0 except last point
-          const pointRadii = new Array(predLine.length).fill(0);
-          pointRadii[predLine.length - 1] = 5;
-
-          datasets.push({
-            label: 'Prediksi 7d (P50)',
-            data: predLine,
-            borderColor: '#6366f1',
-            borderWidth: 2,
-            borderDash: [6, 4],
-            pointRadius: pointRadii,
-            pointBackgroundColor: '#6366f1',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            tension: 0,
-            fill: false,
-          });
-
-          // Add P90 upper bound as dashed red line
-          if (pred.p90_7d) {
-            const p90Line = new Array(prices.length).fill(null);
-            p90Line[prices.length - 1] = prices[prices.length - 1];
-            p90Line.push(Math.round(pred.p90_7d));
-
-            datasets.push({
-              label: 'Batas Atas 7d (P90)',
-              data: p90Line,
-              borderColor: 'rgba(239,68,68,0.5)',
-              borderWidth: 1.5,
-              borderDash: [4, 4],
-              pointRadius: 0,
-              tension: 0,
-              fill: false,
-            });
-          }
-        }
-      }
-
-      this.dashChart = new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: datasets,
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { intersect: false, mode: 'index' },
-          plugins: {
-            legend: {
-              display: datasets.length > 1,
-              position: 'bottom',
-              labels: {
-                boxWidth: 12, boxHeight: 2,
-                font: { family: "'JetBrains Mono', monospace", size: 9 },
-                padding: 8,
-              },
-            },
-            tooltip: {
-              backgroundColor: '#1a1a1a',
-              titleFont: { family: "'JetBrains Mono', monospace", size: 10 },
-              bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
-              padding: 8,
-              cornerRadius: 6,
-              callbacks: {
-                label: function(ctx) {
-                  const val = Math.round(ctx.parsed.y);
-                  return ctx.dataset.label + ': Rp ' + val.toLocaleString('id-ID');
-                },
-              },
-            },
-          },
-          scales: {
-            x: {
-              grid: { display: false },
-              ticks: {
-                font: { family: "'JetBrains Mono', monospace", size: 8 },
-                maxTicksLimit: 8,
-              },
-            },
-            y: {
-              grid: { color: 'rgba(0,0,0,0.04)' },
-              ticks: {
-                font: { family: "'JetBrains Mono', monospace", size: 9 },
-                callback: function(val) { return 'Rp ' + (val / 1000).toFixed(0) + 'k'; },
-              },
-            },
-          },
-        },
-      });
-    },
-
-    // ── FTA ANALYSIS ─────────────────────────────────────────────────────────
-
-    async runRCA() {
-      if (!this.selectedKey || this.rcaRunning) return;
-
-      this.rcaRunning = true;
-      this.rcaResult = null;
-
-      const sim = this.simDate ? `?sim_date=${this.simDate}` : '';
-
-      try {
-        const result = await this.fetchJSON(`/api/analysis/${this.selectedKey}${sim}`);
-        if (!result) return;
-
-        this.rcaResult = result;
-
-        // Load Bowtie analysis (uses same commodity key)
-        try {
-          this.bowtieData = await this.fetchJSON(`/api/bowtie/${this.selectedKey}${sim}`);
-        } catch (e) {
-          console.error('Bowtie gagal:', e);
-          this.bowtieData = null;
-        }
-
-      } catch (e) {
-        console.error('Analisis gagal:', e);
-      } finally {
-        this.rcaRunning = false;
-      }
-    },
   };
 }
 </script>
+
+<!-- ── Toast notification ── -->
+<div x-data="{ show: false, msg: '', type: 'success' }"
+     @toast.window="msg = $event.detail.message; type = $event.detail.type || 'success'; show = true; setTimeout(() => show = false, 5000)"
+     x-show="show"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:leave="transition ease-in duration-150"
+     class="toast"
+     :class="type === 'error' ? 'toast-error' : 'toast-success'"
+     x-text="msg"
+     style="display:none;">
+</div>
+
 </body>
 </html>

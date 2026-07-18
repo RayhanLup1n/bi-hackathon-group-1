@@ -56,15 +56,12 @@ LLM_FALLBACK_API_KEY  = os.environ.get("LLM_FALLBACK_API_KEY",  "")
 LLM_FALLBACK_BASE_URL = os.environ.get("LLM_FALLBACK_BASE_URL", "https://api.groq.com/openai/v1")
 LLM_FALLBACK_MODEL    = os.environ.get("LLM_FALLBACK_MODEL",    "llama-3.3-70b-versatile")
 
-# Supabase / PostgreSQL
-_SUPA_HOST = os.environ.get("SUPABASE_HOST", "")
-_SUPA_PORT = os.environ.get("SUPABASE_PORT", "5432")
-_SUPA_DB   = os.environ.get("SUPABASE_DB",   "postgres")
-_SUPA_USER = os.environ.get("SUPABASE_USER", "")
-_SUPA_PASS = os.environ.get("SUPABASE_PASSWORD", "")
+from src.infrastructure.postgres.database import _get_db_settings
+
+_DB = _get_db_settings()
 PG_CONN_STRING = (
-    f"postgresql://{_SUPA_USER}:{_SUPA_PASS}@{_SUPA_HOST}:{_SUPA_PORT}/{_SUPA_DB}"
-    if _SUPA_HOST and _SUPA_USER and _SUPA_PASS
+    f"postgresql://{_DB['user']}:{_DB['password']}@{_DB['host']}:{_DB['port']}/{_DB['name']}"
+    if _DB["host"] and _DB["user"] and _DB["password"]
     else ""
 )
 
