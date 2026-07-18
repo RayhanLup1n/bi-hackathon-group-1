@@ -384,12 +384,50 @@ def get_predictions(
                 FROM app.ml_predictions
                 WHERE (%s IS NULL OR komoditas_id = %s)
                   AND (%s IS NULL OR kota_id = %s)
-                ORDER BY target_date ASC
-                LIMIT %s
-            """, (komoditas_id, komoditas_id, kota_id, kota_id, limit))
-            rows = cur.fetchall()
+                ORDER BY target_date ASC, prediction_date DESC
+            """, (komoditas_id, komoditas_id, kota_id, kota_id))
+            rows = [dict(r) for r in cur.fetchall()]
 
-        predictions = [dict(r) for r in rows]
+        # Multiple forecast runs can target the same (kota_id, target_date);
+        # rows are pre-sorted by prediction_date DESC, so the first one seen
+        # per key is the freshest forecast - keep only that one.
+        latest_by_key: dict = {}
+        for r in rows:
+            key = (r["kota_id"], r["target_date"])
+            latest_by_key.setdefault(key, r)
+        latest_rows = list(latest_by_key.values())
+
+        if kota_id is None:
+            # No city selected: average across cities so callers (e.g. the
+            # prediksi chart) get a single national point per date instead
+            # of raw per-city rows with very different price levels, which
+            # otherwise renders as a meaningless zigzag when plotted as one line.
+            by_date: dict = {}
+            for r in latest_rows:
+                bucket = by_date.setdefault(r["target_date"], {"rows": []})
+                bucket["rows"].append(r)
+            predictions = []
+            for target_date, bucket in by_date.items():
+                group = bucket["rows"]
+                lowers = [r["confidence_lower"] for r in group if r["confidence_lower"] is not None]
+                uppers = [r["confidence_upper"] for r in group if r["confidence_upper"] is not None]
+                predictions.append({
+                    "komoditas_id": group[0]["komoditas_id"],
+                    "kota_id": None,
+                    "prediction_date": max(r["prediction_date"] for r in group),
+                    "target_date": target_date,
+                    "predicted_price": sum(r["predicted_price"] for r in group) / len(group),
+                    "confidence_lower": sum(lowers) / len(lowers) if lowers else None,
+                    "confidence_upper": sum(uppers) / len(uppers) if uppers else None,
+                    "model_version": group[0]["model_version"],
+                    "created_at": max(r["created_at"] for r in group),
+                })
+        else:
+            predictions = latest_rows
+
+        predictions.sort(key=lambda p: p["target_date"])
+        predictions = predictions[:limit]
+
         # Convert date/datetime to string for JSON serialization
         for p in predictions:
             for key in ("prediction_date", "target_date", "created_at"):
