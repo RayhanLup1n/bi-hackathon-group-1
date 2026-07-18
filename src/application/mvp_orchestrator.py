@@ -141,6 +141,7 @@ def get_overview(
     today = sim_date or date.today()
     data_age_days, data_latest = _get_data_freshness()
     coverage_ratio = _get_coverage_ratio()
+    ml_online = _check_ml_health()
 
     # ── Build recommendations for all commodity x province combos ──────
     recommendations: list[Recommendation] = []

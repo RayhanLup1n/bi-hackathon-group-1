@@ -101,11 +101,11 @@ def api_overview(
     except AppError:
         raise  # let global handler convert
     except Exception as exc:
-        logger.exception("Unexpected error in overview")
+        logger.exception("Unexpected error in overview: %s", exc)
         raise ServiceUnavailableError(
             "Gagal memuat dashboard overview. Silakan coba beberapa saat lagi.",
             internal_message=str(exc),
-        )
+        ) from exc
 
 
 @mvp_router.get("/priorities", summary="Ranked priority list")

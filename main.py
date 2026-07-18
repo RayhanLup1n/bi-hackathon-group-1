@@ -2,6 +2,7 @@ import base64
 import logging
 import os
 import tempfile
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -209,6 +210,27 @@ async def add_security_headers(request: Request, call_next):
         "connect-src 'self' https://web-production-1eea6.up.railway.app"
     )
     return response
+
+# Request timing middleware — log slow API endpoints for debugging
+@app.middleware("http")
+async def log_request_timing(request: Request, call_next):
+    """Log request method, path, status, and duration for all API endpoints."""
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    # Only log API routes (skip static files, health checks)
+    if request.url.path.startswith("/api"):
+        level = logging.WARNING if elapsed_ms > 2000 else logging.INFO
+        logger.log(
+            level,
+            "[%s] %s %s — %d — %.0fms",
+            request.method,
+            request.url.path,
+            response.status_code,
+            elapsed_ms,
+        )
+    return response
+
 
 app.include_router(router)
 app.include_router(het_router)
